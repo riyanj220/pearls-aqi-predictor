@@ -7,11 +7,16 @@ __pycache__/
 data/raw/*
 data/processed/*
 data/reports/*
+models/*
 !data/raw/.gitkeep
 !data/processed/.gitkeep
 !data/reports/.gitkeep
 data/training/*
 !data/training/.gitkeep
+!models/.gitkeep
+
+reports/*
+!reports/.gitkeep
 
 models/artifacts/
 
