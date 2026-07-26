@@ -9,6 +9,9 @@ data/processed/*
 data/reports/*
 !data/raw/.gitkeep
 !data/processed/.gitkeep
+!data/reports/.gitkeep
+data/training/*
+!data/training/.gitkeep
 
 models/artifacts/
 
