@@ -23,3 +23,16 @@ models/artifacts/
 *.egg-info/
 raw datasets
 processed datasets
+
+
+# Generated explainability outputs
+explainability/*
+!explainability/.gitkeep
+
+# Generated error-analysis outputs
+error_analysis/*
+!error_analysis/.gitkeep
+
+# Generated figures
+figures/*
+!figures/.gitkeep
