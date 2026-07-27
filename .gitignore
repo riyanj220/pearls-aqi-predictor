@@ -36,3 +36,7 @@ error_analysis/*
 # Generated figures
 figures/*
 !figures/.gitkeep
+
+# Generated live inference runs
+inference/runs/*
+!inference/runs/.gitkeep
