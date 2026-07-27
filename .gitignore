@@ -40,3 +40,10 @@ figures/*
 # Generated live inference runs
 inference/runs/*
 !inference/runs/.gitkeep
+
+# Generated AQI and alert artifacts
+aqi/latest/*
+!aqi/latest/.gitkeep
+
+aqi/runs/*
+!aqi/runs/.gitkeep
