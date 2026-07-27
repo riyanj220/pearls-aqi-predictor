@@ -18,6 +18,10 @@ from app.api.services.artifact_repository import (
     ArtifactSchemaError,
 )
 
+from starlette.exceptions import (
+    HTTPException as StarletteHTTPException,
+)
+
 LOGGER = logging.getLogger(__name__)
 
 
@@ -189,6 +193,34 @@ async def request_validation_error_handler(
         },
     )
 
+async def http_exception_error_handler(
+    request: Request,
+    exc: StarletteHTTPException,
+) -> JSONResponse:
+    """Convert framework HTTP errors into the standard response."""
+
+    if exc.status_code == 404:
+        code = "RESOURCE_NOT_FOUND"
+        message = "The requested API resource was not found."
+    elif exc.status_code == 405:
+        code = "METHOD_NOT_ALLOWED"
+        message = (
+            "The requested HTTP method is not allowed "
+            "for this resource."
+        )
+    else:
+        code = "HTTP_ERROR"
+        message = str(
+            exc.detail
+            or "The request could not be completed."
+        )
+
+    return _error_response(
+        request=request,
+        status_code=exc.status_code,
+        code=code,
+        message=message,
+    )
 
 async def unexpected_error_handler(
     request: Request,
@@ -230,6 +262,11 @@ def register_exception_handlers(
         RequestValidationError,
         request_validation_error_handler,
     )
+
+    app.add_exception_handler(
+            StarletteHTTPException,
+            http_exception_error_handler,
+        )
 
     app.add_exception_handler(
         Exception,

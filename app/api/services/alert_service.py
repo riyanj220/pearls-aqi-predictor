@@ -1,4 +1,4 @@
-"""Alert episode response mapping."""
+"""Alert episode response mapping and filtering."""
 
 from __future__ import annotations
 
@@ -13,6 +13,9 @@ from app.api.schemas.alerts import (
     AlertEpisodeCollectionResponse,
     AlertEpisodeResponse,
 )
+from app.api.schemas.common import (
+    AlertLevel,
+)
 from app.api.services.artifact_repository import (
     ArtifactBundle,
 )
@@ -21,8 +24,17 @@ from app.api.services.readiness_service import (
 )
 
 
+ALERT_LEVEL_RANK: dict[str, int] = {
+    "NORMAL": 0,
+    "ADVISORY": 1,
+    "WARNING": 2,
+    "SEVERE": 3,
+    "EMERGENCY": 4,
+}
+
+
 class AlertService:
-    """Map saved alert episodes into public response schemas."""
+    """Map and filter saved alert episodes."""
 
     def __init__(
         self,
@@ -38,7 +50,7 @@ class AlertService:
         start_horizon: int,
         end_horizon: int,
     ) -> pd.DataFrame:
-        """Return hourly forecast rows belonging to an episode."""
+        """Return hourly forecast rows within one episode."""
 
         return bundle.forecast_df.loc[
             bundle.forecast_df[
@@ -55,7 +67,7 @@ class AlertService:
         episode: dict[str, object],
         bundle: ArtifactBundle,
     ) -> AlertEpisodeResponse:
-        """Map one saved Phase 6 episode."""
+        """Convert one stored episode into the public schema."""
 
         start_horizon = int(
             episode["start_horizon"]
@@ -77,6 +89,7 @@ class AlertService:
             sensitive_groups_affected = False
             general_population_affected = False
             hazardous = False
+
             recommended_action = (
                 "Follow the health guidance for "
                 "the reported AQI category."
@@ -107,33 +120,23 @@ class AlertService:
             ]
 
             recommended_action = str(
-                peak_row[
-                    "recommended_action"
-                ]
+                peak_row["recommended_action"]
             )
 
         return AlertEpisodeResponse(
             alert_episode_id=str(
-                episode[
-                    "alert_episode_id"
-                ]
+                episode["alert_episode_id"]
             ),
             start_time_utc=pd.to_datetime(
-                episode[
-                    "episode_start_time"
-                ],
+                episode["episode_start_time"],
                 utc=True,
             ),
             end_time_utc=pd.to_datetime(
-                episode[
-                    "episode_end_time"
-                ],
+                episode["episode_end_time"],
                 utc=True,
             ),
             duration_hours=int(
-                episode[
-                    "duration_hours"
-                ]
+                episode["duration_hours"]
             ),
             start_horizon=start_horizon,
             end_horizon=end_horizon,
@@ -141,14 +144,10 @@ class AlertService:
                 episode["peak_aqi"]
             ),
             maximum_category=str(
-                episode[
-                    "peak_category"
-                ]
+                episode["peak_category"]
             ),
             maximum_alert_level=str(
-                episode[
-                    "maximum_alert_level"
-                ]
+                episode["maximum_alert_level"]
             ),
             peak_time_utc=pd.to_datetime(
                 episode["peak_time"],
@@ -165,29 +164,62 @@ class AlertService:
             ),
             hazardous=hazardous,
             summary_message=str(
-                episode[
-                    "episode_message"
-                ]
+                episode["episode_message"]
             ),
             recommended_action=(
                 recommended_action
             ),
         )
 
+    @staticmethod
+    def _passes_filters(
+        *,
+        episode: AlertEpisodeResponse,
+        minimum_level: AlertLevel | None,
+        hazardous_only: bool,
+    ) -> bool:
+        """Return whether an episode satisfies alert filters."""
+
+        if minimum_level is not None:
+            episode_rank = ALERT_LEVEL_RANK[
+                str(episode.maximum_alert_level)
+            ]
+
+            minimum_rank = ALERT_LEVEL_RANK[
+                minimum_level.value
+            ]
+
+            if episode_rank < minimum_rank:
+                return False
+
+        if hazardous_only and not episode.hazardous:
+            return False
+
+        return True
+
     def build_collection(
         self,
+        *,
         bundle: ArtifactBundle,
+        minimum_level: AlertLevel | None = None,
+        hazardous_only: bool = False,
     ) -> AlertEpisodeCollectionResponse:
-        """Return all saved alert episodes."""
+        """Return filtered forecast alert episodes."""
 
-        episodes = [
-            self.build_episode(
-                episode=episode,
+        episodes = []
+
+        for episode_payload in bundle.alert_episodes:
+            episode = self.build_episode(
+                episode=episode_payload,
                 bundle=bundle,
             )
-            for episode
-            in bundle.alert_episodes
-        ]
+
+            if self._passes_filters(
+                episode=episode,
+                minimum_level=minimum_level,
+                hazardous_only=hazardous_only,
+            ):
+                episodes.append(episode)
 
         return AlertEpisodeCollectionResponse(
             pipeline_run_id=(
@@ -209,8 +241,10 @@ class AlertService:
         *,
         bundle: ArtifactBundle,
         include_upcoming: bool,
+        minimum_level: AlertLevel | None = None,
+        hazardous_only: bool = False,
     ) -> ActiveAlertsResponse:
-        """Classify episodes relative to the current UTC time."""
+        """Return filtered current and upcoming episodes."""
 
         now_utc = datetime.now(
             timezone.utc
@@ -218,13 +252,18 @@ class AlertService:
 
         classified_episodes = []
 
-        for episode_payload in (
-            bundle.alert_episodes
-        ):
+        for episode_payload in bundle.alert_episodes:
             episode = self.build_episode(
                 episode=episode_payload,
                 bundle=bundle,
             )
+
+            if not self._passes_filters(
+                episode=episode,
+                minimum_level=minimum_level,
+                hazardous_only=hazardous_only,
+            ):
+                continue
 
             currently_active = (
                 episode.start_time_utc
@@ -237,41 +276,39 @@ class AlertService:
                 > now_utc
             )
 
-            if (
+            if not (
                 currently_active
                 or (
                     include_upcoming
                     and upcoming
                 )
             ):
-                classified_episodes.append(
-                    ActiveAlertEpisodeResponse(
-                        **episode.model_dump(),
-                        currently_active=(
-                            currently_active
-                        ),
-                        upcoming=upcoming,
-                    )
+                continue
+
+            classified_episodes.append(
+                ActiveAlertEpisodeResponse(
+                    **episode.model_dump(),
+                    currently_active=(
+                        currently_active
+                    ),
+                    upcoming=upcoming,
                 )
-
-        current_count = sum(
-            episode.currently_active
-            for episode
-            in classified_episodes
-        )
-
-        upcoming_count = sum(
-            episode.upcoming
-            for episode
-            in classified_episodes
-        )
+            )
 
         return ActiveAlertsResponse(
             pipeline_run_id=(
                 bundle.phase_6_run_id
             ),
             checked_at_utc=now_utc,
-            current_count=current_count,
-            upcoming_count=upcoming_count,
+            current_count=sum(
+                episode.currently_active
+                for episode
+                in classified_episodes
+            ),
+            upcoming_count=sum(
+                episode.upcoming
+                for episode
+                in classified_episodes
+            ),
             episodes=classified_episodes,
         )

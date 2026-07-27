@@ -10,6 +10,10 @@ from app.api.config import (
     APISettings,
     get_api_settings,
 )
+from app.api.errors import APIServiceError
+from app.api.schemas.common import (
+    FreshnessStatus,
+)
 from app.api.services.artifact_repository import (
     ArtifactBundle,
     ArtifactRepository,
@@ -19,7 +23,7 @@ from app.api.services.artifact_repository import (
 def get_artifact_repository(
     request: Request,
 ) -> ArtifactRepository:
-    """Return the repository initialized during application lifespan."""
+    """Return the repository created during application startup."""
 
     repository = getattr(
         request.app.state,
@@ -44,9 +48,37 @@ def get_latest_artifact_bundle(
         Depends(get_artifact_repository),
     ],
 ) -> ArtifactBundle:
-    """Load the latest validated artifact bundle."""
+    """
+    Return the latest validated and sufficiently fresh forecast.
 
-    return repository.load_latest()
+    Readiness uses the repository directly so that it can report stale
+    status without this dependency converting it into a data error.
+    """
+
+    bundle = repository.load_latest()
+
+    if (
+        bundle.freshness.status
+        == FreshnessStatus.STALE
+    ):
+        raise APIServiceError(
+            status_code=503,
+            code="FORECAST_STALE",
+            message=(
+                "The latest validated forecast is stale "
+                "and cannot be served as current data."
+            ),
+            details={
+                "generated_at_utc": (
+                    bundle.generated_at_utc.isoformat()
+                ),
+                "age_hours": (
+                    bundle.freshness.age_hours
+                ),
+            },
+        )
+
+    return bundle
 
 
 SettingsDependency = Annotated[

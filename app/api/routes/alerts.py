@@ -12,6 +12,9 @@ from app.api.schemas.alerts import (
     ActiveAlertsResponse,
     AlertEpisodeCollectionResponse,
 )
+from app.api.schemas.common import (
+    AlertLevel,
+)
 from app.api.services.alert_service import (
     AlertService,
 )
@@ -25,18 +28,26 @@ router = APIRouter(
 @router.get(
     "",
     response_model=AlertEpisodeCollectionResponse,
-    summary="Get all forecast alert episodes",
+    summary="Get forecast alert episodes",
 )
 def get_alert_episodes(
     settings: SettingsDependency,
     bundle: ArtifactBundleDependency,
+    minimum_level: AlertLevel | None = Query(
+        default=None,
+    ),
+    hazardous_only: bool = Query(
+        default=False,
+    ),
 ) -> AlertEpisodeCollectionResponse:
-    """Return all grouped Phase 6 alert episodes."""
+    """Return alert episodes matching optional severity filters."""
 
     return AlertService(
         settings=settings
     ).build_collection(
-        bundle
+        bundle=bundle,
+        minimum_level=minimum_level,
+        hazardous_only=hazardous_only,
     )
 
 
@@ -51,12 +62,20 @@ def get_active_alerts(
     include_upcoming: bool = Query(
         default=True,
     ),
+    minimum_level: AlertLevel | None = Query(
+        default=None,
+    ),
+    hazardous_only: bool = Query(
+        default=False,
+    ),
 ) -> ActiveAlertsResponse:
-    """Distinguish currently active and upcoming alerts."""
+    """Return current or upcoming episodes matching filters."""
 
     return AlertService(
         settings=settings
     ).build_active_collection(
         bundle=bundle,
         include_upcoming=include_upcoming,
+        minimum_level=minimum_level,
+        hazardous_only=hazardous_only,
     )
