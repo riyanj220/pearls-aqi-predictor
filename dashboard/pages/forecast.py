@@ -97,7 +97,7 @@ def _render_sidebar() -> dict[str, Any]:
 
     if st.sidebar.button(
         "Refresh dashboard",
-        use_container_width=True,
+        width='stretch',
         type="primary",
     ):
         clear_dashboard_api_cache()
@@ -359,7 +359,7 @@ def _render_hourly_table(
 
     st.dataframe(
         final_table_df,
-        use_container_width=True,
+        width="stretch",
         hide_index=True,
         height=480,
     )

@@ -389,7 +389,124 @@ def cached_readiness() -> dict[str, Any]:
         base_url: str,
     ) -> dict[str, Any]:
         client = FastAPIClient(settings)
+
         return client.get_readiness()
+
+    return _load(
+        settings.fastapi_base_url
+    )
+
+def cached_alerts() -> dict[str, Any]:
+    """Load all alert episodes with a short Streamlit cache."""
+
+    import streamlit as st
+
+    settings = get_dashboard_settings()
+
+    @st.cache_data(
+        ttl=settings.dashboard_cache_ttl_seconds,
+        show_spinner=False,
+    )
+    def _load(
+        base_url: str,
+    ) -> dict[str, Any]:
+        client = FastAPIClient(settings)
+
+        return client.get_alerts()
+
+    return _load(
+        settings.fastapi_base_url
+    )
+
+
+def cached_active_alerts() -> dict[str, Any]:
+    """Load current and upcoming alert episodes."""
+
+    import streamlit as st
+
+    settings = get_dashboard_settings()
+
+    @st.cache_data(
+        ttl=settings.dashboard_cache_ttl_seconds,
+        show_spinner=False,
+    )
+    def _load(
+        base_url: str,
+    ) -> dict[str, Any]:
+        client = FastAPIClient(settings)
+
+        return client.get_active_alerts(
+            include_upcoming=True
+        )
+
+    return _load(
+        settings.fastapi_base_url
+    )
+
+
+def cached_metadata() -> dict[str, Any]:
+    """Load public metadata."""
+
+    import streamlit as st
+
+    settings = get_dashboard_settings()
+
+    @st.cache_data(
+        ttl=settings.dashboard_cache_ttl_seconds,
+        show_spinner=False,
+    )
+    def _load(
+        base_url: str,
+    ) -> dict[str, Any]:
+        client = FastAPIClient(settings)
+
+        return client.get_metadata()
+
+    return _load(
+        settings.fastapi_base_url
+    )
+
+
+def cached_pipeline_status() -> dict[str, Any]:
+    """Load the latest pipeline status."""
+
+    import streamlit as st
+
+    settings = get_dashboard_settings()
+
+    @st.cache_data(
+        ttl=settings.dashboard_cache_ttl_seconds,
+        show_spinner=False,
+    )
+    def _load(
+        base_url: str,
+    ) -> dict[str, Any]:
+        client = FastAPIClient(settings)
+
+        return client.get_pipeline_status()
+
+    return _load(
+        settings.fastapi_base_url
+    )
+
+
+def cached_liveness() -> dict[str, Any]:
+    """Load FastAPI process liveness."""
+
+    import streamlit as st
+
+    settings = get_dashboard_settings()
+
+    @st.cache_data(
+        ttl=settings.dashboard_cache_ttl_seconds,
+        show_spinner=False,
+    )
+    def _load(
+        base_url: str,
+    ) -> dict[str, Any]:
+        client = FastAPIClient(settings)
+
+        return client.get_liveness()
 
     return _load(
         settings.fastapi_base_url

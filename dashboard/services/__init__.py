@@ -14,6 +14,14 @@ from dashboard.services.api_client import (
     get_cached_api_client,
 )
 
+from dashboard.services.api_client import (
+    cached_active_alerts,
+    cached_alerts,
+    cached_liveness,
+    cached_metadata,
+    cached_pipeline_status,
+)
+
 __all__ = [
     "APIResult",
     "DashboardAPIConnectionError",
@@ -26,4 +34,9 @@ __all__ = [
     "cached_readiness",
     "clear_dashboard_api_cache",
     "get_cached_api_client",
+    "cached_active_alerts",
+    "cached_alerts",
+    "cached_liveness",
+    "cached_metadata",
+    "cached_pipeline_status",
 ]

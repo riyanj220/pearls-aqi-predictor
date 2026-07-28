@@ -67,8 +67,10 @@ st.markdown(
 )
 
 
-from dashboard.pages.forecast import (
+from dashboard.pages import (
+    render_alerts_page,
     render_forecast_page,
+    render_system_status_page,
 )
 
 
@@ -79,12 +81,27 @@ forecast_page = st.Page(
     default=True,
 )
 
+alerts_page = st.Page(
+    render_alerts_page,
+    title="Alerts",
+    icon=":material/notifications_active:",
+)
+
+system_status_page = st.Page(
+    render_system_status_page,
+    title="System Status",
+    icon=":material/monitor_heart:",
+)
 
 navigation = st.navigation(
     {
         "Dashboard": [
             forecast_page,
-        ]
+            alerts_page,
+        ],
+        "Operations": [
+            system_status_page,
+        ],
     }
 )
 
