@@ -1,0 +1,53 @@
+name: pearls-aqi-predictor
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    image: pearls-aqi-api:latest
+
+    environment:
+      PEARLS_API_ENVIRONMENT: production
+      PEARLS_API_HOST: 0.0.0.0
+      PEARLS_API_PORT: 8000
+      PEARLS_API_API_PREFIX: /api/v1
+      PEARLS_API_PHASE_6_LATEST_DIRECTORY: /app/aqi/latest
+      PEARLS_API_ARTIFACT_CACHE_SECONDS: 60
+      PEARLS_API_FORECAST_AGING_THRESHOLD_HOURS: 6
+      PEARLS_API_FORECAST_STALENESS_THRESHOLD_HOURS: 12
+      PEARLS_API_ALLOWED_CORS_ORIGINS: '["http://localhost:8501"]'
+      PEARLS_API_LOG_LEVEL: INFO
+
+    volumes:
+      - ./aqi/latest:/app/aqi/latest:ro
+
+    ports:
+      - "8000:8000"
+
+    restart: unless-stopped
+
+  dashboard:
+    build:
+      context: .
+      dockerfile: dashboard/Dockerfile
+
+    image: pearls-aqi-dashboard:latest
+
+    environment:
+      FASTAPI_BASE_URL: http://api:8000/api/v1
+      DASHBOARD_REQUEST_TIMEOUT_SECONDS: 10
+      DASHBOARD_CACHE_TTL_SECONDS: 60
+      DASHBOARD_TITLE: Pearls AQI Predictor
+      DASHBOARD_DEFAULT_TIMEZONE: Asia/Karachi
+      DASHBOARD_ENVIRONMENT: production
+
+    depends_on:
+      api:
+        condition: service_healthy
+
+    ports:
+      - "8501:8501"
+
+    restart: unless-stopped
