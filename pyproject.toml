@@ -7,31 +7,51 @@ name = "pearls-aqi-predictor"
 version = "0.1.0"
 description = "72-hour PM2.5-based AQI forecasting project for Zafar Memon DHA, Karachi"
 requires-python = ">=3.12,<3.13"
+
+# Required by the FastAPI artifact-serving application.
 dependencies = [
     "pandas>=2.2",
-    "numpy>=1.26",
     "pyarrow>=16.0",
-    "jupyter>=1.0",
     "python-dotenv>=1.2.2",
-    "requests>=2.34.2",
-    "scikit-learn>=1.9.0",
-    "xgboost>=3.2.0",
-    "matplotlib>=3.11.1",
-    "shap==0.52.0",
-    "numba==0.61.2",
-    "llvmlite==0.44.0",
-    "pytest>=9.1.1",
     "fastapi>=0.140.1",
     "uvicorn[standard]>=0.51.0",
     "pydantic-settings>=2.14.2",
-    "streamlit>=1.59.1",
-    "plotly>=6.9.0",
 ]
 
-[project.optional-dependencies]
+[dependency-groups]
 dev = [
-    "pytest>=8.0",
+    "pytest>=9.1.1",
     "ruff>=0.5",
+    "jupyter>=1.0",
+]
+
+training = [
+    "numpy>=1.26",
+    "scikit-learn>=1.9.0",
+    "xgboost>=3.2.0",
+    "matplotlib>=3.11.1",
+]
+
+explainability = [
+    "shap==0.52.0",
+    "numba==0.61.2",
+    "llvmlite==0.44.0",
+]
+
+inference = [
+    "numpy>=1.26",
+    "scikit-learn>=1.9.0",
+    "xgboost>=3.2.0",
+    "requests>=2.34.2",
+]
+
+dashboard = [
+    "streamlit>=1.59.1",
+    "plotly>=6.9.0",
+    "requests>=2.34.2",
+    "pandas>=2.2",
+    "pydantic>=2.0",
+    "pydantic-settings>=2.14.2",
 ]
 
 [tool.setuptools.packages.find]

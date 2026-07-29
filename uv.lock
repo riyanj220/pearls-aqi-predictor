@@ -1217,55 +1217,86 @@ version = "0.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "fastapi" },
-    { name = "jupyter" },
-    { name = "llvmlite" },
-    { name = "matplotlib" },
-    { name = "numba" },
-    { name = "numpy" },
     { name = "pandas" },
-    { name = "plotly" },
     { name = "pyarrow" },
     { name = "pydantic-settings" },
-    { name = "pytest" },
     { name = "python-dotenv" },
-    { name = "requests" },
-    { name = "scikit-learn" },
-    { name = "shap" },
-    { name = "streamlit" },
     { name = "uvicorn", extra = ["standard"] },
-    { name = "xgboost" },
 ]
 
-[package.optional-dependencies]
+[package.dev-dependencies]
+dashboard = [
+    { name = "pandas" },
+    { name = "plotly" },
+    { name = "pydantic" },
+    { name = "pydantic-settings" },
+    { name = "requests" },
+    { name = "streamlit" },
+]
 dev = [
+    { name = "jupyter" },
     { name = "pytest" },
     { name = "ruff" },
+]
+explainability = [
+    { name = "llvmlite" },
+    { name = "numba" },
+    { name = "shap" },
+]
+inference = [
+    { name = "numpy" },
+    { name = "requests" },
+    { name = "scikit-learn" },
+    { name = "xgboost" },
+]
+training = [
+    { name = "matplotlib" },
+    { name = "numpy" },
+    { name = "scikit-learn" },
+    { name = "xgboost" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "fastapi", specifier = ">=0.140.1" },
-    { name = "jupyter", specifier = ">=1.0" },
-    { name = "llvmlite", specifier = "==0.44.0" },
-    { name = "matplotlib", specifier = ">=3.11.1" },
-    { name = "numba", specifier = "==0.61.2" },
-    { name = "numpy", specifier = ">=1.26" },
     { name = "pandas", specifier = ">=2.2" },
-    { name = "plotly", specifier = ">=6.9.0" },
     { name = "pyarrow", specifier = ">=16.0" },
     { name = "pydantic-settings", specifier = ">=2.14.2" },
-    { name = "pytest", specifier = ">=9.1.1" },
-    { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0" },
     { name = "python-dotenv", specifier = ">=1.2.2" },
-    { name = "requests", specifier = ">=2.34.2" },
-    { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.5" },
-    { name = "scikit-learn", specifier = ">=1.9.0" },
-    { name = "shap", specifier = "==0.52.0" },
-    { name = "streamlit", specifier = ">=1.59.1" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.51.0" },
+]
+
+[package.metadata.requires-dev]
+dashboard = [
+    { name = "pandas", specifier = ">=2.2" },
+    { name = "plotly", specifier = ">=6.9.0" },
+    { name = "pydantic", specifier = ">=2.0" },
+    { name = "pydantic-settings", specifier = ">=2.14.2" },
+    { name = "requests", specifier = ">=2.34.2" },
+    { name = "streamlit", specifier = ">=1.59.1" },
+]
+dev = [
+    { name = "jupyter", specifier = ">=1.0" },
+    { name = "pytest", specifier = ">=9.1.1" },
+    { name = "ruff", specifier = ">=0.5" },
+]
+explainability = [
+    { name = "llvmlite", specifier = "==0.44.0" },
+    { name = "numba", specifier = "==0.61.2" },
+    { name = "shap", specifier = "==0.52.0" },
+]
+inference = [
+    { name = "numpy", specifier = ">=1.26" },
+    { name = "requests", specifier = ">=2.34.2" },
+    { name = "scikit-learn", specifier = ">=1.9.0" },
     { name = "xgboost", specifier = ">=3.2.0" },
 ]
-provides-extras = ["dev"]
+training = [
+    { name = "matplotlib", specifier = ">=3.11.1" },
+    { name = "numpy", specifier = ">=1.26" },
+    { name = "scikit-learn", specifier = ">=1.9.0" },
+    { name = "xgboost", specifier = ">=3.2.0" },
+]
 
 [[package]]
 name = "pexpect"
