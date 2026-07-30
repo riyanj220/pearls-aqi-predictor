@@ -77,6 +77,29 @@ class MLOpsSettings(BaseSettings):
         "pearls_aqi_pm25_forecaster"
     )
 
+    hopsworks_pm25_feature_group_name: str = (
+    "pm25_hourly_observations"
+    )
+
+    hopsworks_weather_feature_group_name: str = (
+        "weather_hourly_observations"
+    )
+
+    hopsworks_engineered_feature_group_name: str = (
+        "pm25_hourly_features"
+    )
+
+    feature_pipeline_version: str = "phase_2_v1"
+    source_data_version: str = "phase_1_v1"
+
+    phase_1_canonical_dataset_path: str = (
+    "data/processed/canonical_hourly_dataset.parquet"
+    )
+
+    phase_2_training_dataset_path: str = (
+        "data/training/feature_dataset_full.parquet"
+    )
+
     @field_validator(
         "hopsworks_project",
         "hopsworks_host",
@@ -195,6 +218,28 @@ class MLOpsSettings(BaseSettings):
             "model_name": self.hopsworks_model_name,
             "api_key_configured": (
                 self.hopsworks_api_key is not None
+            ),
+            "pm25_feature_group_name": (
+                self.hopsworks_pm25_feature_group_name
+            ),
+            "weather_feature_group_name": (
+                self.hopsworks_weather_feature_group_name
+            ),
+            "engineered_feature_group_name": (
+                self.hopsworks_engineered_feature_group_name
+            ),
+            "feature_pipeline_version": (
+                self.feature_pipeline_version
+            ),
+            "source_data_version": (
+                self.source_data_version
+            ),
+
+            "phase_1_canonical_dataset_path": (
+                self.phase_1_canonical_dataset_path
+            ),
+            "phase_2_training_dataset_path": (
+                self.phase_2_training_dataset_path
             ),
         }
 
