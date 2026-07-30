@@ -53,6 +53,9 @@ dashboard = [
     "pydantic>=2.0",
     "pydantic-settings>=2.14.2",
 ]
+feature-store = [
+    "hopsworks[python]~=5.0.0",
+]
 
 [tool.setuptools.packages.find]
 include = ["app", "app.*"]
