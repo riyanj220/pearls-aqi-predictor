@@ -341,17 +341,18 @@ def build_engineered_feature_contract(
     """Build the reusable reference-time feature contract."""
 
     excluded_columns = {
-        "forecast_horizon_hours",
-        "target_time",
-        "target_time_utc",
-        "target_pm25_ug_m3",
+    "forecast_horizon_hours",
+    "target_time",
+    "target_time_utc",
+    "target_pm25_ug_m3",
     }
+
 
     reference_feature_columns = [
         column
         for column in model_feature_columns
         if column not in excluded_columns
-        and not column.startswith("target_weather_")
+        and not column.startswith("target_")
     ]
 
     generated_features = tuple(
@@ -405,7 +406,9 @@ def build_engineered_feature_contract(
 
 def build_feature_group_contracts(
     *,
-    feature_group_version: int,
+    pm25_version: int,
+    weather_version: int,
+    engineered_version: int,
     pm25_name: str,
     weather_name: str,
     engineered_name: str,
@@ -416,15 +419,15 @@ def build_feature_group_contracts(
     return {
         "pm25": build_pm25_observation_contract(
             name=pm25_name,
-            version=feature_group_version,
+            version=pm25_version,
         ),
         "weather": build_weather_observation_contract(
             name=weather_name,
-            version=feature_group_version,
+            version=weather_version,
         ),
         "engineered": build_engineered_feature_contract(
             name=engineered_name,
-            version=feature_group_version,
+            version=engineered_version,
             model_feature_columns=model_feature_columns,
         ),
     }

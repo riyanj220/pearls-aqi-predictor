@@ -803,8 +803,14 @@ def run_historical_backfill(
     )
 
     contracts = build_feature_group_contracts(
-        feature_group_version=(
-            settings.hopsworks_feature_group_version
+        pm25_version=(
+            settings.hopsworks_pm25_feature_group_version
+        ),
+        weather_version=(
+            settings.hopsworks_weather_feature_group_version
+        ),
+        engineered_version=(
+            settings.hopsworks_engineered_feature_group_version
         ),
         pm25_name=(
             settings.hopsworks_pm25_feature_group_name
@@ -1039,9 +1045,17 @@ def run_historical_backfill(
                 PROJECT_ROOT
             )
         ),
-        "feature_group_version": (
-            settings.hopsworks_feature_group_version
-        ),
+        "feature_group_versions": {
+            "pm25": (
+                settings.hopsworks_pm25_feature_group_version
+            ),
+            "weather": (
+                settings.hopsworks_weather_feature_group_version
+            ),
+            "engineered": (
+                settings.hopsworks_engineered_feature_group_version
+            ),
+        },
         "groups": group_reports,
     }
 

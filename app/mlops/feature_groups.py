@@ -89,17 +89,26 @@ def validate_contract(
             f"feature {contract.event_time!r}."
         )
 
-    forbidden_engineered_features = {
-        "target_pm25_ug_m3",
-        "target_time",
-        "target_time_utc",
-    }.intersection(feature_names)
+    forbidden_engineered_features = sorted(
+        feature_name
+        for feature_name in feature_names
+        if (
+            feature_name.startswith("target_")
+            or feature_name
+            in {
+                "forecast_horizon_hours",
+                "target_time",
+                "target_time_utc",
+                "target_pm25_ug_m3",
+            }
+        )
+    )
 
     if forbidden_engineered_features:
         raise FeatureGroupConfigurationError(
-            f"{contract.name} contains forbidden labels "
-            f"or target timestamps: "
-            f"{sorted(forbidden_engineered_features)}"
+            f"{contract.name} contains horizon-dependent "
+            "features, labels, or target timestamps: "
+            f"{forbidden_engineered_features}"
         )
 
 

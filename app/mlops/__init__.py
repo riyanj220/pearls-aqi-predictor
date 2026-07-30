@@ -33,6 +33,20 @@ from app.mlops.gaps import (
     detect_hourly_gaps,
 )
 
+from app.pipelines.feature_views import (
+    FeatureViewError,
+    ResolvedFeatureView,
+    create_or_get_reference_feature_view,
+)
+from app.pipelines.training_datasets import (
+    DatasetParityResult,
+    TrainingDatasetError,
+    build_hopsworks_backed_training_dataset,
+    compare_training_datasets,
+    read_hopsworks_reference_features,
+    save_versioned_training_snapshot,
+)
+
 __all__ = [
     "FeatureStoreBackend",
     "HopsworksConfigurationError",
@@ -54,4 +68,13 @@ __all__ = [
     "validate_contracts",
     "MissingInterval",
     "detect_hourly_gaps",
+    "DatasetParityResult",
+    "FeatureViewError",
+    "ResolvedFeatureView",
+    "TrainingDatasetError",
+    "build_hopsworks_backed_training_dataset",
+    "compare_training_datasets",
+    "create_or_get_reference_feature_view",
+    "read_hopsworks_reference_features",
+    "save_versioned_training_snapshot",
 ]

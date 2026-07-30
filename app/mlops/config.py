@@ -100,6 +100,39 @@ class MLOpsSettings(BaseSettings):
         "data/training/feature_dataset_full.parquet"
     )
 
+    hopsworks_feature_view_name: str = (
+    "pm25_reference_features"
+    )
+
+    hopsworks_training_dataset_name: str = (
+        "pm25_72h_training_dataset"
+    )
+
+    hopsworks_training_dataset_version: int = Field(
+        default=1,
+        ge=1,
+    )
+
+    training_dataset_float_tolerance: float = Field(
+        default=1e-8,
+        gt=0,
+    )
+
+    hopsworks_pm25_feature_group_version: int = Field(
+    default=1,
+    ge=1,
+    )
+
+    hopsworks_weather_feature_group_version: int = Field(
+        default=1,
+        ge=1,
+    )
+
+    hopsworks_engineered_feature_group_version: int = Field(
+        default=2,
+        ge=1,
+    )
+
     @field_validator(
         "hopsworks_project",
         "hopsworks_host",
@@ -240,6 +273,29 @@ class MLOpsSettings(BaseSettings):
             ),
             "phase_2_training_dataset_path": (
                 self.phase_2_training_dataset_path
+            ),
+
+            "feature_view_name": (
+                self.hopsworks_feature_view_name
+            ),
+            "training_dataset_name": (
+                self.hopsworks_training_dataset_name
+            ),
+            "training_dataset_version": (
+                self.hopsworks_training_dataset_version
+            ),
+            "training_dataset_float_tolerance": (
+                self.training_dataset_float_tolerance
+            ),
+
+            "pm25_feature_group_version": (
+                self.hopsworks_pm25_feature_group_version
+            ),
+            "weather_feature_group_version": (
+                self.hopsworks_weather_feature_group_version
+            ),
+            "engineered_feature_group_version": (
+                self.hopsworks_engineered_feature_group_version
             ),
         }
 
