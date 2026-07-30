@@ -133,6 +133,20 @@ class MLOpsSettings(BaseSettings):
         ge=1,
     )
 
+    hopsworks_initial_model_version: int = Field(
+        default=1,
+        ge=1,
+    )
+
+    hopsworks_production_model_version: int = Field(
+        default=1,
+        ge=1,
+    )
+
+    model_cache_directory: str = (
+        "models/registry_cache"
+    )
+
     @field_validator(
         "hopsworks_project",
         "hopsworks_host",
@@ -296,6 +310,16 @@ class MLOpsSettings(BaseSettings):
             ),
             "engineered_feature_group_version": (
                 self.hopsworks_engineered_feature_group_version
+            ),
+
+            "initial_model_version": (
+                self.hopsworks_initial_model_version
+            ),
+            "production_model_version": (
+                self.hopsworks_production_model_version
+            ),
+            "model_cache_directory": (
+                self.model_cache_directory
             ),
         }
 

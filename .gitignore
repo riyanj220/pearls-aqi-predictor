@@ -47,3 +47,10 @@ aqi/latest/*
 
 aqi/runs/*
 !aqi/runs/.gitkeep
+
+
+models/registry_package/*
+!models/registry_package/.gitkeep
+
+models/registry_cache/*
+!models/registry_cache/.gitkeep

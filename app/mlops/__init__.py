@@ -47,6 +47,16 @@ from app.pipelines.training_datasets import (
     save_versioned_training_snapshot,
 )
 
+from app.mlops.model_registry import (
+    ModelRegistryError,
+    RegisteredModelResult,
+    ResolvedProductionModel,
+    calculate_sha256,
+    prepare_model_package,
+    register_initial_production_model,
+    resolve_production_model,
+)
+
 __all__ = [
     "FeatureStoreBackend",
     "HopsworksConfigurationError",
@@ -77,4 +87,12 @@ __all__ = [
     "create_or_get_reference_feature_view",
     "read_hopsworks_reference_features",
     "save_versioned_training_snapshot",
+
+    "ModelRegistryError",
+    "RegisteredModelResult",
+    "ResolvedProductionModel",
+    "calculate_sha256",
+    "prepare_model_package",
+    "register_initial_production_model",
+    "resolve_production_model",
 ]
