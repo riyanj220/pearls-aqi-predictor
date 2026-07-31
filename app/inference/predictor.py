@@ -12,6 +12,13 @@ import pandas as pd
 
 from app.core.config import Settings, settings
 
+from app.inference.model_source import (
+    ModelArtifactPaths,
+    resolve_model_artifact_paths,
+)
+from app.mlops.config import (
+    get_mlops_settings,
+)
 
 class ArtifactContractError(RuntimeError):
     """Raised when saved model artifacts are missing or inconsistent."""
@@ -31,6 +38,13 @@ class ModelArtifacts:
     persistence_max_horizon: int
     model_metadata: dict[str, Any]
     model_selection_report: dict[str, Any]
+
+    model_source: str
+    model_registry_name: str | None
+    model_registry_version: int | None
+    model_checksum_sha256: str
+    model_fallback_used: bool
+    model_fallback_reason: str | None
 
 
 def _load_json(path: Path) -> dict[str, Any]:
@@ -57,20 +71,16 @@ def _load_json(path: Path) -> dict[str, Any]:
     return payload
 
 
-def _validate_required_paths(
+def _validate_shared_contract_paths(
     app_settings: Settings,
 ) -> None:
-    """Confirm all model-contract artifacts exist."""
+    """
+    Validate artifacts shared by every model-loading mode.
+
+    Model-specific files are validated by model_source.py.
+    """
 
     required_paths = {
-        "model": app_settings.best_model_path,
-        "model feature contract": (
-            app_settings.model_feature_contract_path
-        ),
-        "model metadata": app_settings.model_metadata_path,
-        "model selection report": (
-            app_settings.model_selection_report_path
-        ),
         "Phase 2 feature contract": (
             app_settings.phase_2_feature_contract_path
         ),
@@ -89,27 +99,34 @@ def _validate_required_paths(
     ]
 
     if missing_paths:
-        formatted_paths = "\n".join(missing_paths)
+        formatted_paths = "\n".join(
+            missing_paths
+        )
 
         raise ArtifactContractError(
-            "Required model artifacts are missing:\n"
+            "Required shared inference artifacts "
+            "are missing:\n"
             f"{formatted_paths}"
         )
 
 
-def load_model_artifacts(
+def load_model_artifacts_from_paths(
+    paths: ModelArtifactPaths,
     app_settings: Settings = settings,
 ) -> ModelArtifacts:
     """
-    Load and validate the selected model and its feature contract.
+    Load and validate a model from resolved artifact paths.
 
-    The model is loaded without retraining.
+    Existing feature-contract and Phase 4 validation behavior
+    remains unchanged.
     """
 
-    _validate_required_paths(app_settings)
+    _validate_shared_contract_paths(
+        app_settings
+    )
 
     model_feature_contract = _load_json(
-        app_settings.model_feature_contract_path
+        paths.feature_columns_path
     )
 
     phase_2_feature_contract = _load_json(
@@ -117,11 +134,11 @@ def load_model_artifacts(
     )
 
     model_metadata = _load_json(
-        app_settings.model_metadata_path
+        paths.model_metadata_path
     )
 
     model_selection_report = _load_json(
-        app_settings.model_selection_report_path
+        paths.model_selection_report_path
     )
 
     phase_4_explainability_report = _load_json(
@@ -133,11 +150,13 @@ def load_model_artifacts(
     )
 
     try:
-        model = joblib.load(app_settings.best_model_path)
+        model = joblib.load(
+            paths.model_path
+        )
     except Exception as exc:
         raise ArtifactContractError(
-            "The saved model could not be loaded from: "
-            f"{app_settings.best_model_path}"
+            "The resolved model could not be loaded from: "
+            f"{paths.model_path}"
         ) from exc
 
     feature_columns = model_feature_contract.get(
@@ -285,9 +304,60 @@ def load_model_artifacts(
             persistence_max_horizon
         ),
         model_metadata=model_metadata,
-        model_selection_report=model_selection_report,
+        model_selection_report=(
+            model_selection_report
+        ),
+        model_source=paths.source,
+        model_registry_name=(
+            paths.model_name
+            if paths.source.startswith(
+                "HOPSWORKS"
+            )
+            else None
+        ),
+        model_registry_version=(
+            paths.model_version
+        ),
+        model_checksum_sha256=(
+            paths.checksum_sha256
+        ),
+        model_fallback_used=(
+            paths.fallback_used
+        ),
+        model_fallback_reason=(
+            paths.fallback_reason
+        ),
     )
 
+
+def load_model_artifacts(
+    app_settings: Settings = settings,
+) -> ModelArtifacts:
+    """
+    Resolve and load the configured production model.
+
+    The selected source may be local, Hopsworks Registry,
+    or an approved fallback.
+    """
+
+    mlops_settings = get_mlops_settings()
+
+    try:
+        resolved_paths = (
+            resolve_model_artifact_paths(
+                settings=mlops_settings
+            )
+        )
+    except Exception as exc:
+        raise ArtifactContractError(
+            "No validated production-model source "
+            "could be resolved."
+        ) from exc
+
+    return load_model_artifacts_from_paths(
+        paths=resolved_paths,
+        app_settings=app_settings,
+    )
 
 def validate_feature_matrix(
     feature_matrix: pd.DataFrame,

@@ -30,6 +30,11 @@ class ModelRegistryBackend(StrEnum):
     LOCAL = "local"
     HOPSWORKS = "hopsworks"
 
+class ModelLoadingMode(StrEnum):
+    """Supported inference model sources."""
+
+    LOCAL_ARTIFACT = "LOCAL_ARTIFACT"
+    HOPSWORKS_REGISTRY = "HOPSWORKS_REGISTRY"
 
 class MLOpsSettings(BaseSettings):
     """Environment-driven Phase 9 configuration."""
@@ -142,6 +147,13 @@ class MLOpsSettings(BaseSettings):
         default=1,
         ge=1,
     )
+
+    model_loading_mode: ModelLoadingMode = (
+        ModelLoadingMode.LOCAL_ARTIFACT
+    )
+
+    allow_cached_registry_fallback: bool = True
+    allow_local_model_fallback: bool = True
 
     model_cache_directory: str = (
         "models/registry_cache"
@@ -320,6 +332,16 @@ class MLOpsSettings(BaseSettings):
             ),
             "model_cache_directory": (
                 self.model_cache_directory
+            ),
+
+            "model_loading_mode": (
+                self.model_loading_mode.value
+            ),
+            "allow_cached_registry_fallback": (
+                self.allow_cached_registry_fallback
+            ),
+            "allow_local_model_fallback": (
+                self.allow_local_model_fallback
             ),
         }
 

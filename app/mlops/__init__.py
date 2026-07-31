@@ -12,6 +12,7 @@ from app.mlops.config import (
     FeatureStoreBackend,
     MLOpsSettings,
     ModelRegistryBackend,
+    ModelLoadingMode,
     get_mlops_settings,
 )
 
@@ -95,4 +96,6 @@ __all__ = [
     "prepare_model_package",
     "register_initial_production_model",
     "resolve_production_model",
+
+    "ModelLoadingMode",
 ]

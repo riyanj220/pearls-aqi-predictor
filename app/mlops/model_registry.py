@@ -354,6 +354,68 @@ def register_initial_production_model(
         ),
     )
 
+def _replace_registry_cache(
+    *,
+    source_directory: Path,
+    cache_directory: Path,
+) -> Path:
+    """
+    Replace the project registry cache with a validated
+    downloaded model bundle.
+    """
+
+    source_directory = source_directory.resolve()
+    cache_directory = cache_directory.resolve()
+
+    if source_directory == cache_directory:
+        return cache_directory
+
+    temporary_cache = (
+        cache_directory.parent
+        / f"{cache_directory.name}_incoming"
+    )
+
+    previous_cache = (
+        cache_directory.parent
+        / f"{cache_directory.name}_previous"
+    )
+
+    if temporary_cache.exists():
+        shutil.rmtree(temporary_cache)
+
+    if previous_cache.exists():
+        shutil.rmtree(previous_cache)
+
+    shutil.copytree(
+        source_directory,
+        temporary_cache,
+    )
+
+    if cache_directory.exists():
+        cache_directory.rename(
+            previous_cache
+        )
+
+    try:
+        temporary_cache.rename(
+            cache_directory
+        )
+    except Exception:
+        if (
+            previous_cache.exists()
+            and not cache_directory.exists()
+        ):
+            previous_cache.rename(
+                cache_directory
+            )
+
+        raise
+
+    if previous_cache.exists():
+        shutil.rmtree(previous_cache)
+
+    return cache_directory
+
 
 def resolve_production_model(
     *,
@@ -368,70 +430,73 @@ def resolve_production_model(
             "Hopsworks Model Registry was not resolved."
         )
 
-    version = (
+    production_version = (
         settings.hopsworks_production_model_version
     )
 
+    cache_root = (
+        project_root
+        / settings.model_cache_directory
+    ).resolve()
+
     try:
-        model = (
-            resources.model_registry.get_model(
-                name=(
-                    settings.hopsworks_model_name
-                ),
-                version=version,
-            )
+        model = resources.model_registry.get_model(
+            name=settings.hopsworks_model_name,
+            version=production_version,
         )
 
         if model is None:
             raise ModelRegistryError(
                 "Configured production model "
-                f"version {version} does not exist."
+                f"version {production_version} does not exist."
             )
 
-        cache_root = (
-            project_root
-            / settings.model_cache_directory
-        )
-
-        cache_root.mkdir(
-            parents=True,
-            exist_ok=True,
-        )
-
-        download_path = Path(
-            model.download(
-                str(cache_root)
-            )
-        )
+        # Let Hopsworks use its own version-aware cache.
+        hopsworks_download_path = Path(
+            model.download()
+        ).resolve()
 
     except ModelRegistryError:
         raise
 
     except Exception as error:
         raise ModelRegistryError(
-            "Could not resolve or download the "
-            "configured production model."
+            "Could not resolve or download the configured "
+            f"production model. Cause: "
+            f"{type(error).__name__}: {error}"
         ) from error
 
     model_path = (
-        download_path
+        hopsworks_download_path
         / "best_model.joblib"
     )
 
     feature_columns_path = (
-        download_path
+        hopsworks_download_path
         / "model_feature_columns.json"
     )
 
-    metadata_path = (
-        download_path
+    model_metadata_path = (
+        hopsworks_download_path
+        / "model_metadata.json"
+    )
+
+    model_selection_report_path = (
+        hopsworks_download_path
+        / "model_selection_report.json"
+    )
+
+    registry_metadata_path = (
+        hopsworks_download_path
         / "registry_metadata.json"
     )
 
     required_files = [
         model_path,
         feature_columns_path,
-        metadata_path,
+        model_metadata_path,
+        model_selection_report_path,
+        registry_metadata_path,
     ]
 
     missing_files = [
@@ -447,7 +512,7 @@ def resolve_production_model(
         )
 
     registry_metadata = load_json_object(
-        metadata_path
+        registry_metadata_path
     )
 
     expected_checksum = str(
@@ -463,34 +528,62 @@ def resolve_production_model(
 
     if (
         not expected_checksum
-        or actual_checksum
-        != expected_checksum
+        or actual_checksum != expected_checksum
     ):
         raise ModelRegistryError(
             "Downloaded model checksum does not "
             "match registry metadata."
         )
 
-    joblib.load(model_path)
+    model_status = str(
+        registry_metadata.get(
+            "model_status",
+            "UNKNOWN",
+        )
+    )
+
+    if model_status != "PRODUCTION":
+        raise ModelRegistryError(
+            "Downloaded registry model is not marked "
+            "as PRODUCTION."
+        )
+
+    try:
+        joblib.load(model_path)
+    except Exception as error:
+        raise ModelRegistryError(
+            "Downloaded production model could not "
+            "be loaded with joblib."
+        ) from error
+
+    # Only replace the project cache after validation succeeds.
+    resolved_cache_directory = (
+        _replace_registry_cache(
+            source_directory=(
+                hopsworks_download_path
+            ),
+            cache_directory=cache_root,
+        )
+    )
 
     return ResolvedProductionModel(
         name=settings.hopsworks_model_name,
-        version=version,
-        status=str(
-            registry_metadata.get(
-                "model_status",
-                "UNKNOWN",
-            )
-        ),
+        version=production_version,
+        status=model_status,
         downloaded_directory=(
-            download_path
+            resolved_cache_directory
         ),
-        model_artifact_path=model_path,
+        model_artifact_path=(
+            resolved_cache_directory
+            / "best_model.joblib"
+        ),
         feature_columns_path=(
-            feature_columns_path
+            resolved_cache_directory
+            / "model_feature_columns.json"
         ),
-        metadata_path=metadata_path,
-        checksum_sha256=(
-            actual_checksum
+        metadata_path=(
+            resolved_cache_directory
+            / "registry_metadata.json"
         ),
+        checksum_sha256=actual_checksum,
     )
