@@ -148,6 +148,16 @@ class MLOpsSettings(BaseSettings):
         ge=1,
     )
 
+    incremental_overlap_hours: int = Field(
+        default=30,
+        ge=24,
+    )
+
+    incremental_initial_lookback_hours: int = Field(
+        default=168,
+        ge=24,
+    )
+
     model_loading_mode: ModelLoadingMode = (
         ModelLoadingMode.LOCAL_ARTIFACT
     )
@@ -342,6 +352,13 @@ class MLOpsSettings(BaseSettings):
             ),
             "allow_local_model_fallback": (
                 self.allow_local_model_fallback
+            ),
+
+            "incremental_overlap_hours": (
+                self.incremental_overlap_hours
+            ),
+            "incremental_initial_lookback_hours": (
+                self.incremental_initial_lookback_hours
             ),
         }
 
