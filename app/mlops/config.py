@@ -158,6 +158,19 @@ class MLOpsSettings(BaseSettings):
         ge=24,
     )
 
+    minimum_new_labeled_hours: int = Field(
+        default=168,
+        ge=1,
+    )
+
+    candidate_output_directory: str = (
+        "models/candidates"
+    )
+
+    candidate_model_name: str = (
+        "pearls_aqi_pm25_challenger"
+    )
+
     model_loading_mode: ModelLoadingMode = (
         ModelLoadingMode.LOCAL_ARTIFACT
     )
@@ -359,6 +372,17 @@ class MLOpsSettings(BaseSettings):
             ),
             "incremental_initial_lookback_hours": (
                 self.incremental_initial_lookback_hours
+            ),
+
+
+            "minimum_new_labeled_hours": (
+                self.minimum_new_labeled_hours
+            ),
+            "candidate_output_directory": (
+                self.candidate_output_directory
+            ),
+            "candidate_model_name": (
+                self.candidate_model_name
             ),
         }
 

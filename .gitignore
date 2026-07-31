@@ -54,3 +54,7 @@ models/registry_package/*
 
 models/registry_cache/*
 !models/registry_cache/.gitkeep
+
+
+models/candidates/*
+!models/candidates/.gitkeep

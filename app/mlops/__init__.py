@@ -58,6 +58,16 @@ from app.mlops.model_registry import (
     resolve_production_model,
 )
 
+
+from app.mlops.retraining import (
+    HORIZON_GROUPS,
+    RetrainingEligibility,
+    RetrainingError,
+    evaluate_candidate,
+    evaluate_retraining_eligibility,
+    train_candidate_model,
+)
+
 __all__ = [
     "FeatureStoreBackend",
     "HopsworksConfigurationError",
@@ -98,4 +108,11 @@ __all__ = [
     "resolve_production_model",
 
     "ModelLoadingMode",
+
+    "HORIZON_GROUPS",
+    "RetrainingEligibility",
+    "RetrainingError",
+    "evaluate_candidate",
+    "evaluate_retraining_eligibility",
+    "train_candidate_model",
 ]
