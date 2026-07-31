@@ -68,6 +68,12 @@ from app.mlops.retraining import (
     train_candidate_model,
 )
 
+from app.mlops.champion_challenger import (
+    ChampionChallengerError,
+    PromotionDecision,
+    evaluate_promotion_gates,
+)
+
 __all__ = [
     "FeatureStoreBackend",
     "HopsworksConfigurationError",
@@ -115,4 +121,8 @@ __all__ = [
     "evaluate_candidate",
     "evaluate_retraining_eligibility",
     "train_candidate_model",
+
+    "ChampionChallengerError",
+    "PromotionDecision",
+    "evaluate_promotion_gates",
 ]

@@ -587,3 +587,112 @@ def resolve_production_model(
         ),
         checksum_sha256=actual_checksum,
     )
+
+
+def register_candidate_model(
+    *,
+    resources: HopsworksResources,
+    settings: MLOpsSettings,
+    candidate_directory: Path,
+    metrics: dict[str, float],
+) -> RegisteredModelResult:
+    """Register an approved challenger as a new model version."""
+
+    if resources.model_registry is None:
+        raise ModelRegistryError(
+            "Hopsworks Model Registry was not resolved."
+        )
+
+    model_path = (
+        candidate_directory
+        / "best_model.joblib"
+    )
+
+    feature_columns_path = (
+        candidate_directory
+        / "model_feature_columns.json"
+    )
+
+    candidate_metadata_path = (
+        candidate_directory
+        / "candidate_metadata.json"
+    )
+
+    required_paths = [
+        model_path,
+        feature_columns_path,
+        candidate_metadata_path,
+    ]
+
+    missing_paths = [
+        str(path)
+        for path in required_paths
+        if not path.exists()
+    ]
+
+    if missing_paths:
+        raise ModelRegistryError(
+            "Candidate package is incomplete: "
+            f"{missing_paths}"
+        )
+
+    checksum = calculate_sha256(
+        model_path
+    )
+
+    registry_metadata = {
+        "model_name": settings.hopsworks_model_name,
+        "model_status": "CANDIDATE",
+        "artifact_checksum_sha256": checksum,
+        "registered_from": (
+            candidate_directory.name
+        ),
+        "production_version_at_registration": (
+            settings.hopsworks_production_model_version
+        ),
+    }
+
+    (
+        candidate_directory
+        / "registry_metadata.json"
+    ).write_text(
+        json.dumps(
+            registry_metadata,
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+
+    try:
+        model = (
+            resources.model_registry
+            .python.create_model(
+                name=settings.hopsworks_model_name,
+                description=(
+                    "Approved PM2.5 challenger awaiting "
+                    "explicit production promotion."
+                ),
+                metrics=metrics,
+            )
+        )
+
+        model.save(
+            str(candidate_directory),
+            keep_original_files=True,
+        )
+
+    except Exception as error:
+        raise ModelRegistryError(
+            "Could not register the approved challenger."
+        ) from error
+
+    return RegisteredModelResult(
+        name=settings.hopsworks_model_name,
+        version=int(model.version),
+        status="CANDIDATE",
+        checksum_sha256=checksum,
+        model_directory=str(
+            candidate_directory
+        ),
+    )
+

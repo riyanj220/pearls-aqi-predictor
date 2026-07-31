@@ -178,6 +178,27 @@ class MLOpsSettings(BaseSettings):
     allow_cached_registry_fallback: bool = True
     allow_local_model_fallback: bool = True
 
+
+    candidate_max_overall_mae_regression_pct: float = Field(
+        default=0.0,
+        ge=0.0,
+    )
+
+    candidate_max_overall_rmse_regression_pct: float = Field(
+        default=0.0,
+        ge=0.0,
+    )
+
+    candidate_max_horizon_mae_regression_pct: float = Field(
+        default=5.0,
+        ge=0.0,
+    )
+
+    candidate_minimum_severe_samples: int = Field(
+        default=20,
+        ge=1,
+    )
+
     model_cache_directory: str = (
         "models/registry_cache"
     )
@@ -383,6 +404,20 @@ class MLOpsSettings(BaseSettings):
             ),
             "candidate_model_name": (
                 self.candidate_model_name
+            ),
+
+
+            "candidate_max_overall_mae_regression_pct": (
+                self.candidate_max_overall_mae_regression_pct
+            ),
+            "candidate_max_overall_rmse_regression_pct": (
+                self.candidate_max_overall_rmse_regression_pct
+            ),
+            "candidate_max_horizon_mae_regression_pct": (
+                self.candidate_max_horizon_mae_regression_pct
+            ),
+            "candidate_minimum_severe_samples": (
+                self.candidate_minimum_severe_samples
             ),
         }
 
