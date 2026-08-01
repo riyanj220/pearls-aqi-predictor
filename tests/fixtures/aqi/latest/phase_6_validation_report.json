@@ -1,0 +1,24 @@
+{
+  "status": "AQI_ALERT_PIPELINE_APPROVED",
+  "phase_6_run_id": "20260731T151256Z_aqi_d9c0bfe8",
+  "source_phase_5_run_id": "20260731T151239Z_d9c0bfe8",
+  "validated_at_utc": "2026-07-31 15:12:56.924210+00:00",
+  "checks": {
+    "forecast_rows_expected": 72,
+    "forecast_rows_actual": 72,
+    "unique_target_times": 72,
+    "indicative_aqi_missing_values": 0,
+    "rolling_aqi_missing_values": 0,
+    "complete_rolling_windows": 72,
+    "incomplete_rolling_windows": 0,
+    "missing_alert_levels": 0,
+    "missing_health_messages": 0,
+    "missing_recommended_actions": 0,
+    "negative_operational_pm25": 0
+  },
+  "limitations": [
+    "Indicative hourly AQI is not an official regulatory daily AQI.",
+    "Rolling 24-hour AQI combines observed and forecast PM2.5 values.",
+    "Alert accuracy depends on the underlying PM2.5 forecast accuracy."
+  ]
+}

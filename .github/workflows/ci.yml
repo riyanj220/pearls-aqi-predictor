@@ -30,6 +30,11 @@ jobs:
       AUTOMATIC_RETRAINING_ENABLED: "false"
       AUTOMATIC_MODEL_PROMOTION_ENABLED: "false"
 
+      PEARLS_API_PHASE_6_LATEST_DIRECTORY: tests/fixtures/aqi/latest
+      PEARLS_API_ARTIFACT_CACHE_SECONDS: "0"
+      PEARLS_API_FORECAST_STALENESS_THRESHOLD_HOURS: "100000"
+      PEARLS_API_FORECAST_AGING_THRESHOLD_HOURS: "50000"
+
     steps:
       - name: Check out repository
         uses: actions/checkout@v4

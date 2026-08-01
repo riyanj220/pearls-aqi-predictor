@@ -1,0 +1,20 @@
+{
+  "phase_6_run_id": "20260731T151256Z_aqi_d9c0bfe8",
+  "source_phase_5_run_id": "20260731T151239Z_d9c0bfe8",
+  "generated_at_utc": "2026-07-31 15:12:56.922019+00:00",
+  "status": "COMPLETED",
+  "forecast_rows": 72,
+  "reference_time": "2026-07-31 13:00:00+00:00",
+  "forecast_start": "2026-07-31 14:00:00+00:00",
+  "forecast_end": "2026-08-03 13:00:00+00:00",
+  "minimum_predicted_pm25": 9.498968124389648,
+  "maximum_predicted_pm25": 15.7,
+  "maximum_indicative_hourly_aqi": 63,
+  "maximum_rolling_24h_aqi": 62,
+  "maximum_rolling_24h_category": "Moderate",
+  "maximum_alert_level": "NORMAL",
+  "maximum_alert_rank": 0,
+  "active_alert_rows": 0,
+  "alert_episode_count": 0,
+  "hourly_fallback_rows": 0
+}

@@ -1,0 +1,80 @@
+{
+  "phase_6_run_id": "20260731T151256Z_aqi_d9c0bfe8",
+  "source_phase_5_run_id": "20260731T151239Z_d9c0bfe8",
+  "generated_at_utc": "2026-07-31 15:12:56.922019+00:00",
+  "project": {
+    "name": "Pearls AQI Predictor",
+    "location": "Zafar Memon DHA",
+    "sensor_id": 13387396
+  },
+  "aqi_standard": {
+    "name": "U.S. EPA PM2.5 AQI",
+    "version": "May 2026",
+    "pollutant": "PM2.5",
+    "unit": "µg/m³",
+    "official_averaging_period": "24-hour",
+    "concentration_processing": "Truncated to one decimal place",
+    "hourly_interpretation": "Indicative only"
+  },
+  "alert_policy": {
+    "preferred_basis": "rolling_24h_pm25_aqi",
+    "fallback_basis": "indicative_hourly_pm25_aqi",
+    "active_from_category": "Unhealthy for Sensitive Groups"
+  },
+  "breakpoints": [
+    {
+      "concentration_low": 0.0,
+      "concentration_high": 9.0,
+      "aqi_low": 0,
+      "aqi_high": 50,
+      "category": "Good",
+      "color_name": "Green",
+      "color_hex": "#00E400"
+    },
+    {
+      "concentration_low": 9.1,
+      "concentration_high": 35.4,
+      "aqi_low": 51,
+      "aqi_high": 100,
+      "category": "Moderate",
+      "color_name": "Yellow",
+      "color_hex": "#FFFF00"
+    },
+    {
+      "concentration_low": 35.5,
+      "concentration_high": 55.4,
+      "aqi_low": 101,
+      "aqi_high": 150,
+      "category": "Unhealthy for Sensitive Groups",
+      "color_name": "Orange",
+      "color_hex": "#FF7E00"
+    },
+    {
+      "concentration_low": 55.5,
+      "concentration_high": 125.4,
+      "aqi_low": 151,
+      "aqi_high": 200,
+      "category": "Unhealthy",
+      "color_name": "Red",
+      "color_hex": "#FF0000"
+    },
+    {
+      "concentration_low": 125.5,
+      "concentration_high": 225.4,
+      "aqi_low": 201,
+      "aqi_high": 300,
+      "category": "Very Unhealthy",
+      "color_name": "Purple",
+      "color_hex": "#8F3F97"
+    },
+    {
+      "concentration_low": 225.5,
+      "concentration_high": 325.4,
+      "aqi_low": 301,
+      "aqi_high": 500,
+      "category": "Hazardous",
+      "color_name": "Maroon",
+      "color_hex": "#7E0023"
+    }
+  ]
+}
