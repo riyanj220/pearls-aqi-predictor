@@ -92,7 +92,7 @@ EXPECTED_FILES: tuple[
     (
         "AQI pipeline notebook",
         "notebooks/07_build_aqi_alert_pipeline.ipynb",
-        True,
+        False,
     ),
     (
         "Phase 9 notebook",
