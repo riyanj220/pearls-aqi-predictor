@@ -53,6 +53,16 @@ from app.inference.run_artifacts import (
     save_inference_run,
 )
 
+import time
+
+from app.observability import error_codes
+from app.observability.logging import (
+    configure_structured_logging,
+    log_pipeline_completed,
+    log_pipeline_failed,
+    log_pipeline_started,
+)
+
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
@@ -61,6 +71,10 @@ REPORT_PATH = (
     / "reports"
     / "phase_10"
     / "live_inference_pipeline_report.json"
+)
+
+LOGGER = configure_structured_logging(
+    service_name="pearls-aqi-live-inference",
 )
 
 
@@ -423,6 +437,14 @@ def run_live_inference() -> dict[str, Any]:
     started_at = datetime.now(timezone.utc)
     pipeline_run_id = generate_pipeline_run_id()
 
+    started_monotonic = time.monotonic()
+
+    log_pipeline_started(
+        LOGGER,
+        pipeline_name="live_inference",
+        pipeline_run_id=pipeline_run_id,
+    )
+
     model_artifacts = load_model_artifacts(
         settings
     )
@@ -622,6 +644,21 @@ def run_live_inference() -> dict[str, Any]:
         )
         .sort_values("datetime_utc")
         .reset_index(drop=True)
+    )
+
+    log_pipeline_completed(
+        LOGGER,
+        pipeline_name="live_inference",
+        pipeline_run_id=pipeline_run_id,
+        duration_seconds=(
+            time.monotonic()
+            - started_monotonic
+        ),
+        row_count=len(forecast_df),
+        model_version=(
+            model_artifacts
+            .model_registry_version
+        ),
     )
 
     validation_report = {
@@ -898,6 +935,19 @@ def main() -> int:
         exit_code = 0
 
     except Exception as error:
+
+        log_pipeline_failed(
+            LOGGER,
+            pipeline_name="live_inference",
+            pipeline_run_id=report[
+                "pipeline_run_id"
+            ],
+            error_code=(
+                error_codes.INFERENCE_FAILED
+            ),
+            error=error,
+        )
+
         report = {
             "phase": "5",
             "pipeline_name": "live_inference",

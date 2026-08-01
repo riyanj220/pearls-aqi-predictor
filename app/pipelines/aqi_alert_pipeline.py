@@ -35,6 +35,16 @@ from app.aqi.run_artifacts import (
     save_aqi_run,
 )
 
+import time
+
+from app.observability import error_codes
+from app.observability.logging import (
+    configure_structured_logging,
+    log_pipeline_completed,
+    log_pipeline_failed,
+    log_pipeline_started,
+)
+
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
@@ -51,6 +61,9 @@ REPORT_PATH = (
     / "aqi_alert_pipeline_report.json"
 )
 
+LOGGER = configure_structured_logging(
+    service_name="pearls-aqi-aqi-alerts",
+)
 
 class AQIAlertPipelineError(RuntimeError):
     """Raised when AQI processing cannot complete safely."""
@@ -521,6 +534,18 @@ def run_aqi_alert_pipeline(
 
     started_at = datetime.now(timezone.utc)
 
+    started_monotonic = time.monotonic()
+    temporary_run_id = (
+        source_run_id
+        or "latest-successful-inference"
+    )
+
+    log_pipeline_started(
+        LOGGER,
+        pipeline_name="aqi_alert_pipeline",
+        pipeline_run_id=temporary_run_id,
+    )
+
     (
         phase_5_run_directory,
         phase_5_validation_report,
@@ -789,6 +814,19 @@ def run_aqi_alert_pipeline(
 
     completed_at = datetime.now(timezone.utc)
 
+    log_pipeline_completed(
+        LOGGER,
+        pipeline_name="aqi_alert_pipeline",
+        pipeline_run_id=phase_6_run_id,
+        duration_seconds=(
+            time.monotonic()
+            - started_monotonic
+        ),
+        row_count=len(
+            alerted_forecast_df
+        ),
+    )
+
     return {
         "phase": "6",
         "pipeline_name": "aqi_alert_pipeline",
@@ -882,6 +920,20 @@ def main() -> int:
         exit_code = 0
 
     except Exception as error:
+
+        log_pipeline_failed(
+            LOGGER,
+            pipeline_name="aqi_alert_pipeline",
+            pipeline_run_id=(
+                arguments.source_run_id
+                or "unresolved"
+            ),
+            error_code=(
+                error_codes.AQI_PIPELINE_FAILED
+            ),
+            error=error,
+        )
+
         report = {
             "phase": "6",
             "pipeline_name": (
