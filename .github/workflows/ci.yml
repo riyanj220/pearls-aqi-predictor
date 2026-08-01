@@ -1,0 +1,172 @@
+name: Continuous Integration
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  python-validation:
+    name: Python validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    env:
+      APP_ENV: development
+      LOG_LEVEL: INFO
+      ARTIFACT_BACKEND: local
+      MODEL_LOADING_MODE: LOCAL_ARTIFACT
+      FEATURE_STORE_BACKEND: local
+      MODEL_REGISTRY_BACKEND: local
+      AUTOMATIC_RETRAINING_ENABLED: "false"
+      AUTOMATIC_MODEL_PROMOTION_ENABLED: "false"
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+
+      - name: Install Python
+        run: uv python install 3.12
+
+      - name: Validate lockfile
+        run: uv lock --check
+
+      - name: Install locked dependencies
+        run: uv sync --locked --all-groups
+
+      #   - name: Run targeted Ruff checks
+      #     run: |
+      #       uv run ruff check \
+      #         app/artifacts \
+      #         app/observability \
+      #         app/operations \
+      #         app/pipelines/live_inference.py \
+      #         app/pipelines/aqi_alert_pipeline.py
+
+      #   - name: Check targeted formatting
+      #     run: |
+      #       uv run ruff format --check \
+      #         app/artifacts \
+      #         app/observability \
+      #         app/operations \
+      #         app/pipelines/live_inference.py \
+      #         app/pipelines/aqi_alert_pipeline.py
+
+      - name: Compile application modules
+        run: |
+          uv run python -m compileall -q app
+
+      - name: Validate repository inspection
+        run: |
+          uv run python -m \
+            app.operations.repository_inspection
+
+      - name: Validate cloud architecture inventory
+        env:
+          AZURE_LOCATION: centralindia
+          AZURE_RESOURCE_SUFFIX: riyan
+        run: |
+          uv run python -m \
+            app.operations.cloud_architecture
+
+      - name: Validate deployment configuration
+        env:
+          APP_ENV: demo
+          APP_VERSION: ci-${{ github.sha }}
+          SERVICE_ROLE: api
+          AZURE_LOCATION: centralindia
+          AZURE_RESOURCE_GROUP: rg-pearls-aqi-demo
+          AZURE_CONTAINER_REGISTRY: walpole.azurecr.io
+          ARTIFACT_BACKEND: azure_blob
+          AZURE_STORAGE_ACCOUNT: stpearlsaqiriyan
+          AZURE_STORAGE_CONTAINER: artifacts
+          AZURE_KEY_VAULT_NAME: kv-pearls-aqi-riyan
+          ALLOWED_CORS_ORIGINS: https://dashboard.example.com
+        run: |
+          uv run python -m \
+            app.operations.deployment_config
+
+      - name: Validate artifact repository
+        run: |
+          uv run python -m \
+            app.operations.artifact_repository_validation
+
+      - name: Validate structured logging
+        run: |
+          uv run python -m \
+            app.operations.structured_logging_validation
+
+      - name: Validate pipeline command imports
+        run: |
+          uv run python -m \
+            app.pipelines.live_inference --help
+
+          uv run python -m \
+            app.pipelines.aqi_alert_pipeline --help
+
+          uv run python -m \
+            app.pipelines.incremental_features --help
+
+          uv run python -m \
+            app.pipelines.retraining_cycle --help
+
+          uv run python -m \
+            app.pipelines.champion_challenger --help
+
+      - name: Run automated tests
+        run: |
+          uv run pytest -q
+
+      - name: Upload Phase 10 validation reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase-10-validation-reports
+          path: reports/phase_10/
+          if-no-files-found: warn
+          retention-days: 14
+
+  container-validation:
+    name: Container validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Validate Docker Compose
+        run: docker compose config
+
+      - name: Build API image
+        env:
+          BUILDKIT_PROGRESS: plain
+        run: docker compose build api
+
+      - name: Build dashboard image
+        env:
+          BUILDKIT_PROGRESS: plain
+        run: docker compose build dashboard
+
+      - name: Inspect built images
+        run: |
+          docker image inspect pearls-aqi-api:latest \
+            --format '{{.Id}}'
+
+          docker image inspect pearls-aqi-dashboard:latest \
+            --format '{{.Id}}'
