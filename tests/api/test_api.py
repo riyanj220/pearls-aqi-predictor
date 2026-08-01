@@ -13,19 +13,57 @@ from app.api.main import create_application
 from app.core.config import PROJECT_ROOT
 
 
+TEST_ARTIFACT_DIRECTORY = (
+    PROJECT_ROOT
+    / "tests"
+    / "fixtures"
+    / "aqi"
+    / "latest"
+)
+
+
 @pytest.fixture
 def client(
     monkeypatch: pytest.MonkeyPatch,
 ) -> Iterator[TestClient]:
     """
-    Create an API client using the real latest Phase 6 artifacts.
+    Create an API client using deterministic Phase 6 test artifacts.
 
-    Large freshness thresholds prevent tests becoming stale over time.
+    Large freshness thresholds prevent the committed test fixture from
+    becoming stale over time.
     """
+
+    required_fixture_files = [
+        "live_pm25_aqi_forecast.parquet",
+        "alert_episodes.json",
+        "aqi_forecast_summary.json",
+        "aqi_metadata.json",
+        "phase_6_validation_report.json",
+    ]
+
+    missing_fixture_files = [
+        filename
+        for filename in required_fixture_files
+        if not (
+            TEST_ARTIFACT_DIRECTORY
+            / filename
+        ).exists()
+    ]
+
+    if missing_fixture_files:
+        pytest.fail(
+            "Required API test artifacts are missing: "
+            + ", ".join(missing_fixture_files)
+        )
 
     monkeypatch.setenv(
         "PEARLS_API_PHASE_6_LATEST_DIRECTORY",
-        str(PROJECT_ROOT / "aqi" / "latest"),
+        str(TEST_ARTIFACT_DIRECTORY),
+    )
+
+    monkeypatch.setenv(
+        "PEARLS_API_ARTIFACT_CACHE_SECONDS",
+        "0",
     )
 
     monkeypatch.setenv(
