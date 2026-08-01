@@ -20,6 +20,11 @@ from app.operations.deployment_config import (
     validate_deployment_settings,
 )
 
+from app.operations.artifact_repository_validation import (
+    run_local_validation,
+    save_validation_report,
+)
+
 __all__ = [
     "build_repository_operations_report",
     "inspect_commands",
@@ -34,4 +39,7 @@ __all__ = [
     "load_deployment_settings",
     "save_configuration_report",
     "validate_deployment_settings",
+
+    "run_local_validation",
+    "save_validation_report",
 ]
