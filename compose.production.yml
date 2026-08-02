@@ -76,9 +76,6 @@ services:
         GIT_COMMIT: ${GIT_COMMIT:-unknown}
         BUILD_DATE: ${BUILD_DATE:-unknown}
 
-    env_file:
-      - .env
-
     environment:
       APP_ENV: demo
       SERVICE_ROLE: pipeline

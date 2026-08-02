@@ -45,19 +45,29 @@ EXPECTED_FILES: tuple[
     ...,
 ] = (
     (
-        "FastAPI Dockerfile",
-        "Dockerfile",
+        "FastAPI production Dockerfile",
+        "Dockerfile.api",
         True,
     ),
     (
-        "Streamlit Dockerfile",
-        "dashboard/Dockerfile",
+        "Streamlit production Dockerfile",
+        "Dockerfile.dashboard",
         True,
     ),
     (
-        "Docker Compose",
+        "Pipeline production Dockerfile",
+        "Dockerfile.pipeline",
+        True,
+    ),
+    (
+        "Production Docker Compose",
+        "compose.production.yml",
+        True,
+    ),
+    (
+        "Development Docker Compose",
         "compose.yaml",
-        True,
+        False,
     ),
     (
         "Python project configuration",
@@ -478,10 +488,15 @@ OPERATIONAL_COMMANDS: tuple[
         ),
     },
     {
-        "name": "Build Docker Compose services",
-        "command": "docker compose build",
+        "name": "Build production container images",
+        "command": (
+            "docker compose "
+            "--file compose.production.yml "
+            "--profile jobs build"
+        ),
         "purpose": (
-            "Build FastAPI and Streamlit containers."
+            "Build the production FastAPI, Streamlit, "
+            "and batch-pipeline images."
         ),
         "category": "container",
         "non_interactive": True,
@@ -489,13 +504,8 @@ OPERATIONAL_COMMANDS: tuple[
         "expected_success_statuses": [
             "exit_code_0",
         ],
-        "required_paths": [
-            "compose.yaml",
-            "Dockerfile",
-            "dashboard/Dockerfile",
-        ],
         "validation_note": (
-            "Suitable for local and CI build validation."
+            "Builds all three Phase 10G production images."
         ),
     },
     {
