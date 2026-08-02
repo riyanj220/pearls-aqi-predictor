@@ -431,12 +431,13 @@ def validate_forecast_output(
         )
 
 
-def run_live_inference() -> dict[str, Any]:
+def run_live_inference(
+    *,
+    pipeline_run_id: str,
+) -> dict[str, Any]:
     """Run the complete Phase 5 production inference pipeline."""
 
     started_at = datetime.now(timezone.utc)
-    pipeline_run_id = generate_pipeline_run_id()
-
     started_monotonic = time.monotonic()
 
     log_pipeline_started(
@@ -927,33 +928,29 @@ def main() -> int:
             "inference pipeline."
         )
     )
-
     parser.parse_args()
 
+    pipeline_run_id = generate_pipeline_run_id()
+
     try:
-        report = run_live_inference()
+        report = run_live_inference(
+            pipeline_run_id=pipeline_run_id,
+        )
         exit_code = 0
 
     except Exception as error:
-
         log_pipeline_failed(
             LOGGER,
             pipeline_name="live_inference",
-            pipeline_run_id=report[
-                "pipeline_run_id"
-            ],
-            error_code=(
-                error_codes.INFERENCE_FAILED
-            ),
+            pipeline_run_id=pipeline_run_id,
+            error_code=error_codes.INFERENCE_FAILED,
             error=error,
         )
 
         report = {
             "phase": "5",
             "pipeline_name": "live_inference",
-            "pipeline_run_id": (
-                generate_pipeline_run_id()
-            ),
+            "pipeline_run_id": pipeline_run_id,
             "status": "LIVE_INFERENCE_FAILED",
             "failed_at_utc": datetime.now(
                 timezone.utc
@@ -979,7 +976,6 @@ def main() -> int:
     print("Report saved:", report_path)
 
     return exit_code
-
 
 if __name__ == "__main__":
     raise SystemExit(main())

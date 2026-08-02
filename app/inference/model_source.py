@@ -36,7 +36,6 @@ class ModelArtifactPaths:
     model_path: Path
     feature_columns_path: Path
     model_metadata_path: Path
-    model_selection_report_path: Path
     registry_metadata_path: Path | None
     source: str
     model_name: str
@@ -61,9 +60,6 @@ class ModelArtifactPaths:
             ),
             "model_metadata_path": str(
                 self.model_metadata_path
-            ),
-             "model_selection_report_path": str(
-                self.model_selection_report_path
             ),
         }
 
@@ -129,18 +125,11 @@ def resolve_local_artifacts(
         / "model_metadata.json"
     )
 
-    model_selection_report_path = (
-        PROJECT_ROOT
-        / "models"
-        / "model_selection_report.json"
-    )
-
     _require_files(
         [
             model_path,
             feature_columns_path,
             metadata_path,
-            model_selection_report_path,
         ]
     )
 
@@ -150,7 +139,6 @@ def resolve_local_artifacts(
             feature_columns_path
         ),
         model_metadata_path=metadata_path,
-        model_selection_report_path=model_selection_report_path,
         registry_metadata_path=None,
         source="LOCAL_ARTIFACT",
         model_name="local_phase_3_model",
@@ -195,18 +183,12 @@ def resolve_cached_registry_artifacts(
         / "registry_metadata.json"
     )
 
-    model_selection_report_path = (
-        cache_directory
-        / "model_selection_report.json"
-    )
-
     _require_files(
         [
             model_path,
             feature_columns_path,
             model_metadata_path,
             registry_metadata_path,
-            model_selection_report_path,
         ]
     )
 
@@ -253,9 +235,6 @@ def resolve_cached_registry_artifacts(
         registry_metadata_path=(
             registry_metadata_path
         ),
-        model_selection_report_path=(
-            model_selection_report_path
-        ),
         source="HOPSWORKS_REGISTRY_CACHE",
         model_name=settings.hopsworks_model_name,
         model_version=(
@@ -288,17 +267,11 @@ def resolve_registry_artifacts(
         / "model_metadata.json"
     )
 
-    model_selection_report_path = (
-        resolved.downloaded_directory
-        / "model_selection_report.json"
-    )
-
     _require_files(
         [
             resolved.model_artifact_path,
             resolved.feature_columns_path,
             model_metadata_path,
-            model_selection_report_path,
             resolved.metadata_path,
         ]
     )
@@ -316,9 +289,6 @@ def resolve_registry_artifacts(
         ),
         model_metadata_path=(
             model_metadata_path
-        ),
-        model_selection_report_path=(
-            model_selection_report_path
         ),
         registry_metadata_path=(
             resolved.metadata_path

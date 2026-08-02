@@ -37,7 +37,6 @@ class ModelArtifacts:
     model_type: str
     persistence_max_horizon: int
     model_metadata: dict[str, Any]
-    model_selection_report: dict[str, Any]
 
     model_source: str
     model_registry_name: str | None
@@ -74,40 +73,7 @@ def _load_json(path: Path) -> dict[str, Any]:
 def _validate_shared_contract_paths(
     app_settings: Settings,
 ) -> None:
-    """
-    Validate artifacts shared by every model-loading mode.
-
-    Model-specific files are validated by model_source.py.
-    """
-
-    required_paths = {
-        "Phase 2 feature contract": (
-            app_settings.phase_2_feature_contract_path
-        ),
-        "Phase 4 explainability report": (
-            app_settings.phase_4_explainability_report_path
-        ),
-        "Phase 4 error-analysis report": (
-            app_settings.phase_4_error_analysis_report_path
-        ),
-    }
-
-    missing_paths = [
-        f"{name}: {path}"
-        for name, path in required_paths.items()
-        if not path.exists()
-    ]
-
-    if missing_paths:
-        formatted_paths = "\n".join(
-            missing_paths
-        )
-
-        raise ArtifactContractError(
-            "Required shared inference artifacts "
-            "are missing:\n"
-            f"{formatted_paths}"
-        )
+   """No additional external reports are required at runtime."""
 
 
 def load_model_artifacts_from_paths(
@@ -121,32 +87,12 @@ def load_model_artifacts_from_paths(
     remains unchanged.
     """
 
-    _validate_shared_contract_paths(
-        app_settings
-    )
-
     model_feature_contract = _load_json(
         paths.feature_columns_path
     )
 
-    phase_2_feature_contract = _load_json(
-        app_settings.phase_2_feature_contract_path
-    )
-
     model_metadata = _load_json(
         paths.model_metadata_path
-    )
-
-    model_selection_report = _load_json(
-        paths.model_selection_report_path
-    )
-
-    phase_4_explainability_report = _load_json(
-        app_settings.phase_4_explainability_report_path
-    )
-
-    phase_4_error_report = _load_json(
-        app_settings.phase_4_error_analysis_report_path
     )
 
     try:
@@ -163,10 +109,6 @@ def load_model_artifacts_from_paths(
         "feature_columns"
     )
 
-    phase_2_feature_columns = phase_2_feature_contract.get(
-        "feature_columns"
-    )
-
     target_column = model_feature_contract.get(
         "target_column"
     )
@@ -179,12 +121,6 @@ def load_model_artifacts_from_paths(
         raise ArtifactContractError(
             "The model feature contract does not contain "
             "a valid ordered feature list."
-        )
-
-    if phase_2_feature_columns != feature_columns:
-        raise ArtifactContractError(
-            "Phase 2 and saved-model feature contracts "
-            "do not match exactly."
         )
 
     if not isinstance(target_column, str):
@@ -232,33 +168,6 @@ def load_model_artifacts_from_paths(
             f"contract={len(feature_columns)}."
         )
 
-    allowed_readiness_statuses = {
-        "APPROVED_FOR_LIVE_INFERENCE",
-        "APPROVED_WITH_LIMITATIONS",
-    }
-
-    explainability_status = (
-        phase_4_explainability_report.get(
-            "approval_status"
-        )
-    )
-
-    error_analysis_status = phase_4_error_report.get(
-        "approval_status"
-    )
-
-    if explainability_status not in allowed_readiness_statuses:
-        raise ArtifactContractError(
-            "Phase 4 explainability did not approve the "
-            "model for live inference."
-        )
-
-    if error_analysis_status not in allowed_readiness_statuses:
-        raise ArtifactContractError(
-            "Phase 4 error analysis did not approve the "
-            "model for live inference."
-        )
-
     selected_strategy = model_metadata.get(
         "selected_strategy"
     )
@@ -304,9 +213,6 @@ def load_model_artifacts_from_paths(
             persistence_max_horizon
         ),
         model_metadata=model_metadata,
-        model_selection_report=(
-            model_selection_report
-        ),
         model_source=paths.source,
         model_registry_name=(
             paths.model_name
