@@ -7,13 +7,35 @@ __pycache__/
 data/raw/*
 data/processed/*
 data/reports/*
+
+# Ignore generated model artifacts by default
 models/*
+
+# Keep the models directory
+!models/.gitkeep
+
+# Keep the production runtime fallback artifacts
+!models/best_model.joblib
+!models/model_metadata.json
+!models/model_feature_columns.json
+
+# Keep generated subdirectories ignored
+models/artifacts/
+
+models/registry_package/*
+!models/registry_package/.gitkeep
+
+models/registry_cache/*
+!models/registry_cache/.gitkeep
+
+models/candidates/*
+!models/candidates/.gitkeep
+
 !data/raw/.gitkeep
 !data/processed/.gitkeep
 !data/reports/.gitkeep
 data/training/*
 !data/training/.gitkeep
-!models/.gitkeep
 
 reports/*
 !reports/.gitkeep
@@ -47,14 +69,3 @@ aqi/latest/*
 
 aqi/runs/*
 !aqi/runs/.gitkeep
-
-
-models/registry_package/*
-!models/registry_package/.gitkeep
-
-models/registry_cache/*
-!models/registry_cache/.gitkeep
-
-
-models/candidates/*
-!models/candidates/.gitkeep

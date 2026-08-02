@@ -1,0 +1,196 @@
+{
+  "project_name": "Pearls AQI Predictor",
+  "forecast_description": "72-hour PM2.5-based AQI forecast for the Zafar Memon DHA reference location in Karachi.",
+  "model_type": "XGBRegressor",
+  "model_name": "xgboost_shallower",
+  "selected_strategy": "hybrid_persistence_1_12_xgboost_shallower_13_72",
+  "routing": {
+    "horizons_1_to_12": "current_pm25_persistence",
+    "horizons_13_to_72": "xgboost_shallower",
+    "persistence_max_horizon": 12
+  },
+  "model_parameters": {
+    "objective": "reg:squarederror",
+    "base_score": null,
+    "booster": null,
+    "callbacks": null,
+    "colsample_bylevel": null,
+    "colsample_bynode": null,
+    "colsample_bytree": 0.85,
+    "device": null,
+    "early_stopping_rounds": 75,
+    "enable_categorical": true,
+    "eval_metric": "rmse",
+    "feature_types": null,
+    "feature_weights": null,
+    "gamma": null,
+    "grow_policy": null,
+    "importance_type": null,
+    "interaction_constraints": null,
+    "learning_rate": 0.04,
+    "max_bin": null,
+    "max_cat_threshold": null,
+    "max_cat_to_onehot": null,
+    "max_delta_step": null,
+    "max_depth": 4,
+    "max_leaves": null,
+    "min_child_weight": 15,
+    "missing": NaN,
+    "monotone_constraints": null,
+    "multi_strategy": null,
+    "n_estimators": 1800,
+    "n_jobs": -1,
+    "num_parallel_tree": null,
+    "random_state": 42,
+    "reg_alpha": 0.2,
+    "reg_lambda": 2.0,
+    "sampling_method": null,
+    "scale_pos_weight": null,
+    "subsample": 0.85,
+    "tree_method": "hist",
+    "validate_parameters": null,
+    "verbosity": null
+  },
+  "best_iteration": 323,
+  "training_date_utc": "2026-07-26T09:37:43.161320+00:00",
+  "target_column": "target_pm25_ug_m3",
+  "input_feature_count": 56,
+  "ordered_feature_names": [
+    "pm25_current",
+    "pm25_lag_1h",
+    "pm25_lag_3h",
+    "pm25_lag_6h",
+    "pm25_lag_12h",
+    "pm25_lag_24h",
+    "pm25_mean_3h",
+    "pm25_mean_6h",
+    "pm25_mean_12h",
+    "pm25_mean_24h",
+    "pm25_change_1h",
+    "pm25_change_6h",
+    "pm25_change_24h",
+    "temperature_2m",
+    "relative_humidity_2m",
+    "dew_point_2m",
+    "surface_pressure",
+    "precipitation",
+    "rain",
+    "cloud_cover",
+    "wind_speed_10m",
+    "wind_direction_10m",
+    "wind_gusts_10m",
+    "wind_direction_10m_sin",
+    "wind_direction_10m_cos",
+    "reference_hour",
+    "reference_day_of_week",
+    "reference_month",
+    "reference_hour_sin",
+    "reference_hour_cos",
+    "reference_day_of_week_sin",
+    "reference_day_of_week_cos",
+    "reference_month_sin",
+    "reference_month_cos",
+    "forecast_horizon_hours",
+    "target_temperature_2m",
+    "target_relative_humidity_2m",
+    "target_dew_point_2m",
+    "target_surface_pressure",
+    "target_precipitation",
+    "target_rain",
+    "target_cloud_cover",
+    "target_wind_speed_10m",
+    "target_wind_direction_10m",
+    "target_wind_gusts_10m",
+    "target_wind_direction_10m_sin",
+    "target_wind_direction_10m_cos",
+    "target_hour",
+    "target_day_of_week",
+    "target_month",
+    "target_hour_sin",
+    "target_hour_cos",
+    "target_day_of_week_sin",
+    "target_day_of_week_cos",
+    "target_month_sin",
+    "target_month_cos"
+  ],
+  "data_ranges": {
+    "train_reference_start": "2025-07-09T00:00:00+00:00",
+    "train_reference_end": "2026-03-18T11:00:00+00:00",
+    "validation_reference_start": "2026-03-21T12:00:00+00:00",
+    "validation_reference_end": "2026-05-27T21:00:00+00:00",
+    "test_reference_start": "2026-05-30T22:00:00+00:00",
+    "test_reference_end": "2026-07-23T22:00:00+00:00"
+  },
+  "row_counts": {
+    "train": 364798,
+    "validation": 71256,
+    "test": 76813
+  },
+  "validation_metrics": {
+    "strategy": "hybrid_persistence_1_12_xgboost_shallower_13_72",
+    "mae": 6.695642304681119,
+    "rmse": 9.419552655549651,
+    "r2": 0.06661111029588762,
+    "persistence_horizons": "1-12",
+    "xgboost_horizons": "13-72"
+  },
+  "final_test_metrics": {
+    "mae": 3.715506901271162,
+    "rmse": 4.975563144569727,
+    "r2": -0.003985667037644358
+  },
+  "test_baseline_metrics": {
+    "current_persistence": {
+      "mae": 3.8353690130576856,
+      "rmse": 5.28309937441166,
+      "r2": -0.13193265230490026
+    },
+    "previous_day_persistence": {
+      "mae": 4.543849348417585,
+      "rmse": 6.117523920308621,
+      "r2": -0.517729518158885
+    }
+  },
+  "horizon_groups": {
+    "1-6h": [
+      1,
+      6
+    ],
+    "7-12h": [
+      7,
+      12
+    ],
+    "13-24h": [
+      13,
+      24
+    ],
+    "25-48h": [
+      25,
+      48
+    ],
+    "49-72h": [
+      49,
+      72
+    ]
+  },
+  "random_seed": 42,
+  "artifact_paths": {
+    "training_features": "/home/riyan/Riyan/projects/pearls-aqi-predictor/data/training/train_dataset.parquet",
+    "validation_features": "/home/riyan/Riyan/projects/pearls-aqi-predictor/data/training/validation_dataset.parquet",
+    "test_features": "/home/riyan/Riyan/projects/pearls-aqi-predictor/data/training/test_dataset.parquet",
+    "model": "/home/riyan/Riyan/projects/pearls-aqi-predictor/models/best_model.joblib"
+  },
+  "software_versions": {
+    "python": "3.12.3",
+    "pandas": "3.0.5",
+    "numpy": "2.5.1",
+    "scikit_learn": "1.9.0",
+    "xgboost": "3.3.0"
+  },
+  "limitations": [
+    "Historical observed target-hour weather was used as a proxy for forecast weather.",
+    "Production inference will use Open-Meteo forecast weather, which introduces weather forecast uncertainty.",
+    "The system forecasts PM2.5 at one validated reference location and is not a citywide multi-pollutant AQI model.",
+    "Test R\u00b2 was close to zero even though the selected strategy improved MAE and RMSE over persistence baselines."
+  ]
+}
