@@ -97,7 +97,6 @@ COPY --chown=pipeline:pipeline \
     models/best_model.joblib \
     models/model_metadata.json \
     models/model_feature_columns.json \
-    models/model_selection_report.json \
     /app/models/
 
 RUN mkdir -p \
