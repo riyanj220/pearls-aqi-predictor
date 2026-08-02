@@ -148,29 +148,95 @@ jobs:
   container-validation:
     name: Container validation
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 60
+
+    env:
+      IMAGE_TAG: ci-${{ github.sha }}
+      APP_VERSION: 0.1.0
+      GIT_COMMIT: ${{ github.sha }}
+      BUILD_DATE: "ci-build"
 
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Validate Docker Compose
-        run: docker compose config
+      - name: Validate production Compose configuration
+        run: |
+          docker compose \
+            --file compose.production.yml \
+            --profile jobs \
+            config
 
-      - name: Build API image
+      - name: List production services
+        run: |
+          docker compose \
+            --file compose.production.yml \
+            --profile jobs \
+            config \
+            --services
+
+      - name: Build production images
         env:
           BUILDKIT_PROGRESS: plain
-        run: docker compose build api
-
-      - name: Build dashboard image
-        env:
-          BUILDKIT_PROGRESS: plain
-        run: docker compose build dashboard
+        run: |
+          docker compose \
+            --progress plain \
+            --file compose.production.yml \
+            --profile jobs \
+            build
 
       - name: Inspect built images
         run: |
-          docker image inspect pearls-aqi-api:latest \
-            --format '{{.Id}}'
+          docker image inspect \
+            "pearls-aqi-api:${IMAGE_TAG}" \
+            --format '{{.Id}} {{.Os}}/{{.Architecture}} {{.Config.User}}'
 
-          docker image inspect pearls-aqi-dashboard:latest \
-            --format '{{.Id}}'
+          docker image inspect \
+            "pearls-aqi-dashboard:${IMAGE_TAG}" \
+            --format '{{.Id}} {{.Os}}/{{.Architecture}} {{.Config.User}}'
+
+          docker image inspect \
+            "pearls-aqi-pipeline:${IMAGE_TAG}" \
+            --format '{{.Id}} {{.Os}}/{{.Architecture}} {{.Config.User}}'
+
+      - name: Validate production image contracts
+        run: |
+          python -m \
+            app.operations.container_image_validation \
+            --image-tag "${IMAGE_TAG}"
+
+      - name: Validate pipeline commands inside image
+        run: |
+          docker run \
+            --rm \
+            "pearls-aqi-pipeline:${IMAGE_TAG}" \
+            python -m app.pipelines.live_inference --help
+
+          docker run \
+            --rm \
+            "pearls-aqi-pipeline:${IMAGE_TAG}" \
+            python -m app.pipelines.aqi_alert_pipeline --help
+
+          docker run \
+            --rm \
+            "pearls-aqi-pipeline:${IMAGE_TAG}" \
+            python -m app.pipelines.incremental_features --help
+
+          docker run \
+            --rm \
+            "pearls-aqi-pipeline:${IMAGE_TAG}" \
+            python -m app.pipelines.retraining_cycle --help
+
+          docker run \
+            --rm \
+            "pearls-aqi-pipeline:${IMAGE_TAG}" \
+            python -m app.pipelines.champion_challenger --help
+
+      - name: Upload container validation report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase-10-container-validation-report
+          path: reports/phase_10/container_image_validation_report.json
+          if-no-files-found: warn
+          retention-days: 14
