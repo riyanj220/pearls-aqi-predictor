@@ -1,0 +1,118 @@
+# syntax=docker/dockerfile:1.7
+
+ARG UV_VERSION=0.11.32
+
+FROM ghcr.io/astral-sh/uv:${UV_VERSION} AS uv
+
+FROM python:3.12-slim-bookworm AS builder
+
+COPY --from=uv /uv /uvx /bin/
+
+ENV UV_LINK_MODE=copy \
+    UV_NO_PROGRESS=1 \
+    UV_PYTHON_DOWNLOADS=0 \
+    PATH="/app/.venv/bin:$PATH"
+
+WORKDIR /app
+
+# Some Hopsworks transitive dependencies contain native extensions.
+# Build tools remain only in this temporary builder stage.
+RUN apt-get update \
+    && apt-get install \
+    --yes \
+    --no-install-recommends \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY pyproject.toml uv.lock ./
+
+# Installs:
+# - main project dependencies
+# - inference dependency group
+# - feature-store dependency group
+#
+# The application package itself is not installed because /app/app
+# is copied directly into the runtime image.
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync \
+    --locked \
+    --no-default-groups \
+    --group inference \
+    --group feature-store \
+    --no-install-project
+
+
+FROM python:3.12-slim-bookworm AS runtime
+
+ARG APP_VERSION=development
+ARG GIT_COMMIT=unknown
+ARG BUILD_DATE=unknown
+
+LABEL org.opencontainers.image.title="Pearls AQI Pipeline" \
+    org.opencontainers.image.description="Batch image for live inference, AQI generation, feature synchronization, and retraining operations" \
+    org.opencontainers.image.version="${APP_VERSION}" \
+    org.opencontainers.image.revision="${GIT_COMMIT}" \
+    org.opencontainers.image.created="${BUILD_DATE}"
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PATH="/app/.venv/bin:$PATH" \
+    APP_ENV="demo" \
+    SERVICE_ROLE="pipeline"
+
+WORKDIR /app
+
+# ca-certificates supports HTTPS connections.
+# libgomp1 provides the GNU OpenMP runtime used by XGBoost.
+RUN apt-get update \
+    && apt-get install \
+    --yes \
+    --no-install-recommends \
+    ca-certificates \
+    libgomp1 \
+    && rm -rf /var/lib/apt/lists/* \
+    && groupadd \
+    --system \
+    --gid 10003 \
+    pipeline \
+    && useradd \
+    --system \
+    --uid 10003 \
+    --gid pipeline \
+    --create-home \
+    --home-dir /home/pipeline \
+    pipeline
+
+COPY --from=builder \
+    --chown=pipeline:pipeline \
+    /app/.venv \
+    /app/.venv
+
+COPY --chown=pipeline:pipeline \
+    app \
+    /app/app
+
+# Local fallback model bundle.
+COPY --chown=pipeline:pipeline \
+    models/best_model.joblib \
+    models/model_metadata.json \
+    models/model_feature_columns.json \
+    models/model_selection_report.json \
+    /app/models/
+
+RUN mkdir -p \
+    /app/inference/runs \
+    /app/aqi/runs \
+    /app/aqi/latest \
+    /app/reports \
+    /app/models/registry_cache \
+    && chown -R pipeline:pipeline \
+    /app/inference \
+    /app/aqi \
+    /app/reports \
+    /app/models
+
+USER pipeline
+
+# Azure Container Apps Jobs can override this command.
+CMD ["python", "-m", "app.pipelines.live_inference", "--help"]

@@ -1677,6 +1677,7 @@ feature-store = [
     { name = "hopsworks", extra = ["python"] },
 ]
 inference = [
+    { name = "joblib" },
     { name = "numpy" },
     { name = "requests" },
     { name = "scikit-learn" },
@@ -1722,6 +1723,7 @@ explainability = [
 ]
 feature-store = [{ name = "hopsworks", extras = ["python"], specifier = "~=5.0.0" }]
 inference = [
+    { name = "joblib", specifier = ">=1.5.3" },
     { name = "numpy", specifier = ">=1.26" },
     { name = "requests", specifier = ">=2.34.2" },
     { name = "scikit-learn", specifier = ">=1.9.0" },

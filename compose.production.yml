@@ -1,0 +1,124 @@
+name: pearls-aqi-production
+
+services:
+  api:
+    image: pearls-aqi-api:${IMAGE_TAG:-local}
+
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+      args:
+        APP_VERSION: ${APP_VERSION:-development}
+        GIT_COMMIT: ${GIT_COMMIT:-unknown}
+        BUILD_DATE: ${BUILD_DATE:-unknown}
+
+    environment:
+      PEARLS_API_ENVIRONMENT: demo
+      PEARLS_API_LOG_LEVEL: INFO
+      PEARLS_API_PHASE_6_LATEST_DIRECTORY: /app/aqi/latest
+      PEARLS_API_ARTIFACT_CACHE_SECONDS: "60"
+      PEARLS_API_FORECAST_AGING_THRESHOLD_HOURS: "6"
+      PEARLS_API_FORECAST_STALENESS_THRESHOLD_HOURS: "12"
+      PEARLS_API_ALLOWED_CORS_ORIGINS: '["http://localhost:8501"]'
+
+    ports:
+      - "8000:8000"
+
+    restart: unless-stopped
+    read_only: true
+
+    tmpfs:
+      - /tmp
+
+    security_opt:
+      - no-new-privileges:true
+
+  dashboard:
+    image: pearls-aqi-dashboard:${IMAGE_TAG:-local}
+
+    build:
+      context: .
+      dockerfile: Dockerfile.dashboard
+      args:
+        APP_VERSION: ${APP_VERSION:-development}
+        GIT_COMMIT: ${GIT_COMMIT:-unknown}
+        BUILD_DATE: ${BUILD_DATE:-unknown}
+
+    environment:
+      FASTAPI_BASE_URL: http://api:8000/api/v1
+      DASHBOARD_ENVIRONMENT: demo
+
+    ports:
+      - "8501:8501"
+
+    depends_on:
+      api:
+        condition: service_healthy
+
+    restart: unless-stopped
+    read_only: true
+
+    tmpfs:
+      - /tmp
+      - /home/dashboard/.streamlit
+
+    security_opt:
+      - no-new-privileges:true
+
+  pipeline:
+    image: pearls-aqi-pipeline:${IMAGE_TAG:-local}
+
+    build:
+      context: .
+      dockerfile: Dockerfile.pipeline
+      args:
+        APP_VERSION: ${APP_VERSION:-development}
+        GIT_COMMIT: ${GIT_COMMIT:-unknown}
+        BUILD_DATE: ${BUILD_DATE:-unknown}
+
+    env_file:
+      - .env
+
+    environment:
+      APP_ENV: demo
+      SERVICE_ROLE: pipeline
+      LOG_LEVEL: INFO
+
+      ARTIFACT_BACKEND: local
+
+      MODEL_LOADING_MODE: LOCAL_ARTIFACT
+      FEATURE_STORE_BACKEND: local
+      MODEL_REGISTRY_BACKEND: local
+
+      AUTOMATIC_RETRAINING_ENABLED: "false"
+      AUTOMATIC_MODEL_PROMOTION_ENABLED: "false"
+
+    command:
+      - sh
+      - -c
+      - >
+        python -m app.pipelines.live_inference &&
+        python -m app.pipelines.aqi_alert_pipeline
+
+    profiles:
+      - jobs
+
+    read_only: true
+
+    tmpfs:
+      - /tmp
+
+    volumes:
+      - pipeline-inference:/app/inference
+      - pipeline-aqi:/app/aqi
+      - pipeline-reports:/app/reports
+      - pipeline-model-cache:/app/models/registry_cache
+
+    security_opt:
+      - no-new-privileges:true
+
+volumes:
+  pipeline-inference:
+  pipeline-aqi:
+  pipeline-reports:
+  pipeline-model-cache:

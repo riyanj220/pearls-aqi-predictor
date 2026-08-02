@@ -4,7 +4,7 @@ services:
   api:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.api
 
     image: pearls-aqi-api:latest
 
@@ -31,7 +31,7 @@ services:
   dashboard:
     build:
       context: .
-      dockerfile: dashboard/Dockerfile
+      dockerfile: Dockerfile.dashboard
 
     image: pearls-aqi-dashboard:latest
 

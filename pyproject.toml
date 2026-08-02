@@ -45,6 +45,7 @@ inference = [
     "scikit-learn>=1.9.0",
     "xgboost>=3.2.0",
     "requests>=2.34.2",
+    "joblib>=1.5.3",
 ]
 
 dashboard = [

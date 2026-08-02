@@ -1,31 +1,58 @@
-.git
-.github
 .gitignore
-
-.env
-.env.*
-!.env.example
-
-__pycache__/
-*.py[cod]
-.pytest_cache/
-.mypy_cache/
-.ruff_cache/
 
 .venv/
 venv/
 
-notebooks/
-tests/
-reports/
-
-data/
-models/
-inference/runs/
-aqi/runs/
-
-aqi/latest/*
-!aqi/latest/.gitkeep
-
 *.log
 .DS_Store
+
+# Git and editor metadata
+.git
+.github
+.vscode
+.idea
+
+# Local Python environments and caches
+.venv
+__pycache__
+*.py[cod]
+.pytest_cache
+.ruff_cache
+.mypy_cache
+.ipynb_checkpoints
+
+# Local secrets
+.env
+.env.*
+!.env.example
+!.env.api.example
+!.env.dashboard.example
+!.env.pipeline.example
+
+# Local reports and temporary files
+reports
+tmp
+temp
+*.log
+
+# Development-only content
+notebooks
+docs
+tests
+figures
+explainability
+error_analysis
+
+# Large local data and generated run artifacts
+data
+inference/runs
+aqi/runs
+
+# Local model and registry caches
+models/candidates
+models/registry_cache
+
+# Compose and miscellaneous files not needed in images
+compose*.yml
+docker-compose*.yml
+README.md

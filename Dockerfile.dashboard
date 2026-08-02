@@ -1,0 +1,85 @@
+# syntax=docker/dockerfile:1.7
+
+ARG UV_VERSION=0.11.32
+
+FROM ghcr.io/astral-sh/uv:${UV_VERSION} AS uv
+
+FROM python:3.12-slim-bookworm AS builder
+
+COPY --from=uv /uv /uvx /bin/
+
+ENV UV_LINK_MODE=copy \
+    UV_NO_PROGRESS=1 \
+    UV_PYTHON_DOWNLOADS=0 \
+    PATH="/app/.venv/bin:$PATH"
+
+WORKDIR /app
+
+COPY pyproject.toml uv.lock ./
+
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync \
+    --locked \
+    --only-group dashboard \
+    --no-install-project
+
+
+FROM python:3.12-slim-bookworm AS runtime
+
+ARG APP_VERSION=development
+ARG GIT_COMMIT=unknown
+ARG BUILD_DATE=unknown
+
+LABEL org.opencontainers.image.title="Pearls AQI Dashboard" \
+    org.opencontainers.image.description="Streamlit dashboard for the Pearls AQI Predictor" \
+    org.opencontainers.image.version="${APP_VERSION}" \
+    org.opencontainers.image.revision="${GIT_COMMIT}" \
+    org.opencontainers.image.created="${BUILD_DATE}"
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PATH="/app/.venv/bin:$PATH" \
+    STREAMLIT_SERVER_ADDRESS="0.0.0.0" \
+    STREAMLIT_SERVER_PORT="8501" \
+    STREAMLIT_SERVER_HEADLESS="true" \
+    STREAMLIT_BROWSER_GATHER_USAGE_STATS="false"
+
+WORKDIR /app
+
+RUN groupadd \
+    --system \
+    --gid 10002 \
+    dashboard \
+    && useradd \
+    --system \
+    --uid 10002 \
+    --gid dashboard \
+    --create-home \
+    --home-dir /home/dashboard \
+    dashboard
+
+COPY --from=builder \
+    --chown=dashboard:dashboard \
+    /app/.venv \
+    /app/.venv
+
+COPY --chown=dashboard:dashboard \
+    dashboard \
+    /app/dashboard
+
+COPY --chown=dashboard:dashboard \
+    .streamlit \
+    /app/.streamlit
+
+USER dashboard
+
+EXPOSE 8501
+
+HEALTHCHECK \
+    --interval=30s \
+    --timeout=5s \
+    --start-period=20s \
+    --retries=3 \
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8501/_stcore/health', timeout=3).read()"
+
+CMD ["streamlit", "run", "dashboard/app.py", "--server.address=0.0.0.0", "--server.port=8501", "--server.headless=true", "--browser.gatherUsageStats=false"]
