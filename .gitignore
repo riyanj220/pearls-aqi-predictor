@@ -69,3 +69,7 @@ aqi/latest/*
 
 aqi/runs/*
 !aqi/runs/.gitkeep
+
+# Generated durable local artifact repository
+artifacts/repository/*
+!artifacts/repository/.gitkeep
