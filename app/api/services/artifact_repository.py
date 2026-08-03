@@ -17,6 +17,10 @@ import pandas as pd
 from app.api.config import APISettings
 from app.api.schemas.common import FreshnessStatus
 
+from app.api.services.blob_artifact_source import (
+    ArtifactMaterializationError,
+    BlobArtifactSource,
+)
 
 class ArtifactRepositoryError(RuntimeError):
     """Base exception for artifact repository failures."""
@@ -131,6 +135,16 @@ class ArtifactRepository:
         self._lock = threading.RLock()
         self._cache: _CacheEntry | None = None
 
+
+        self._blob_source = (
+            BlobArtifactSource(
+                settings
+            )
+            if settings.artifact_backend
+            == "azure_blob"
+            else None
+        )
+
     @property
     def required_paths(self) -> tuple[Path, ...]:
         """Return all required Phase 6 artifact paths."""
@@ -162,6 +176,10 @@ class ArtifactRepository:
         """
 
         with self._lock:
+            self._refresh_external_source(
+                force_reload=force_reload
+            )
+
             self._validate_required_files_exist()
 
             current_signature = (
@@ -186,6 +204,33 @@ class ArtifactRepository:
             )
 
             return bundle
+
+
+    def _refresh_external_source(
+        self,
+        *,
+        force_reload: bool,
+    ) -> None:
+        """Materialize remote artifacts when Azure Blob is configured."""
+
+        if self._blob_source is None:
+            return
+
+        try:
+            result = (
+                self._blob_source.refresh(
+                    force=force_reload
+                )
+            )
+        except ArtifactMaterializationError as error:
+            raise ArtifactNotFoundError(
+                "Could not materialize the latest "
+                "Azure Blob AQI artifacts."
+            ) from error
+
+        if result.refreshed:
+            self._cache = None
+
 
     def _cache_is_usable(
         self,

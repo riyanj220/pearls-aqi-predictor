@@ -4,8 +4,13 @@ from __future__ import annotations
 
 from functools import lru_cache
 from pathlib import Path
+from typing import Literal
 
-from pydantic import Field, field_validator
+from pydantic import (
+    Field,
+    field_validator,
+    model_validator,
+)
 from pydantic_settings import (
     BaseSettings,
     SettingsConfigDict,
@@ -52,8 +57,31 @@ class APISettings(BaseSettings):
         "http://localhost:8501",
     )
 
+    # Artifact source configuration.
+    artifact_backend: Literal[
+        "local",
+        "azure_blob",
+    ] = "local"
+
+    artifact_type: str = "aqi"
+
+    azure_storage_account: str | None = None
+
+    azure_storage_container: str = "artifacts"
+
+    phase_6_blob_cache_directory: Path = (
+        PROJECT_ROOT
+        / ".cache"
+        / "api"
+        / "aqi"
+        / "latest"
+    )
+
+    # Existing local artifact location.
     phase_6_latest_directory: Path = (
-        PROJECT_ROOT / "aqi" / "latest"
+        PROJECT_ROOT
+        / "aqi"
+        / "latest"
     )
 
     phase_6_forecast_filename: str = (
@@ -146,6 +174,111 @@ class APISettings(BaseSettings):
         return normalized_value
 
     @field_validator(
+        "artifact_backend",
+        mode="before",
+    )
+    @classmethod
+    def normalize_artifact_backend(
+        cls,
+        value: object,
+    ) -> str:
+        """Normalize and validate the artifact backend."""
+
+        normalized_value = str(
+            value
+        ).strip().lower()
+
+        allowed_backends = {
+            "local",
+            "azure_blob",
+        }
+
+        if (
+            normalized_value
+            not in allowed_backends
+        ):
+            raise ValueError(
+                "artifact_backend must be "
+                "'local' or 'azure_blob'."
+            )
+
+        return normalized_value
+
+    @field_validator(
+        "artifact_type",
+        mode="before",
+    )
+    @classmethod
+    def normalize_artifact_type(
+        cls,
+        value: object,
+    ) -> str:
+        """Normalize the durable artifact type."""
+
+        normalized_value = str(
+            value
+        ).strip().lower()
+
+        if not normalized_value:
+            raise ValueError(
+                "artifact_type cannot be empty."
+            )
+
+        if (
+            "/" in normalized_value
+            or "\\" in normalized_value
+        ):
+            raise ValueError(
+                "artifact_type must contain one "
+                "path segment."
+            )
+
+        return normalized_value
+
+    @field_validator(
+        "azure_storage_account",
+        mode="before",
+    )
+    @classmethod
+    def normalize_storage_account(
+        cls,
+        value: object,
+    ) -> str | None:
+        """Normalize an optional Azure Storage account."""
+
+        if value is None:
+            return None
+
+        normalized_value = str(
+            value
+        ).strip()
+
+        return normalized_value or None
+
+    @field_validator(
+        "azure_storage_container",
+        mode="before",
+    )
+    @classmethod
+    def normalize_storage_container(
+        cls,
+        value: object,
+    ) -> str:
+        """Normalize the Azure Blob container name."""
+
+        normalized_value = str(
+            value
+        ).strip()
+
+        if not normalized_value:
+            raise ValueError(
+                "azure_storage_container "
+                "cannot be empty."
+            )
+
+        return normalized_value
+
+    @field_validator(
         "phase_6_latest_directory",
         mode="before",
     )
@@ -155,62 +288,113 @@ class APISettings(BaseSettings):
         value: object,
     ) -> Path:
         """
-        Resolve the Phase 6 artifact directory.
+        Resolve the local Phase 6 artifact directory.
 
         Relative paths from the environment are interpreted
         relative to the project root rather than the current
         working directory.
         """
 
-        path = Path(str(value)).expanduser()
+        path = Path(
+            str(value)
+        ).expanduser()
 
         if not path.is_absolute():
             path = PROJECT_ROOT / path
 
         return path.resolve()
 
+    @field_validator(
+        "phase_6_blob_cache_directory",
+        mode="before",
+    )
+    @classmethod
+    def resolve_blob_cache_directory(
+        cls,
+        value: object,
+    ) -> Path:
+        """Resolve the Blob materialization cache."""
+
+        path = Path(
+            str(value)
+        ).expanduser()
+
+        if not path.is_absolute():
+            path = PROJECT_ROOT / path
+
+        return path.resolve()
+
+    @model_validator(mode="after")
+    def validate_artifact_source(
+        self,
+    ) -> "APISettings":
+        """Validate backend-specific configuration."""
+
+        if (
+            self.artifact_backend
+            == "azure_blob"
+            and not self.azure_storage_account
+        ):
+            raise ValueError(
+                "azure_storage_account is required "
+                "when artifact_backend=azure_blob."
+            )
+
+        return self
+
+    @property
+    def active_phase_6_directory(
+        self,
+    ) -> Path:
+        """Return the directory used by the API repository."""
+
+        if self.artifact_backend == "azure_blob":
+            return self.phase_6_blob_cache_directory
+
+        return self.phase_6_latest_directory
+
     @property
     def forecast_path(self) -> Path:
-        """Return the latest Phase 6 forecast path."""
+        """Return the active Phase 6 forecast path."""
 
         return (
-            self.phase_6_latest_directory
+            self.active_phase_6_directory
             / self.phase_6_forecast_filename
         )
 
     @property
     def alert_episodes_path(self) -> Path:
-        """Return the alert-episode artifact path."""
+        """Return the active alert-episode artifact path."""
 
         return (
-            self.phase_6_latest_directory
+            self.active_phase_6_directory
             / self.phase_6_alert_episodes_filename
         )
 
     @property
     def summary_path(self) -> Path:
-        """Return the forecast-summary path."""
+        """Return the active forecast-summary path."""
 
         return (
-            self.phase_6_latest_directory
+            self.active_phase_6_directory
             / self.phase_6_summary_filename
         )
 
     @property
     def metadata_path(self) -> Path:
-        """Return the AQI metadata path."""
+        """Return the active AQI metadata path."""
 
         return (
-            self.phase_6_latest_directory
+            self.active_phase_6_directory
             / self.phase_6_metadata_filename
         )
 
     @property
     def validation_report_path(self) -> Path:
-        """Return the Phase 6 validation-report path."""
+        """Return the active Phase 6 validation-report path."""
 
         return (
-            self.phase_6_latest_directory
+            self.active_phase_6_directory
             / self.phase_6_validation_filename
         )
 

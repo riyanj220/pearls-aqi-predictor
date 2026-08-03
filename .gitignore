@@ -73,3 +73,6 @@ aqi/runs/*
 # Generated durable local artifact repository
 artifacts/repository/*
 !artifacts/repository/.gitkeep
+
+# API materialized Blob cache
+.cache/
