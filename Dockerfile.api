@@ -17,6 +17,8 @@ WORKDIR /app
 
 COPY pyproject.toml uv.lock ./
 
+# Installs the main API dependencies, including:
+# azure-identity and azure-storage-blob.
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync \
     --locked \
@@ -65,11 +67,19 @@ COPY --chown=pearls:pearls \
     app \
     /app/app
 
-# Demo fallback snapshot.
-# In production, Blob Storage or a mounted volume should provide these.
+# Local fallback snapshot.
+# Azure staging will use Blob Storage when configured.
 COPY --chown=pearls:pearls \
     aqi/latest \
     /app/aqi/latest
+
+# Writable materialization directory for Azure Blob artifacts.
+# The API runs as the non-root "pearls" user.
+RUN mkdir -p \
+    /app/.cache/api/aqi/latest \
+    && chown -R pearls:pearls \
+    /app/.cache \
+    /app/aqi
 
 USER pearls
 
