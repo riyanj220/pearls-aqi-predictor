@@ -114,4 +114,4 @@ RUN mkdir -p \
 USER pipeline
 
 # Azure Container Apps Jobs can override this command.
-CMD ["python", "-m", "app.pipelines.live_inference", "--help"]
+CMD ["python", "-m", "app.pipelines.publish_forecast"]
