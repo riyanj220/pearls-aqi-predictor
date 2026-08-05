@@ -16,7 +16,7 @@ ENV UV_LINK_MODE=copy \
 WORKDIR /app
 
 # Some Hopsworks transitive dependencies contain native extensions.
-# Build tools remain only in this temporary builder stage.
+# These build tools remain only in the temporary builder image.
 RUN apt-get update \
     && apt-get install \
     --yes \
@@ -26,13 +26,10 @@ RUN apt-get update \
 
 COPY pyproject.toml uv.lock ./
 
-# Installs:
-# - main project dependencies
-# - inference dependency group
-# - feature-store dependency group
-#
-# The application package itself is not installed because /app/app
-# is copied directly into the runtime image.
+# Install:
+# - main application dependencies
+# - inference dependencies
+# - Hopsworks / feature-store dependencies
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync \
     --locked \
@@ -63,7 +60,8 @@ ENV PYTHONUNBUFFERED=1 \
 WORKDIR /app
 
 # ca-certificates supports HTTPS connections.
-# libgomp1 provides the GNU OpenMP runtime used by XGBoost.
+# libgomp1 is required by XGBoost.
+# The non-root pipeline user runs all workloads.
 RUN apt-get update \
     && apt-get install \
     --yes \
@@ -81,7 +79,14 @@ RUN apt-get update \
     --gid pipeline \
     --create-home \
     --home-dir /home/pipeline \
-    pipeline
+    pipeline \
+    && mkdir -p \
+    /app/bin \
+    /app/inference/runs \
+    /app/aqi/runs \
+    /app/aqi/latest \
+    /app/reports \
+    /app/models/registry_cache
 
 COPY --from=builder \
     --chown=pipeline:pipeline \
@@ -92,6 +97,11 @@ COPY --chown=pipeline:pipeline \
     app \
     /app/app
 
+# Wrapper used by the hourly feature synchronization Azure job.
+COPY --chown=pipeline:pipeline \
+    scripts/run_hourly_features.sh \
+    /app/bin/run_hourly_features
+
 # Local fallback model bundle.
 COPY --chown=pipeline:pipeline \
     models/best_model.joblib \
@@ -99,13 +109,11 @@ COPY --chown=pipeline:pipeline \
     models/model_feature_columns.json \
     /app/models/
 
-RUN mkdir -p \
-    /app/inference/runs \
-    /app/aqi/runs \
-    /app/aqi/latest \
-    /app/reports \
-    /app/models/registry_cache \
-    && chown -R pipeline:pipeline \
+RUN chmod +x \
+    /app/bin/run_hourly_features \
+    && chown -R \
+    pipeline:pipeline \
+    /app/bin \
     /app/inference \
     /app/aqi \
     /app/reports \
@@ -113,5 +121,6 @@ RUN mkdir -p \
 
 USER pipeline
 
-# Azure Container Apps Jobs can override this command.
+# Default workload for the scheduled forecast-publication job.
+# Other Azure jobs may override this command.
 CMD ["python", "-m", "app.pipelines.publish_forecast"]
