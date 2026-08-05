@@ -61,8 +61,8 @@ class Settings:
     request_retry_count: int = 3
 
     # Open-Meteo request coverage
-    weather_past_hours: int = 12
-    weather_forecast_hours: int = 84
+    weather_past_hours: int = 96
+    weather_forecast_hours: int = 96
 
     # API endpoints
     openaq_base_url: str = "https://api.openaq.org/v3"
