@@ -43,6 +43,14 @@ from app.pipelines.publish_forecast import (
     create_configured_repository,
 )
 
+import os
+import urllib.error
+import urllib.parse
+import urllib.request
+
+from azure.identity import (
+    DefaultAzureCredential,
+)
 
 REPORT_PATH = (
     PROJECT_ROOT
@@ -65,6 +73,18 @@ DEFAULT_FORECAST_JOB = (
 
 DEFAULT_RETRAINING_JOB = (
     "job-pearls-aqi-retraining"
+)
+
+AZURE_MANAGEMENT_SCOPE = (
+    "https://management.azure.com/.default"
+)
+
+AZURE_MANAGEMENT_ENDPOINT = (
+    "https://management.azure.com"
+)
+
+AZURE_CONTAINER_APPS_API_VERSION = (
+    "2026-01-01"
 )
 
 AQI_ARTIFACT_TYPE = "aqi"
@@ -255,6 +275,154 @@ def build_freshness_result(
         },
     }
 
+def read_environment_value(
+    name: str,
+    *,
+    default: str | None = None,
+) -> str | None:
+    """Read and normalize one environment value."""
+
+    value = os.getenv(
+        name,
+        default,
+    )
+
+    if value is None:
+        return None
+
+    normalized = value.strip()
+
+    return normalized or None
+
+
+def should_use_azure_resource_manager() -> bool:
+    """Return whether ARM should replace local Azure CLI access."""
+
+    backend = (
+        read_environment_value(
+            "AZURE_JOB_QUERY_BACKEND",
+            default="auto",
+        )
+        or "auto"
+    ).lower()
+
+    if backend not in {
+        "auto",
+        "cli",
+        "arm",
+    }:
+        raise ProductionHealthError(
+            "AZURE_JOB_QUERY_BACKEND must be "
+            "'auto', 'cli', or 'arm'."
+        )
+
+    if backend == "arm":
+        return True
+
+    if backend == "cli":
+        return False
+
+    return bool(
+        read_environment_value(
+            "AZURE_SUBSCRIPTION_ID"
+        )
+    )
+
+def run_azure_arm_get(
+    *,
+    resource_path: str,
+) -> Any:
+    """Perform one authenticated Azure Resource Manager GET request."""
+
+    subscription_id = (
+        read_environment_value(
+            "AZURE_SUBSCRIPTION_ID"
+        )
+    )
+
+    if subscription_id is None:
+        raise ProductionHealthError(
+            "AZURE_SUBSCRIPTION_ID is required "
+            "for ARM-based job inspection."
+        )
+
+    managed_identity_client_id = (
+        read_environment_value(
+            "AZURE_CLIENT_ID"
+        )
+    )
+
+    credential = DefaultAzureCredential(
+        managed_identity_client_id=(
+            managed_identity_client_id
+        ),
+        exclude_interactive_browser_credential=True,
+    )
+
+    token = credential.get_token(
+        AZURE_MANAGEMENT_SCOPE
+    )
+
+    separator = (
+        "&"
+        if "?" in resource_path
+        else "?"
+    )
+
+    url = (
+        f"{AZURE_MANAGEMENT_ENDPOINT}"
+        f"/subscriptions/"
+        f"{urllib.parse.quote(subscription_id, safe='')}"
+        f"{resource_path}"
+        f"{separator}api-version="
+        f"{AZURE_CONTAINER_APPS_API_VERSION}"
+    )
+
+    request = urllib.request.Request(
+        url=url,
+        method="GET",
+        headers={
+            "Authorization": (
+                f"Bearer {token.token}"
+            ),
+            "Accept": "application/json",
+        },
+    )
+
+    try:
+        with urllib.request.urlopen(
+            request,
+            timeout=30,
+        ) as response:
+            payload = response.read().decode(
+                "utf-8"
+            )
+
+    except urllib.error.HTTPError as error:
+        response_body = error.read().decode(
+            "utf-8",
+            errors="replace",
+        )
+
+        raise ProductionHealthError(
+            "Azure Resource Manager request failed. "
+            f"Status={error.code}, "
+            f"resource={resource_path}, "
+            f"response={response_body[:500]}"
+        ) from error
+
+    except urllib.error.URLError as error:
+        raise ProductionHealthError(
+            "Azure Resource Manager could not be reached."
+        ) from error
+
+    try:
+        return json.loads(payload)
+
+    except json.JSONDecodeError as error:
+        raise ProductionHealthError(
+            "Azure Resource Manager returned invalid JSON."
+        ) from error
 
 def run_azure_cli(
     arguments: list[str],
@@ -298,29 +466,68 @@ def load_job_executions(
     resource_group: str,
     job_name: str,
 ) -> list[dict[str, Any]]:
-    """Load recent executions for one Azure job."""
+    """Load recent executions through ARM or the local Azure CLI."""
 
-    payload = run_azure_cli(
-        [
-            "containerapp",
-            "job",
-            "execution",
-            "list",
-            "--resource-group",
-            resource_group,
-            "--name",
-            job_name,
-        ]
-    )
+    if should_use_azure_resource_manager():
+        encoded_resource_group = (
+            urllib.parse.quote(
+                resource_group,
+                safe="",
+            )
+        )
 
-    if not isinstance(payload, list):
+        encoded_job_name = (
+            urllib.parse.quote(
+                job_name,
+                safe="",
+            )
+        )
+
+        payload = run_azure_arm_get(
+            resource_path=(
+                f"/resourceGroups/"
+                f"{encoded_resource_group}"
+                f"/providers/Microsoft.App/jobs/"
+                f"{encoded_job_name}"
+                f"/executions"
+            )
+        )
+
+        if not isinstance(payload, dict):
+            raise ProductionHealthError(
+                "Azure execution response is not an object."
+            )
+
+        raw_executions = payload.get(
+            "value",
+            []
+        )
+
+    else:
+        raw_executions = run_azure_cli(
+            [
+                "containerapp",
+                "job",
+                "execution",
+                "list",
+                "--resource-group",
+                resource_group,
+                "--name",
+                job_name,
+            ]
+        )
+
+    if not isinstance(
+        raw_executions,
+        list,
+    ):
         raise ProductionHealthError(
             f"Execution response is not a list: {job_name}"
         )
 
     executions = [
         item
-        for item in payload
+        for item in raw_executions
         if isinstance(item, dict)
     ]
 
@@ -338,7 +545,6 @@ def load_job_executions(
     )
 
     return executions
-
 
 def inspect_azure_job(
     *,

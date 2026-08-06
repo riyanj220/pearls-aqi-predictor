@@ -110,6 +110,10 @@ COPY --chown=pipeline:pipeline \
     scripts/run_daily_retraining.sh \
     /app/bin/run_daily_retraining
 
+COPY --chown=pipeline:pipeline \
+    scripts/run_production_health.sh \
+    /app/bin/run_production_health
+
 # Local fallback model bundle.
 COPY --chown=pipeline:pipeline \
     models/best_model.joblib \
@@ -120,6 +124,7 @@ COPY --chown=pipeline:pipeline \
 RUN chmod +x \
     /app/bin/run_hourly_features \
     /app/bin/run_daily_retraining \
+    /app/bin/run_production_health \
     && chown -R \
     pipeline:pipeline \
     /app/bin \
