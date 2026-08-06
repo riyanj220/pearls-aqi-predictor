@@ -145,14 +145,14 @@ def normalize_reference_time(
 def resolve_production_training_end(
     metadata: dict[str, Any],
 ) -> pd.Timestamp | None:
-    """Resolve the production model's training-end timestamp."""
+    """
+    Resolve the latest timestamp already consumed by production approval.
 
-    candidate_values = [
-        metadata.get("training_end"),
-        metadata.get("training_end_utc"),
-        metadata.get("training_data_end"),
-        metadata.get("training_reference_end"),
-    ]
+    Validation and test data influenced model selection and approval, so they
+    must not later be counted as new retraining data.
+    """
+
+    candidate_values: list[object] = []
 
     data_ranges = metadata.get(
         "data_ranges"
@@ -161,6 +161,15 @@ def resolve_production_training_end(
     if isinstance(data_ranges, dict):
         candidate_values.extend(
             [
+                data_ranges.get(
+                    "production_data_end"
+                ),
+                data_ranges.get(
+                    "test_reference_end"
+                ),
+                data_ranges.get(
+                    "validation_reference_end"
+                ),
                 data_ranges.get(
                     "train_reference_end"
                 ),
@@ -180,33 +189,76 @@ def resolve_production_training_end(
     if isinstance(training_range, dict):
         candidate_values.extend(
             [
+                training_range.get(
+                    "production_data_end"
+                ),
+                training_range.get(
+                    "test_reference_end"
+                ),
                 training_range.get("end"),
-                training_range.get("end_utc"),
+                training_range.get(
+                    "end_utc"
+                ),
                 training_range.get(
                     "reference_end"
                 ),
             ]
         )
 
+    candidate_values.extend(
+        [
+            metadata.get(
+                "production_data_end"
+            ),
+            metadata.get(
+                "test_reference_end"
+            ),
+            metadata.get(
+                "validation_reference_end"
+            ),
+            metadata.get(
+                "training_end"
+            ),
+            metadata.get(
+                "training_end_utc"
+            ),
+            metadata.get(
+                "training_data_end"
+            ),
+            metadata.get(
+                "training_reference_end"
+            ),
+        ]
+    )
+
     for value in candidate_values:
         if value is None:
             continue
 
         try:
-            timestamp = pd.Timestamp(value)
+            timestamp = pd.Timestamp(
+                value
+            )
 
             if timestamp.tzinfo is None:
-                timestamp = timestamp.tz_localize(
-                    "UTC"
+                timestamp = (
+                    timestamp.tz_localize(
+                        "UTC"
+                    )
                 )
             else:
-                timestamp = timestamp.tz_convert(
-                    "UTC"
+                timestamp = (
+                    timestamp.tz_convert(
+                        "UTC"
+                    )
                 )
 
             return timestamp.floor("h")
 
-        except (TypeError, ValueError):
+        except (
+            TypeError,
+            ValueError,
+        ):
             continue
 
     return None

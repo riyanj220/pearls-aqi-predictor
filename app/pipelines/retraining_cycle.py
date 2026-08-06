@@ -29,39 +29,75 @@ from app.mlops.retraining import (
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 
+def resolve_retraining_paths(
+    dataset_directory: Path | None,
+) -> dict[str, Path]:
+    """Resolve static or runtime retraining datasets."""
+
+    if dataset_directory is None:
+        training_root = (
+            PROJECT_ROOT
+            / "data"
+            / "training"
+        )
+    else:
+        training_root = (
+            dataset_directory.expanduser()
+        )
+
+        if not training_root.is_absolute():
+            training_root = (
+                PROJECT_ROOT
+                / training_root
+            )
+
+        training_root = (
+            training_root.resolve()
+        )
+
+    return {
+        "root": training_root,
+        "train": (
+            training_root
+            / "train_dataset.parquet"
+        ),
+        "validation": (
+            training_root
+            / "validation_dataset.parquet"
+        ),
+        "test": (
+            training_root
+            / "test_dataset.parquet"
+        ),
+        "full": (
+            training_root
+            / "feature_dataset_full.parquet"
+        ),
+    }
+
+
 def run_retraining_cycle(
     *,
     force: bool,
+    dataset_directory: Path | None = None,
 ) -> dict[str, Any]:
+
     """Run eligibility, training and candidate evaluation."""
 
     settings = get_mlops_settings()
 
-    train_path = (
-        PROJECT_ROOT
-        / "data"
-        / "training"
-        / "train_dataset.parquet"
+    dataset_paths = resolve_retraining_paths(
+        dataset_directory
     )
 
+    train_path = dataset_paths["train"]
     validation_path = (
-        PROJECT_ROOT
-        / "data"
-        / "training"
-        / "validation_dataset.parquet"
+        dataset_paths["validation"]
     )
-
-    test_path = (
-        PROJECT_ROOT
-        / "data"
-        / "training"
-        / "test_dataset.parquet"
-    )
-
-    full_dataset_path = (
-        PROJECT_ROOT
-        / settings.phase_2_training_dataset_path
-    )
+    test_path = dataset_paths["test"]
+    full_dataset_path = dataset_paths[
+        "full"
+    ]
 
     feature_contract_path = (
         PROJECT_ROOT
@@ -127,12 +163,16 @@ def run_retraining_cycle(
 
     if not eligibility.eligible:
         return {
-            "phase": "9I",
+            "phase": "10K",
+            "subphase": "10K-C2",
             "generated_at_utc": datetime.now(
                 timezone.utc
             ).isoformat(),
             "status": (
                 "RETRAINING_SKIPPED_NO_NEW_DATA"
+            ),
+            "dataset_directory": str(
+                dataset_paths["root"]
             ),
             "eligibility": (
                 eligibility.to_dict()
@@ -259,13 +299,17 @@ def run_retraining_cycle(
     )
 
     return {
-        "phase": "9I",
+        "phase": "10K",
+        "subphase": "10K-C2",
         "generated_at_utc": datetime.now(
             timezone.utc
         ).isoformat(),
         "status": "RETRAINING_COMPLETED",
         "eligibility": (
             eligibility.to_dict()
+        ),
+        "dataset_directory": str(
+            dataset_paths["root"]
         ),
         "training": {
             "train_rows": int(
@@ -308,13 +352,13 @@ def run_retraining_cycle(
 def save_report(
     report: dict[str, Any],
 ) -> Path:
-    """Save the latest retraining-cycle report."""
+    """Save the latest controlled retraining report."""
 
     report_path = (
         PROJECT_ROOT
         / "reports"
-        / "phase_9"
-        / "automated_training_report.json"
+        / "phase_10"
+        / "runtime_retraining_report.json"
     )
 
     report_path.parent.mkdir(
@@ -322,13 +366,23 @@ def save_report(
         exist_ok=True,
     )
 
-    report_path.write_text(
+    temporary_path = (
+        report_path.with_suffix(
+            ".json.tmp"
+        )
+    )
+
+    temporary_path.write_text(
         json.dumps(
             report,
             indent=2,
             default=str,
         ),
         encoding="utf-8",
+    )
+
+    temporary_path.replace(
+        report_path
     )
 
     return report_path
@@ -353,25 +407,37 @@ def main() -> int:
         ),
     )
 
+    parser.add_argument(
+        "--dataset-directory",
+        type=Path,
+        default=None,
+        help=(
+            "Directory containing the full, train, "
+            "validation, and test runtime Parquet files."
+        ),
+    )
+
     arguments = parser.parse_args()
 
     try:
         report = run_retraining_cycle(
-            force=arguments.force
+            force=arguments.force,
+            dataset_directory=(
+                arguments.dataset_directory
+            ),
         )
 
         exit_code = 0
 
     except Exception as error:
         report = {
-            "phase": "9I",
+            "phase": "10K",
+            "subphase": "10K-C2",
             "generated_at_utc": datetime.now(
                 timezone.utc
             ).isoformat(),
             "status": "RETRAINING_FAILED",
-            "error_type": (
-                type(error).__name__
-            ),
+            "error_type": type(error).__name__,
             "error_message": str(error),
             "candidate_created": False,
             "production_model_changed": False,
@@ -392,7 +458,6 @@ def main() -> int:
     print("Report saved:", report_path)
 
     return exit_code
-
 
 if __name__ == "__main__":
     raise SystemExit(main())
