@@ -38,6 +38,10 @@ from app.pipelines.publish_forecast import (
     create_configured_repository,
 )
 
+from app.operations.health_notification_delivery import (
+    process_health_notifications,
+)
+
 
 REPORT_PATH = (
     PROJECT_ROOT
@@ -898,6 +902,21 @@ def run_persisted_production_health(
         now=utc_now(),
     )
 
+    notification_delivery = (
+        process_health_notifications(
+            repository=repository,
+            incident_evaluation=incident,
+            health_report=health_report,
+            health_run_id=health_run_id,
+            now=utc_now(),
+        )
+    )
+
+    notification_failed = (
+        notification_delivery["status"]
+        == "WEBHOOK_DELIVERY_FAILED"
+    )
+
     completed_at = utc_now()
 
     return {
@@ -907,7 +926,9 @@ def run_persisted_production_health(
             "persisted_production_health"
         ),
         "status": (
-            "PRODUCTION_HEALTH_PERSISTED"
+            "PRODUCTION_HEALTH_PERSISTED_NOTIFICATION_FAILED"
+            if notification_failed
+            else "PRODUCTION_HEALTH_PERSISTED"
         ),
         "started_at_utc": (
             started_at.isoformat()
@@ -937,9 +958,18 @@ def run_persisted_production_health(
         "incident_evaluation": (
             incident
         ),
-        "external_notification_sent": (
-            False
+
+        "notification_delivery": (
+            notification_delivery
         ),
+
+        "external_notification_sent": (
+            notification_delivery[
+                "delivered_count"
+            ]
+            > 0
+        ),
+
         "read_only_health_inspection": (
             True
         ),
@@ -1016,10 +1046,15 @@ def main() -> int:
             )
         )
 
-        # A warning or critical production state is an observed
-        # condition, not an orchestration failure. The command fails
-        # only when health collection or persistence itself fails.
-        exit_code = 0
+        exit_code = (
+            1
+            if report["status"]
+            == (
+                "PRODUCTION_HEALTH_"
+                "PERSISTED_NOTIFICATION_FAILED"
+            )
+            else 0
+        )
 
     except Exception as error:
         report = {

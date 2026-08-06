@@ -30,6 +30,7 @@ required_variables=(
   HOPSWORKS_API_KEY
   HOPSWORKS_PROJECT
   HOPSWORKS_HOST
+  PRODUCTION_HEALTH_WEBHOOK_URL
 )
 
 for variable_name in "${required_variables[@]}"; do
@@ -142,6 +143,7 @@ az containerapp job create \
   --registry-identity "${IDENTITY_RESOURCE_ID}" \
   --secrets \
     "hopsworks-api-key=${HOPSWORKS_API_KEY}" \
+    "production-health-webhook-url=${PRODUCTION_HEALTH_WEBHOOK_URL}" \
   --env-vars \
     "APP_ENV=staging" \
     "SERVICE_ROLE=monitoring" \
@@ -157,6 +159,9 @@ az containerapp job create \
     "ARTIFACT_BACKEND=azure_blob" \
     "AZURE_STORAGE_ACCOUNT=${STORAGE_ACCOUNT}" \
     "AZURE_STORAGE_CONTAINER=${STORAGE_CONTAINER}" \
+    "PRODUCTION_HEALTH_WEBHOOK_ENABLED=true" \
+    "PRODUCTION_HEALTH_WEBHOOK_URL=secretref:production-health-webhook-url" \
+    "PRODUCTION_HEALTH_WEBHOOK_TIMEOUT_SECONDS=15" \
   --tags \
     "project=pearls-aqi" \
     "environment=staging" \
