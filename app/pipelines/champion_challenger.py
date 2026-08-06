@@ -66,6 +66,7 @@ def find_latest_candidate(
 def run_champion_challenger(
     *,
     register_approved: bool,
+    candidate_directory: Path | None = None,
 ) -> dict[str, Any]:
     """Compare champion and latest challenger."""
 
@@ -76,11 +77,47 @@ def run_champion_challenger(
         / settings.candidate_output_directory
     )
 
-    candidate_directory = (
-        find_latest_candidate(
-            candidate_root
+    if candidate_directory is None:
+        candidate_directory = (
+            find_latest_candidate(
+                candidate_root
+            )
         )
-    )
+
+    else:
+        candidate_directory = (
+            candidate_directory
+            .expanduser()
+        )
+
+        if not candidate_directory.is_absolute():
+            candidate_directory = (
+                PROJECT_ROOT
+                / candidate_directory
+            )
+
+        candidate_directory = (
+            candidate_directory.resolve()
+        )
+
+        required_candidate_files = [
+            candidate_directory
+            / "best_model.joblib",
+            candidate_directory
+            / "candidate_metadata.json",
+        ]
+
+        missing_candidate_files = [
+            str(path)
+            for path in required_candidate_files
+            if not path.exists()
+        ]
+
+        if missing_candidate_files:
+            raise FileNotFoundError(
+                "Candidate package is incomplete: "
+                f"{missing_candidate_files}"
+            )
 
     feature_contract_path = (
         PROJECT_ROOT
@@ -334,7 +371,8 @@ def main() -> int:
         report = run_champion_challenger(
             register_approved=(
                 arguments.register_approved
-            )
+            ),
+            candidate_directory=None,
         )
 
         exit_code = 0

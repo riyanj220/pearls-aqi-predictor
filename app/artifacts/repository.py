@@ -332,6 +332,7 @@ class ArtifactRepository(ABC):
         if validation_status not in {
             "PASSED",
             "AQI_ALERT_PIPELINE_APPROVED",
+            "CANDIDATE_EVALUATED",
         }:
             raise ArtifactRepositoryError(
                 "Only successfully validated runs may "
