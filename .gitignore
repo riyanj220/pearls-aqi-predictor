@@ -76,3 +76,7 @@ artifacts/repository/*
 
 # API materialized Blob cache
 .cache/
+
+
+# Local production-health persistence validation
+artifacts/health-validation/

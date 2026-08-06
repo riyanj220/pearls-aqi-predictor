@@ -333,6 +333,7 @@ class ArtifactRepository(ABC):
             "PASSED",
             "AQI_ALERT_PIPELINE_APPROVED",
             "CANDIDATE_EVALUATED",
+            "PRODUCTION_HEALTH_RECORDED",
         }:
             raise ArtifactRepositoryError(
                 "Only successfully validated runs may "
