@@ -66,7 +66,7 @@ PRODUCTION_PLAN = {
     ),
     "location": "centralindia",
     "container_apps_environment": (
-        "cae-pearls-aqi-prod"
+        "cae-pearls-aqi-staging"
     ),
     "managed_identity": (
         "id-pearls-aqi-prod"
@@ -467,14 +467,31 @@ def planned_production_configuration() -> dict[str, Any]:
         },
         "isolation": {
             "separate_resource_group": True,
-            "separate_container_apps_environment": (
-                True
-            ),
+            "separate_container_apps_environment": False,
+            "shared_container_apps_environment": True,
             "separate_managed_identity": True,
             "separate_blob_container": True,
             "shared_storage_account": True,
             "shared_acr": True,
             "shared_hopsworks_project": True,
+        },
+
+        "container_apps_environment_constraint": {
+            "shared_environment_name": (
+                "cae-pearls-aqi-staging"
+            ),
+            "reason": (
+                "Azure subscription currently permits "
+                "only one Container Apps environment."
+            ),
+            "production_isolation_preserved_by": [
+                "separate app names",
+                "separate job names",
+                "separate managed identity",
+                "separate Blob container",
+                "separate environment variables",
+                "separate secret references",
+            ],
         },
         "artifact_boundary": {
             "staging_container": (
@@ -1111,6 +1128,21 @@ def build_findings(
                 "AQI fallback bundle, but production "
                 "will explicitly configure "
                 "artifact_backend=azure_blob."
+            ),
+        }
+    )
+
+    findings.append(
+        {
+            "severity": "INFO",
+            "code": (
+                "SHARED_CONTAINER_APPS_ENVIRONMENT"
+            ),
+            "message": (
+                "Production reuses the existing "
+                "Container Apps environment because "
+                "the Azure subscription environment "
+                "quota prevents creation of a second one."
             ),
         }
     )
