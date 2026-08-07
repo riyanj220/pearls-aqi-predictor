@@ -49,7 +49,6 @@ required_variables=(
     HOPSWORKS_API_KEY
     HOPSWORKS_PROJECT
     HOPSWORKS_HOST
-    PRODUCTION_HEALTH_WEBHOOK_URL
 )
 
 for variable_name in "${required_variables[@]}"; do
@@ -310,8 +309,6 @@ az containerapp job create \
     --memory "${FORECAST_MEMORY}" \
     --image "${PIPELINE_IMAGE}" \
     --container-name forecast-publication \
-    --command "python" \
-    --args "-m" "app.pipelines.publish_forecast" \
     --mi-user-assigned "${IDENTITY_RESOURCE_ID}" \
     --registry-server "${ACR_SERVER}" \
     --registry-identity "${IDENTITY_RESOURCE_ID}" \
@@ -401,7 +398,6 @@ echo "Creating production monitoring job..."
 
 monitoring_secrets=(
     "hopsworks-api-key=${HOPSWORKS_API_KEY}"
-    "production-health-webhook-url=${PRODUCTION_HEALTH_WEBHOOK_URL}"
 )
 
 monitoring_env=(
@@ -423,6 +419,17 @@ monitoring_env=(
     "PRODUCTION_HEALTH_WEBHOOK_URL=secretref:production-health-webhook-url"
     "PRODUCTION_HEALTH_WEBHOOK_TIMEOUT_SECONDS=15"
 )
+
+if [[ -n "${PRODUCTION_HEALTH_WEBHOOK_URL:-}" ]]; then
+    monitoring_secrets+=(
+        "production-health-webhook-url=${PRODUCTION_HEALTH_WEBHOOK_URL}"
+    )
+
+    monitoring_env+=(
+        "PRODUCTION_HEALTH_WEBHOOK_ENABLED=true"
+        "PRODUCTION_HEALTH_WEBHOOK_URL=secretref:production-health-webhook-url"
+    )
+fi
 
 if [[ -n "${PRODUCTION_HEALTH_WEBHOOK_BEARER_TOKEN:-}" ]]; then
     monitoring_secrets+=(
