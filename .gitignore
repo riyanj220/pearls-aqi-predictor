@@ -81,3 +81,8 @@ artifacts/repository/*
 # Local production-health persistence validation
 artifacts/health-validation/
 artifacts/health-webhook-validation/
+
+
+# Production environment values
+.env.production
+.env.production.local

@@ -1,0 +1,113 @@
+{
+  "schema_version": 1,
+  "environment": "production",
+
+  "azure": {
+    "subscription_mode": "azure-for-students",
+
+    "resource_group": "rg-pearls-aqi-prod",
+
+    "container_apps_environment": {
+      "name": "cae-pearls-aqi-staging",
+      "resource_group": "rg-pearls-aqi-staging",
+      "shared_with_staging": true
+    },
+
+    "managed_identity": {
+      "name": "id-pearls-aqi-prod",
+      "resource_group": "rg-pearls-aqi-prod"
+    },
+
+    "acr": {
+      "name": "walpole",
+      "server": "walpole.azurecr.io"
+    },
+
+    "storage": {
+      "account": "stpearlsaqiriyan",
+      "resource_group": "rg-pearls-aqi-staging",
+      "container": "artifacts-prod"
+    }
+  },
+
+  "api": {
+    "name": "ca-pearls-aqi-api-prod",
+    "port": 8000,
+
+    "ingress": "external",
+
+    "minimum_replicas": 0,
+    "maximum_replicas": 1,
+
+    "cpu": 0.25,
+    "memory": "0.5Gi",
+
+    "artifact_backend": "azure_blob",
+    "artifact_type": "aqi",
+
+    "artifact_cache_seconds": 60,
+
+    "forecast_aging_threshold_hours": 7,
+    "forecast_staleness_threshold_hours": 13,
+
+    "liveness_path": "/api/v1/health/live",
+    "readiness_path": "/api/v1/health/ready"
+  },
+
+  "dashboard": {
+    "name": "ca-pearls-aqi-dashboard-prod",
+    "port": 8501,
+
+    "ingress": "external",
+
+    "minimum_replicas": 0,
+    "maximum_replicas": 1,
+
+    "cpu": 0.25,
+    "memory": "0.5Gi",
+
+    "request_timeout_seconds": 10,
+    "cache_ttl_seconds": 60,
+
+    "default_timezone": "Asia/Karachi"
+  },
+
+  "jobs": {
+    "hourly_features": {
+      "name": "job-pearls-aqi-features-prod",
+      "cron": "15 * * * *"
+    },
+
+    "forecast": {
+      "name": "job-pearls-aqi-forecast-prod",
+      "cron": "0 */6 * * *"
+    },
+
+    "daily_retraining": {
+      "name": "job-pearls-aqi-retraining-prod",
+      "cron": "30 3 * * *"
+    },
+
+    "monitoring": {
+      "name": "job-pearls-aqi-monitoring-prod",
+      "cron": "45 * * * *"
+    }
+  },
+
+  "mlops": {
+    "feature_store_backend": "hopsworks",
+    "model_registry_backend": "hopsworks",
+    "dry_run": false
+  },
+
+  "secrets": {
+    "required": [
+      "HOPSWORKS_API_KEY",
+      "PRODUCTION_HEALTH_WEBHOOK_URL"
+    ],
+
+    "optional": [
+      "PRODUCTION_HEALTH_WEBHOOK_BEARER_TOKEN"
+    ]
+  }
+}
