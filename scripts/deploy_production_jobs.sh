@@ -404,6 +404,12 @@ monitoring_env=(
     "APP_ENV=production"
     "SERVICE_ROLE=monitoring"
     "AZURE_CLIENT_ID=${IDENTITY_CLIENT_ID}"
+
+    "PRODUCTION_RESOURCE_GROUP=${PRODUCTION_RESOURCE_GROUP}"
+    "FEATURE_JOB_NAME=${FEATURE_JOB}"
+    "FORECAST_JOB_NAME=${FORECAST_JOB}"
+    "RETRAINING_JOB_NAME=${RETRAINING_JOB}"
+
     "AZURE_SUBSCRIPTION_ID=${SUBSCRIPTION_ID}"
     "AZURE_JOB_QUERY_BACKEND=arm"
     "FEATURE_STORE_BACKEND=hopsworks"
@@ -456,18 +462,7 @@ az containerapp job create \
     --memory "${MONITORING_MEMORY}" \
     --image "${PIPELINE_IMAGE}" \
     --container-name production-monitor \
-    --command "python" \
-    --args \
-        "-m" \
-        "app.operations.persist_production_health" \
-        "--resource-group" \
-        "${PRODUCTION_RESOURCE_GROUP}" \
-        "--feature-job-name" \
-        "${FEATURE_JOB}" \
-        "--forecast-job-name" \
-        "${FORECAST_JOB}" \
-        "--retraining-job-name" \
-        "${RETRAINING_JOB}" \
+    --command "/app/bin/run_production_health" \
     --mi-user-assigned "${IDENTITY_RESOURCE_ID}" \
     --registry-server "${ACR_SERVER}" \
     --registry-identity "${IDENTITY_RESOURCE_ID}" \
