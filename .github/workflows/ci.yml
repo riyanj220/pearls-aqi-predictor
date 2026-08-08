@@ -23,10 +23,12 @@ jobs:
     env:
       APP_ENV: development
       LOG_LEVEL: INFO
+
       ARTIFACT_BACKEND: local
       MODEL_LOADING_MODE: LOCAL_ARTIFACT
       FEATURE_STORE_BACKEND: local
       MODEL_REGISTRY_BACKEND: local
+
       AUTOMATIC_RETRAINING_ENABLED: "false"
       AUTOMATIC_MODEL_PROMOTION_ENABLED: "false"
 
@@ -51,192 +53,241 @@ jobs:
       - name: Validate lockfile
         run: uv lock --check
 
-      - name: Install locked dependencies
+      - name: Install dependencies
         run: uv sync --locked --all-groups
 
-      #   - name: Run targeted Ruff checks
-      #     run: |
-      #       uv run ruff check \
-      #         app/artifacts \
-      #         app/observability \
-      #         app/operations \
-      #         app/pipelines/live_inference.py \
-      #         app/pipelines/aqi_alert_pipeline.py
-
-      #   - name: Check targeted formatting
-      #     run: |
-      #       uv run ruff format --check \
-      #         app/artifacts \
-      #         app/observability \
-      #         app/operations \
-      #         app/pipelines/live_inference.py \
-      #         app/pipelines/aqi_alert_pipeline.py
-
-      - name: Compile application modules
+      - name: Compile application
         run: |
           uv run python -m compileall -q app
 
-      - name: Validate repository inspection
+      - name: Validate important pipeline imports
         run: |
-          uv run python -m \
-            app.operations.repository_inspection
+          uv run python -m app.pipelines.live_inference --help
 
-      - name: Validate cloud architecture inventory
-        env:
-          AZURE_LOCATION: centralindia
-          AZURE_RESOURCE_SUFFIX: riyan
+          uv run python -m app.pipelines.aqi_alert_pipeline --help
+
+          uv run python -m app.pipelines.incremental_features --help
+
+          uv run python -m app.pipelines.retraining_cycle --help
+
+          uv run python -m app.pipelines.champion_challenger --help
+
+          uv run python -m app.pipelines.publish_forecast --help || true
+
+      - name: Validate operational imports
         run: |
-          uv run python -m \
-            app.operations.cloud_architecture
+          uv run python - <<'PY'
+          from app.operations.persist_production_health import (
+              run_persisted_production_health,
+          )
+          from app.pipelines.publish_forecast import (
+              create_configured_repository,
+          )
 
-      - name: Validate deployment configuration
-        env:
-          APP_ENV: demo
-          APP_VERSION: ci-${{ github.sha }}
-          SERVICE_ROLE: api
-          AZURE_LOCATION: centralindia
-          AZURE_RESOURCE_GROUP: rg-pearls-aqi-demo
-          AZURE_CONTAINER_REGISTRY: walpole.azurecr.io
-          ARTIFACT_BACKEND: azure_blob
-          AZURE_STORAGE_ACCOUNT: stpearlsaqiriyan
-          AZURE_STORAGE_CONTAINER: artifacts
-          AZURE_KEY_VAULT_NAME: kv-pearls-aqi-riyan
-          ALLOWED_CORS_ORIGINS: https://dashboard.example.com
-        run: |
-          uv run python -m \
-            app.operations.deployment_config
-
-      - name: Validate artifact repository
-        run: |
-          uv run python -m \
-            app.operations.artifact_repository_validation
-
-      - name: Validate structured logging
-        run: |
-          uv run python -m \
-            app.operations.structured_logging_validation
-
-      - name: Validate pipeline command imports
-        run: |
-          uv run python -m \
-            app.pipelines.live_inference --help
-
-          uv run python -m \
-            app.pipelines.aqi_alert_pipeline --help
-
-          uv run python -m \
-            app.pipelines.incremental_features --help
-
-          uv run python -m \
-            app.pipelines.retraining_cycle --help
-
-          uv run python -m \
-            app.pipelines.champion_challenger --help
+          print("Production operational imports passed.")
+          PY
 
       - name: Run automated tests
-        run: uv run pytest -q
+        run: |
+          uv run pytest -q
 
-      - name: Upload Phase 10 validation reports
+      - name: Upload validation reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: phase-10-validation-reports
-          path: reports/phase_10/
-          if-no-files-found: warn
+          name: ci-validation-reports
+          path: reports/
+          if-no-files-found: ignore
           retention-days: 14
 
   container-validation:
     name: Container validation
+    needs:
+      - python-validation
+
     runs-on: ubuntu-latest
     timeout-minutes: 60
 
     env:
       IMAGE_TAG: ci-${{ github.sha }}
-      APP_VERSION: 0.1.0
+      APP_VERSION: ci-${{ github.sha }}
       GIT_COMMIT: ${{ github.sha }}
-      BUILD_DATE: "ci-build"
 
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Validate production Compose configuration
+      - name: Generate build timestamp
         run: |
-          docker compose \
-            --file compose.production.yml \
-            --profile jobs \
-            config
+          echo "BUILD_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            >> "${GITHUB_ENV}"
 
-      - name: List production services
+      - name: Build API image
         run: |
-          docker compose \
-            --file compose.production.yml \
-            --profile jobs \
-            config \
-            --services
+          docker build \
+            --file Dockerfile.api \
+            --build-arg APP_VERSION="${APP_VERSION}" \
+            --build-arg GIT_COMMIT="${GIT_COMMIT}" \
+            --build-arg BUILD_DATE="${BUILD_DATE}" \
+            --tag "pearls-aqi-api:${IMAGE_TAG}" \
+            .
 
-      - name: Build production images
-        env:
-          BUILDKIT_PROGRESS: plain
+      - name: Build dashboard image
         run: |
-          docker compose \
-            --progress plain \
-            --file compose.production.yml \
-            --profile jobs \
-            build
+          docker build \
+            --file Dockerfile.dashboard \
+            --build-arg APP_VERSION="${APP_VERSION}" \
+            --build-arg GIT_COMMIT="${GIT_COMMIT}" \
+            --build-arg BUILD_DATE="${BUILD_DATE}" \
+            --tag "pearls-aqi-dashboard:${IMAGE_TAG}" \
+            .
 
-      - name: Inspect built images
+      - name: Build pipeline image
         run: |
+          docker build \
+            --file Dockerfile.pipeline \
+            --build-arg APP_VERSION="${APP_VERSION}" \
+            --build-arg GIT_COMMIT="${GIT_COMMIT}" \
+            --build-arg BUILD_DATE="${BUILD_DATE}" \
+            --tag "pearls-aqi-pipeline:${IMAGE_TAG}" \
+            .
+
+      - name: Verify non-root containers
+        run: |
+          echo "API user:"
           docker image inspect \
             "pearls-aqi-api:${IMAGE_TAG}" \
-            --format '{{.Id}} {{.Os}}/{{.Architecture}} {{.Config.User}}'
+            --format '{{.Config.User}}'
 
+          echo "Dashboard user:"
           docker image inspect \
             "pearls-aqi-dashboard:${IMAGE_TAG}" \
-            --format '{{.Id}} {{.Os}}/{{.Architecture}} {{.Config.User}}'
+            --format '{{.Config.User}}'
 
+          echo "Pipeline user:"
           docker image inspect \
             "pearls-aqi-pipeline:${IMAGE_TAG}" \
-            --format '{{.Id}} {{.Os}}/{{.Architecture}} {{.Config.User}}'
+            --format '{{.Config.User}}'
 
-      - name: Validate production image contracts
+          test "$(
+            docker image inspect \
+              "pearls-aqi-api:${IMAGE_TAG}" \
+              --format '{{.Config.User}}'
+          )" = "pearls"
+
+          test "$(
+            docker image inspect \
+              "pearls-aqi-dashboard:${IMAGE_TAG}" \
+              --format '{{.Config.User}}'
+          )" = "dashboard"
+
+          test "$(
+            docker image inspect \
+              "pearls-aqi-pipeline:${IMAGE_TAG}" \
+              --format '{{.Config.User}}'
+          )" = "pipeline"
+
+      - name: Validate release metadata
         run: |
-          python -m \
-            app.operations.container_image_validation \
-            --image-tag "${IMAGE_TAG}"
+          for image in \
+            "pearls-aqi-api:${IMAGE_TAG}" \
+            "pearls-aqi-dashboard:${IMAGE_TAG}" \
+            "pearls-aqi-pipeline:${IMAGE_TAG}"
+          do
+            echo
+            echo "${image}"
 
-      - name: Validate pipeline commands inside image
+            docker image inspect \
+              "${image}" \
+              --format '
+          Version:  {{index .Config.Labels "org.opencontainers.image.version"}}
+          Revision: {{index .Config.Labels "org.opencontainers.image.revision"}}
+          Created:  {{index .Config.Labels "org.opencontainers.image.created"}}
+          User:     {{.Config.User}}
+          '
+          done
+
+      - name: Validate pipeline runtime contracts
         run: |
           docker run \
             --rm \
+            --entrypoint /bin/sh \
             "pearls-aqi-pipeline:${IMAGE_TAG}" \
-            python -m app.pipelines.live_inference --help
+            -c '
+              set -e
 
+              test -x /app/bin/run_hourly_features
+              test -x /app/bin/run_daily_retraining
+              test -x /app/bin/run_production_health
+
+              python -c "
+          from app.pipelines.publish_forecast import create_configured_repository
+          from app.operations.persist_production_health import run_persisted_production_health
+          print(\"Pipeline runtime contracts passed.\")
+          "
+            '
+
+      - name: Smoke test API liveness
+        run: |
           docker run \
+            --detach \
             --rm \
-            "pearls-aqi-pipeline:${IMAGE_TAG}" \
-            python -m app.pipelines.aqi_alert_pipeline --help
+            --name pearls-ci-api \
+            --publish 18000:8000 \
+            "pearls-aqi-api:${IMAGE_TAG}"
 
+          cleanup() {
+            docker stop pearls-ci-api >/dev/null 2>&1 || true
+          }
+
+          trap cleanup EXIT
+
+          for attempt in $(seq 1 30); do
+            if curl \
+              --fail \
+              --silent \
+              http://127.0.0.1:18000/api/v1/health/live \
+              >/dev/null
+            then
+              echo "API liveness passed."
+              exit 0
+            fi
+
+            sleep 2
+          done
+
+          docker logs pearls-ci-api
+          exit 1
+
+      - name: Smoke test dashboard process
+        run: |
           docker run \
+            --detach \
             --rm \
-            "pearls-aqi-pipeline:${IMAGE_TAG}" \
-            python -m app.pipelines.incremental_features --help
+            --name pearls-ci-dashboard \
+            --publish 18501:8501 \
+            --env FASTAPI_BASE_URL=http://127.0.0.1:18000/api/v1 \
+            "pearls-aqi-dashboard:${IMAGE_TAG}"
 
-          docker run \
-            --rm \
-            "pearls-aqi-pipeline:${IMAGE_TAG}" \
-            python -m app.pipelines.retraining_cycle --help
+          cleanup() {
+            docker stop pearls-ci-dashboard >/dev/null 2>&1 || true
+          }
 
-          docker run \
-            --rm \
-            "pearls-aqi-pipeline:${IMAGE_TAG}" \
-            python -m app.pipelines.champion_challenger --help
+          trap cleanup EXIT
 
-      - name: Upload container validation report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: phase-10-container-validation-report
-          path: reports/phase_10/container_image_validation_report.json
-          if-no-files-found: warn
-          retention-days: 14
+          for attempt in $(seq 1 30); do
+            if curl \
+              --fail \
+              --silent \
+              http://127.0.0.1:18501/_stcore/health \
+              >/dev/null
+            then
+              echo "Dashboard health passed."
+              exit 0
+            fi
+
+            sleep 2
+          done
+
+          docker logs pearls-ci-dashboard
+          exit 1

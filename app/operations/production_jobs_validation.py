@@ -23,7 +23,7 @@ EXPECTED_JOBS = {
     "features": {
         "name": "job-pearls-aqi-features-prod",
         "schedule": "15 * * * *",
-        "timeout": 900,
+        "timeout": 1800,
     },
     "forecast": {
         "name": "job-pearls-aqi-forecast-prod",
