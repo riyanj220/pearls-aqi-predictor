@@ -1,0 +1,26 @@
+{
+  "phase": "10D",
+  "generated_at_utc": "2026-08-01T07:42:48.223994+00:00",
+  "status": "ARTIFACT_REPOSITORY_VALIDATED",
+  "approved": true,
+  "backend_validated": "local",
+  "azure_backend_implemented": true,
+  "azure_live_connection_tested": false,
+  "checks": {
+    "run_manifest_exists": true,
+    "latest_pointer_exists": true,
+    "latest_points_to_run": true,
+    "manifest_file_count": true,
+    "all_manifest_checksums_present": true,
+    "duplicate_run_blocked": true,
+    "invalid_run_blocked": true
+  },
+  "publication_contract": {
+    "immutable_run_paths": true,
+    "checksums_recorded": true,
+    "manifest_written_before_latest": true,
+    "latest_written_last": true,
+    "invalid_runs_cannot_be_latest": true
+  },
+  "azure_resources_created": false
+}

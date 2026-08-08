@@ -1,0 +1,67 @@
+{
+  "phase": "10H",
+  "generated_at_utc": "2026-08-02T15:36:40.657665+00:00",
+  "status": "REGISTRY_PUBLICATION_VALIDATED",
+  "approved": true,
+  "registry": {
+    "name": "walpole",
+    "login_server": "walpole.azurecr.io"
+  },
+  "image_tag": "707b7a5f1bdb40d819f9b18a85a0babf83448b78",
+  "git_commit_sha": "707b7a5f1bdb40d819f9b18a85a0babf83448b78",
+  "images": {
+    "api": {
+      "repository": "pearls-aqi/api",
+      "tag": "707b7a5f1bdb40d819f9b18a85a0babf83448b78",
+      "digest": "sha256:a93cc538132f26962c3cf4c1f2b9f779bae3c95bdb1b5600854e25e82bf0877b",
+      "created_time": "2026-08-02T15:36:03.0337404Z",
+      "last_update_time": "2026-08-02T15:36:03.0337404Z",
+      "image_size_bytes": null,
+      "changeable_attributes": {
+        "deleteEnabled": true,
+        "listEnabled": true,
+        "readEnabled": true,
+        "writeEnabled": true
+      }
+    },
+    "dashboard": {
+      "repository": "pearls-aqi/dashboard",
+      "tag": "707b7a5f1bdb40d819f9b18a85a0babf83448b78",
+      "digest": "sha256:16755dcbbf75079602e7a4411f3e1a6b8b4d28e06bcfe21de4f424e82b16ab74",
+      "created_time": "2026-08-02T15:36:05.5768009Z",
+      "last_update_time": "2026-08-02T15:36:05.5768009Z",
+      "image_size_bytes": null,
+      "changeable_attributes": {
+        "deleteEnabled": true,
+        "listEnabled": true,
+        "readEnabled": true,
+        "writeEnabled": true
+      }
+    },
+    "pipeline": {
+      "repository": "pearls-aqi/pipeline",
+      "tag": "707b7a5f1bdb40d819f9b18a85a0babf83448b78",
+      "digest": "sha256:1a5a30376a8e4be5f0f8eab46ee4ce86b122c5ad37d3f85eb379fced0436c9bb",
+      "created_time": "2026-08-02T15:36:08.9142235Z",
+      "last_update_time": "2026-08-02T15:36:08.9142235Z",
+      "image_size_bytes": null,
+      "changeable_attributes": {
+        "deleteEnabled": true,
+        "listEnabled": true,
+        "readEnabled": true,
+        "writeEnabled": true
+      }
+    }
+  },
+  "checks": {
+    "all_images_found": true,
+    "all_digests_present": true,
+    "all_digests_sha256": true,
+    "tag_matches_git_commit": true,
+    "tag_is_not_latest": true,
+    "registry_login_server_valid": true
+  },
+  "floating_latest_tag_pushed": false,
+  "deployment_performed": false,
+  "azure_resources_created": false
+}

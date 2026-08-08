@@ -1,0 +1,102 @@
+{
+  "phase": "10G",
+  "generated_at_utc": "2026-08-02T08:04:59.285516+00:00",
+  "status": "PRODUCTION_CONTAINER_IMAGES_VALIDATED",
+  "approved": true,
+  "image_tag": "38839c0",
+  "images": {
+    "api": {
+      "image": "pearls-aqi-api:38839c0",
+      "image_id": "sha256:c2ebfc3ec6497dc5451947a6cfd6dfd583d8099dec69ddcd4bb1de51d6d0a8f4",
+      "created": "2026-08-02T12:28:02.66281478+05:00",
+      "os": "linux",
+      "architecture": "amd64",
+      "size_bytes": 141774425,
+      "configured_user": "pearls",
+      "runs_as_root": false,
+      "healthcheck_configured": true,
+      "entrypoint": null,
+      "command": [
+        "uvicorn",
+        "app.api.main:app",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        "8000",
+        "--workers",
+        "1",
+        "--no-access-log"
+      ],
+      "labels": {
+        "title": "Pearls AQI API",
+        "version": "0.1.0",
+        "revision": "38839c0f43cc48982e8994dcc0e7a905296219d4",
+        "created": "2026-08-02T06:32:34Z"
+      }
+    },
+    "dashboard": {
+      "image": "pearls-aqi-dashboard:38839c0",
+      "image_id": "sha256:298bf9e2b030bc609b4290278d69c8b3405dadf08c607f0053216eddb1afd028",
+      "created": "2026-08-02T11:47:45.560481654+05:00",
+      "os": "linux",
+      "architecture": "amd64",
+      "size_bytes": 169193519,
+      "configured_user": "dashboard",
+      "runs_as_root": false,
+      "healthcheck_configured": true,
+      "entrypoint": null,
+      "command": [
+        "streamlit",
+        "run",
+        "dashboard/app.py",
+        "--server.address=0.0.0.0",
+        "--server.port=8501",
+        "--server.headless=true",
+        "--browser.gatherUsageStats=false"
+      ],
+      "labels": {
+        "title": "Pearls AQI Dashboard",
+        "version": "0.1.0",
+        "revision": "38839c0f43cc48982e8994dcc0e7a905296219d4",
+        "created": "2026-08-02T06:32:34Z"
+      }
+    },
+    "pipeline": {
+      "image": "pearls-aqi-pipeline:38839c0",
+      "image_id": "sha256:f7d04dd78ad51ff94d28d1c0fc262c560dac542a23ef55ed66b89e7699bcec1b",
+      "created": "2026-08-02T11:52:20.627051838+05:00",
+      "os": "linux",
+      "architecture": "amd64",
+      "size_bytes": 683017168,
+      "configured_user": "pipeline",
+      "runs_as_root": false,
+      "healthcheck_configured": false,
+      "entrypoint": null,
+      "command": [
+        "python",
+        "-m",
+        "app.pipelines.live_inference",
+        "--help"
+      ],
+      "labels": {
+        "title": "Pearls AQI Pipeline",
+        "version": "0.1.0",
+        "revision": "38839c0f43cc48982e8994dcc0e7a905296219d4",
+        "created": "2026-08-02T06:32:34Z"
+      }
+    }
+  },
+  "checks": {
+    "all_images_linux": true,
+    "all_images_amd64": true,
+    "all_images_non_root": true,
+    "api_healthcheck_configured": true,
+    "dashboard_healthcheck_configured": true,
+    "pipeline_has_no_healthcheck": true,
+    "all_titles_present": true,
+    "all_revisions_present": true,
+    "all_commands_present": true
+  },
+  "registry_push_performed": false,
+  "azure_resources_modified": false
+}

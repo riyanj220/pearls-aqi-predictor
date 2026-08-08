@@ -1,0 +1,56 @@
+{
+  "phase": "10M",
+  "subphase": "10M-E",
+  "generated_at_utc": "2026-08-07T05:49:26.166133+00:00",
+  "status": "PRODUCTION_API_DEPLOYMENT_VALIDATED",
+  "initial_aqi_publication_complete": false,
+  "valid": true,
+  "checks": {
+    "provisioning_succeeded": true,
+    "external_ingress_enabled": true,
+    "target_port_is_8000": true,
+    "immutable_image_matches": true,
+    "production_environment": true,
+    "azure_blob_backend": true,
+    "production_blob_container": true,
+    "aging_threshold_is_7": true,
+    "staleness_threshold_is_13": true,
+    "liveness_is_healthy": true,
+    "readiness_waiting_for_initial_publication": true,
+    "openapi_has_health": true,
+    "openapi_has_forecast": true,
+    "openapi_has_alerts": true
+  },
+  "application": {
+    "name": "ca-pearls-aqi-api-prod",
+    "fqdn": "ca-pearls-aqi-api-prod.gentledesert-51a1063f.centralindia.azurecontainerapps.io",
+    "url": "https://ca-pearls-aqi-api-prod.gentledesert-51a1063f.centralindia.azurecontainerapps.io",
+    "image": "walpole.azurecr.io/pearls-aqi/api:27e3232a9252d8cd3e6b02771bc1293bace235b5"
+  },
+  "liveness": {
+    "http_status": 200,
+    "payload": {
+      "status": "ALIVE",
+      "service": "Pearls AQI Predictor API",
+      "version": "27e3232a9252d8cd3e6b02771bc1293bace235b5",
+      "timestamp_utc": "2026-08-07T05:49:25.368585Z"
+    }
+  },
+  "readiness": {
+    "http_status": 503,
+    "payload": {
+      "status": "INVALID_ARTIFACTS",
+      "service": "Pearls AQI Predictor API",
+      "version": "27e3232a9252d8cd3e6b02771bc1293bace235b5",
+      "timestamp_utc": "2026-08-07T05:49:25.667683Z",
+      "forecast_available": false,
+      "artifacts_valid": false,
+      "pipeline_run_id": null,
+      "forecast_rows": null,
+      "freshness": null,
+      "limitations": [],
+      "message": "The service is running, but the latest forecast artifacts are missing or invalid."
+    },
+    "expected_before_initial_publication": 503
+  }
+}

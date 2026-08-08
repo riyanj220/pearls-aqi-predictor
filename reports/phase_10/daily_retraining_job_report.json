@@ -1,0 +1,119 @@
+{
+  "phase": "10K",
+  "subphase": "10K-E",
+  "generated_at_utc": "2026-08-06T09:16:31.195142+00:00",
+  "status": "DAILY_RETRAINING_JOB_VALIDATED",
+  "resource_group": "rg-pearls-aqi-staging",
+  "job_name": "job-pearls-aqi-retraining",
+  "checks": {
+    "provisioning_succeeded": true,
+    "trigger_is_schedule": true,
+    "cron_is_daily": true,
+    "parallelism_is_one": true,
+    "completion_count_is_one": true,
+    "timeout_is_3600": true,
+    "retry_limit_is_one": true,
+    "entrypoint_is_valid": true,
+    "cpu_is_one": true,
+    "memory_is_2gi": true,
+    "image_is_immutable": true,
+    "expected_image_matches": true,
+    "recent_execution_succeeded": true
+  },
+  "valid": true,
+  "configuration": {
+    "provisioning_state": "Succeeded",
+    "trigger_type": "Schedule",
+    "cron_expression": "30 3 * * *",
+    "parallelism": 1,
+    "completion_count": 1,
+    "timeout_seconds": 3600,
+    "retry_limit": 1,
+    "image": "walpole.azurecr.io/pearls-aqi/pipeline:b5a0b027e3d55cfbe91728371a30be577f4984d3",
+    "command": [
+      "/app/bin/run_daily_retraining"
+    ],
+    "args": [],
+    "cpu": 1.0,
+    "memory": "2Gi"
+  },
+  "latest_execution": {
+    "id": "/subscriptions/674a4416-a05e-4dd5-8b46-e9e33570ad2a/resourceGroups/rg-pearls-aqi-staging/providers/Microsoft.App/jobs/job-pearls-aqi-retraining/executions/job-pearls-aqi-retraining-ryf1bc1",
+    "name": "job-pearls-aqi-retraining-ryf1bc1",
+    "properties": {
+      "endTime": "2026-08-06T08:18:00+00:00",
+      "startTime": "2026-08-06T08:16:53+00:00",
+      "status": "Succeeded",
+      "template": {
+        "containers": [
+          {
+            "command": [
+              "/app/bin/run_daily_retraining"
+            ],
+            "env": [
+              {
+                "name": "APP_ENV",
+                "value": "staging"
+              },
+              {
+                "name": "SERVICE_ROLE",
+                "value": "pipeline"
+              },
+              {
+                "name": "FEATURE_STORE_BACKEND",
+                "value": "hopsworks"
+              },
+              {
+                "name": "MODEL_REGISTRY_BACKEND",
+                "value": "hopsworks"
+              },
+              {
+                "name": "MLOPS_DRY_RUN",
+                "value": "false"
+              },
+              {
+                "name": "HOPSWORKS_API_KEY",
+                "secretRef": "cappjob-job-pearls-aqi-retraining"
+              },
+              {
+                "name": "HOPSWORKS_PROJECT",
+                "value": "perarls_aqi_predictor"
+              },
+              {
+                "name": "HOPSWORKS_HOST",
+                "value": "eu-west.cloud.hopsworks.ai"
+              },
+              {
+                "name": "RUNTIME_TRAINING_OUTPUT_DIR",
+                "value": "/app/data/training/runtime"
+              },
+              {
+                "name": "ARTIFACT_BACKEND",
+                "value": "azure_blob"
+              },
+              {
+                "name": "AZURE_STORAGE_ACCOUNT",
+                "value": "stpearlsaqiriyan"
+              },
+              {
+                "name": "AZURE_STORAGE_CONTAINER",
+                "value": "artifacts"
+              }
+            ],
+            "image": "walpole.azurecr.io/pearls-aqi/pipeline:b5a0b027e3d55cfbe91728371a30be577f4984d3",
+            "imageType": "ContainerImage",
+            "name": "job-pearls-aqi-retraining",
+            "resources": {
+              "cpu": 1.0,
+              "ephemeralStorage": "",
+              "memory": "2Gi"
+            }
+          }
+        ],
+        "initContainers": []
+      }
+    },
+    "resourceGroup": "rg-pearls-aqi-staging",
+    "type": "Microsoft.App/jobs/executions"
+  }
+}

@@ -1,0 +1,82 @@
+{
+  "phase": "10M",
+  "subphase": "10M-C",
+  "generated_at_utc": "2026-08-07T04:59:30.060855+00:00",
+  "status": "PRODUCTION_CONFIGURATION_VALIDATED",
+  "contains_secret_values": false,
+  "application_services_deployed": false,
+  "scheduled_jobs_deployed": false,
+  "valid": true,
+  "checks": {
+    "schema_version_is_one": true,
+    "environment_is_production": true,
+    "production_resource_group": true,
+    "shared_environment_declared": true,
+    "production_identity_is_separate": true,
+    "production_blob_container_isolated": true,
+    "api_uses_blob_backend": true,
+    "api_serves_aqi": true,
+    "api_port_is_8000": true,
+    "api_liveness_contract": true,
+    "api_readiness_contract": true,
+    "api_freshness_thresholds_valid": true,
+    "api_scales_to_zero": true,
+    "dashboard_port_is_8501": true,
+    "dashboard_scales_to_zero": true,
+    "feature_schedule_valid": true,
+    "forecast_schedule_valid": true,
+    "retraining_schedule_valid": true,
+    "monitoring_schedule_valid": true,
+    "feature_store_is_hopsworks": true,
+    "model_registry_is_hopsworks": true,
+    "mlops_is_not_dry_run": true,
+    "hopsworks_key_declared_secret": true,
+    "webhook_declared_secret": true,
+    "all_application_names_are_unique": true,
+    "all_job_names_are_unique": true,
+    "production_names_use_prod_suffix": true
+  },
+  "configuration_summary": {
+    "resource_group": "rg-pearls-aqi-prod",
+    "environment": {
+      "name": "cae-pearls-aqi-staging",
+      "resource_group": "rg-pearls-aqi-staging",
+      "shared_with_staging": true
+    },
+    "identity": {
+      "name": "id-pearls-aqi-prod",
+      "resource_group": "rg-pearls-aqi-prod"
+    },
+    "storage": {
+      "account": "stpearlsaqiriyan",
+      "resource_group": "rg-pearls-aqi-staging",
+      "container": "artifacts-prod"
+    },
+    "api": {
+      "name": "ca-pearls-aqi-api-prod",
+      "port": 8000,
+      "artifact_backend": "azure_blob",
+      "aging_hours": 7,
+      "stale_hours": 13
+    },
+    "dashboard": {
+      "name": "ca-pearls-aqi-dashboard-prod",
+      "port": 8501
+    },
+    "job_names": [
+      "job-pearls-aqi-features-prod",
+      "job-pearls-aqi-forecast-prod",
+      "job-pearls-aqi-monitoring-prod",
+      "job-pearls-aqi-retraining-prod"
+    ]
+  },
+  "secret_names": {
+    "required": [
+      "HOPSWORKS_API_KEY",
+      "PRODUCTION_HEALTH_WEBHOOK_URL"
+    ],
+    "optional": [
+      "PRODUCTION_HEALTH_WEBHOOK_BEARER_TOKEN"
+    ]
+  }
+}

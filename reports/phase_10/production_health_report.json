@@ -1,0 +1,140 @@
+{
+  "phase": "10L",
+  "subphase": "10L-A",
+  "pipeline_name": "production_health",
+  "generated_at_utc": "2026-08-06T09:58:51.002116+00:00",
+  "status": "PRODUCTION_HEALTHY",
+  "overall_component_status": "HEALTHY",
+  "duration_seconds": 175.134,
+  "read_only": true,
+  "resource_group": "rg-pearls-aqi-staging",
+  "jobs": {
+    "hourly_feature_job": {
+      "status": "HEALTHY",
+      "job_name": "job-pearls-aqi-features",
+      "reason": "Latest execution succeeded.",
+      "latest_execution": {
+        "name": "job-pearls-aqi-features-29766795",
+        "status": "Succeeded",
+        "start_time_utc": "2026-08-06T09:15:00+00:00",
+        "end_time_utc": "2026-08-06T09:27:30+00:00",
+        "age_hours": 0.474
+      },
+      "thresholds": {
+        "warning_after_hours": 2,
+        "critical_after_hours": 3
+      },
+      "execution_count_returned": 21
+    },
+    "forecast_publication_job": {
+      "status": "HEALTHY",
+      "job_name": "job-pearls-aqi-forecast",
+      "reason": "Latest execution succeeded.",
+      "latest_execution": {
+        "name": "job-pearls-aqi-forecast-29766600",
+        "status": "Succeeded",
+        "start_time_utc": "2026-08-06T06:00:00+00:00",
+        "end_time_utc": "2026-08-06T06:00:59+00:00",
+        "age_hours": 3.916
+      },
+      "thresholds": {
+        "warning_after_hours": 7,
+        "critical_after_hours": 13
+      },
+      "execution_count_returned": 11
+    },
+    "daily_retraining_job": {
+      "status": "HEALTHY",
+      "job_name": "job-pearls-aqi-retraining",
+      "reason": "Latest execution succeeded.",
+      "latest_execution": {
+        "name": "job-pearls-aqi-retraining-ryf1bc1",
+        "status": "Succeeded",
+        "start_time_utc": "2026-08-06T08:16:53+00:00",
+        "end_time_utc": "2026-08-06T08:18:00+00:00",
+        "age_hours": 1.632
+      },
+      "thresholds": {
+        "warning_after_hours": 30,
+        "critical_after_hours": 48
+      },
+      "execution_count_returned": 1
+    }
+  },
+  "feature_store": {
+    "status": "HEALTHY",
+    "project_name": "perarls_aqi_predictor",
+    "feature_store_name": "perarls_aqi_predictor_featurestore",
+    "sdk_version": "5.0.3",
+    "groups": {
+      "pm25": {
+        "status": "HEALTHY",
+        "name": "pm25_hourly_observations",
+        "version": 1,
+        "event_time_column": "datetime_utc",
+        "primary_key": [
+          "location_key",
+          "sensor_id"
+        ],
+        "latest_timestamp_utc": "2026-08-06T07:00:00+00:00",
+        "age_hours": 2.932,
+        "thresholds": {
+          "warning_after_hours": 3,
+          "critical_after_hours": 6
+        }
+      },
+      "weather": {
+        "status": "HEALTHY",
+        "name": "weather_hourly_observations",
+        "version": 1,
+        "event_time_column": "datetime_utc",
+        "primary_key": [
+          "location_key"
+        ],
+        "latest_timestamp_utc": "2026-08-06T07:00:00+00:00",
+        "age_hours": 2.932,
+        "thresholds": {
+          "warning_after_hours": 3,
+          "critical_after_hours": 6
+        }
+      },
+      "engineered": {
+        "status": "HEALTHY",
+        "name": "pm25_hourly_features",
+        "version": 2,
+        "event_time_column": "reference_time",
+        "primary_key": [
+          "location_key"
+        ],
+        "latest_timestamp_utc": "2026-08-06T07:00:00+00:00",
+        "age_hours": 2.932,
+        "thresholds": {
+          "warning_after_hours": 3,
+          "critical_after_hours": 6
+        }
+      }
+    }
+  },
+  "aqi_artifact": {
+    "status": "HEALTHY",
+    "reason": "Latest AQI artifact is valid.",
+    "artifact_type": "aqi",
+    "run_id": "20260806T060053Z_aqi_ba7bc1cc",
+    "artifact_prefix": "aqi/runs/20260806T060053Z_aqi_ba7bc1cc",
+    "manifest_path": "aqi/runs/20260806T060053Z_aqi_ba7bc1cc/manifest.json",
+    "validation_status": "AQI_ALERT_PIPELINE_APPROVED",
+    "published_at_utc": "2026-08-06T06:00:56.231499+00:00",
+    "age_hours": 3.917,
+    "thresholds": {
+      "warning_after_hours": 7,
+      "critical_after_hours": 13
+    }
+  },
+  "recommendations": [
+    "No immediate operational action is required."
+  ],
+  "production_data_changed": false,
+  "production_model_changed": false,
+  "azure_resources_changed": false,
+  "artifact_pointer_changed": false
+}

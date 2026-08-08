@@ -1,0 +1,67 @@
+{
+  "phase": "10M",
+  "subphase": "10M-J",
+  "declared_at_utc": "2026-08-08T03:19:25.424541+00:00",
+  "status": "PRODUCTION_RELEASE_DECLARED_WITH_LIMITATIONS",
+  "production_live": true,
+  "release": {
+    "release_sha": "0d5380b79b54c1c333ce1fec4ebfbfe01bef8cc7",
+    "api_image": "walpole.azurecr.io/pearls-aqi/api:0d5380b79b54c1c333ce1fec4ebfbfe01bef8cc7",
+    "dashboard_image": "walpole.azurecr.io/pearls-aqi/dashboard:0d5380b79b54c1c333ce1fec4ebfbfe01bef8cc7",
+    "pipeline_image": "walpole.azurecr.io/pearls-aqi/pipeline:0d5380b79b54c1c333ce1fec4ebfbfe01bef8cc7",
+    "all_images_match_release": true
+  },
+  "public_endpoints": {
+    "api": "https://ca-pearls-aqi-api-prod.gentledesert-51a1063f.centralindia.azurecontainerapps.io",
+    "dashboard": "https://ca-pearls-aqi-dashboard-prod.gentledesert-51a1063f.centralindia.azurecontainerapps.io"
+  },
+  "artifacts": {
+    "container": "artifacts-prod",
+    "aqi_run_id": "20260808T000037Z_aqi_52b24318",
+    "aqi_validation_status": "AQI_ALERT_PIPELINE_APPROVED",
+    "health_run_id": "20260808T024532Z_production_health_788af25e",
+    "health_validation_status": "PRODUCTION_HEALTH_RECORDED"
+  },
+  "jobs": {
+    "features": {
+      "name": "job-pearls-aqi-features-prod",
+      "image": "walpole.azurecr.io/pearls-aqi/pipeline:0d5380b79b54c1c333ce1fec4ebfbfe01bef8cc7",
+      "release_matches": true
+    },
+    "forecast": {
+      "name": "job-pearls-aqi-forecast-prod",
+      "image": "walpole.azurecr.io/pearls-aqi/pipeline:0d5380b79b54c1c333ce1fec4ebfbfe01bef8cc7",
+      "release_matches": true
+    },
+    "retraining": {
+      "name": "job-pearls-aqi-retraining-prod",
+      "image": "walpole.azurecr.io/pearls-aqi/pipeline:0d5380b79b54c1c333ce1fec4ebfbfe01bef8cc7",
+      "release_matches": true
+    },
+    "monitoring": {
+      "name": "job-pearls-aqi-monitoring-prod",
+      "image": "walpole.azurecr.io/pearls-aqi/pipeline:0d5380b79b54c1c333ce1fec4ebfbfe01bef8cc7",
+      "release_matches": true
+    }
+  },
+  "rollback_anchors": {
+    "api_revision": "ca-pearls-aqi-api-prod--0000003",
+    "dashboard_revision": "ca-pearls-aqi-dashboard-prod--0000001",
+    "release_sha": "0d5380b79b54c1c333ce1fec4ebfbfe01bef8cc7",
+    "images_retained_in_acr": true
+  },
+  "operational_limitations": {
+    "notification_delivery_permanent": false,
+    "notification_pending_count": 12,
+    "notification_backlog_accepted": true,
+    "shared_container_apps_environment": true,
+    "shared_environment_reason": "Azure subscription allows only one Container Apps environment."
+  },
+  "cutover": {
+    "application_layer_live": true,
+    "production_pointer_live": true,
+    "scheduled_jobs_live": true,
+    "monitoring_live": true,
+    "staging_preserved": true
+  }
+}

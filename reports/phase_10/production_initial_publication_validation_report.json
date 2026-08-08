@@ -1,0 +1,75 @@
+{
+  "phase": "10M",
+  "subphase": "10M-H",
+  "generated_at_utc": "2026-08-07T12:21:37.900885+00:00",
+  "status": "INITIAL_PRODUCTION_PUBLICATION_VALIDATED",
+  "production_live": true,
+  "valid": true,
+  "checks": {
+    "job-pearls-aqi-features-prod_executed": true,
+    "job-pearls-aqi-features-prod_succeeded": true,
+    "job-pearls-aqi-forecast-prod_executed": true,
+    "job-pearls-aqi-forecast-prod_succeeded": true,
+    "job-pearls-aqi-retraining-prod_executed": true,
+    "job-pearls-aqi-retraining-prod_succeeded": true,
+    "job-pearls-aqi-monitoring-prod_executed": true,
+    "job-pearls-aqi-monitoring-prod_succeeded": true,
+    "aqi_pointer_created": true,
+    "aqi_pointer_approved": true,
+    "health_pointer_created": true,
+    "health_pointer_recorded": true,
+    "api_is_ready": true,
+    "forecast_endpoint_succeeds": true,
+    "readiness_reports_forecast": true
+  },
+  "jobs": {
+    "job-pearls-aqi-features-prod": {
+      "execution_name": "job-pearls-aqi-features-prod-29768415",
+      "status": "Succeeded"
+    },
+    "job-pearls-aqi-forecast-prod": {
+      "execution_name": "job-pearls-aqi-forecast-prod-29768400",
+      "status": "Succeeded"
+    },
+    "job-pearls-aqi-retraining-prod": {
+      "execution_name": "job-pearls-aqi-retraining-prod-wcev2z0",
+      "status": "Succeeded"
+    },
+    "job-pearls-aqi-monitoring-prod": {
+      "execution_name": "job-pearls-aqi-monitoring-prod-xdogsfv",
+      "status": "Succeeded"
+    }
+  },
+  "aqi_pointer": {
+    "run_id": "20260807T120037Z_aqi_90a4c4f5",
+    "validation_status": "AQI_ALERT_PIPELINE_APPROVED",
+    "published_at_utc": "2026-08-07T12:00:40.550725+00:00"
+  },
+  "health_pointer": {
+    "run_id": "20260807T121611Z_production_health_d92c5ecb",
+    "validation_status": "PRODUCTION_HEALTH_RECORDED",
+    "published_at_utc": "2026-08-07T12:17:14.052056+00:00"
+  },
+  "api": {
+    "url": "https://ca-pearls-aqi-api-prod.gentledesert-51a1063f.centralindia.azurecontainerapps.io",
+    "readiness_status": 200,
+    "forecast_status": 200
+  },
+  "forecast_response_keys": [
+    "active_alert_count",
+    "description",
+    "disclaimer",
+    "forecast_end_utc",
+    "forecast_start_utc",
+    "freshness",
+    "generated_at_utc",
+    "hourly_forecast",
+    "limitations",
+    "location",
+    "pipeline_run_id",
+    "project_name",
+    "reference_time_utc",
+    "source_phase_5_run_id",
+    "summary"
+  ]
+}

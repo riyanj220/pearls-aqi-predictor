@@ -1,0 +1,457 @@
+{
+  "phase": "10M",
+  "subphase": "10M-A",
+  "generated_at_utc": "2026-08-07T03:20:04.085687+00:00",
+  "status": "PRODUCTION_DEPLOYMENT_INVENTORY_READY",
+  "read_only": true,
+  "source_revision": {
+    "commit": "6faee77f6a75358528dd909b05e19edb372034c0",
+    "short_commit": "6faee77",
+    "branch": "main",
+    "working_tree_clean": false,
+    "working_tree_changes": [
+      "M app/operations/production_deployment_inventory.py",
+      "?? scripts/deploy_production_infrastructure.sh"
+    ]
+  },
+  "repository_contracts": {
+    "api": {
+      "dockerfile": "Dockerfile.api",
+      "image_repository": "pearls-aqi/api",
+      "runtime": "FastAPI/Uvicorn",
+      "entrypoint": [
+        "uvicorn",
+        "app.api.main:app",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        "8000",
+        "--workers",
+        "1",
+        "--no-access-log"
+      ],
+      "port": 8000,
+      "non_root": true,
+      "container_user": "pearls",
+      "healthcheck": "/api/v1/health/live",
+      "liveness_endpoint": "/api/v1/health/live",
+      "readiness_endpoint": "/api/v1/health/ready",
+      "docs_endpoint": "/docs",
+      "openapi_endpoint": "/openapi.json",
+      "artifact_backend": {
+        "supported": [
+          "local",
+          "azure_blob"
+        ],
+        "production": "azure_blob",
+        "artifact_type": "aqi"
+      },
+      "required_environment": [
+        "PEARLS_API_ENVIRONMENT",
+        "PEARLS_API_APPLICATION_VERSION",
+        "PEARLS_API_ARTIFACT_BACKEND",
+        "PEARLS_API_ARTIFACT_TYPE",
+        "PEARLS_API_AZURE_STORAGE_ACCOUNT",
+        "PEARLS_API_AZURE_STORAGE_CONTAINER",
+        "PEARLS_API_PHASE_6_BLOB_CACHE_DIRECTORY",
+        "PEARLS_API_ARTIFACT_CACHE_SECONDS",
+        "PEARLS_API_FORECAST_AGING_THRESHOLD_HOURS",
+        "PEARLS_API_FORECAST_STALENESS_THRESHOLD_HOURS",
+        "PEARLS_API_ALLOWED_CORS_ORIGINS",
+        "PEARLS_API_LOG_LEVEL",
+        "AZURE_CLIENT_ID"
+      ],
+      "required_secrets": [],
+      "azure_authentication": "user-assigned managed identity through DefaultAzureCredential",
+      "production_dependencies": [
+        "Azure Blob Storage",
+        "production AQI latest pointer"
+      ],
+      "serving_contract": {
+        "forecast_rows": 72,
+        "forecast_horizons": "1 through 72",
+        "target_frequency": "1 hour",
+        "required_validation_statuses": [
+          "AQI_ALERT_PIPELINE_APPROVED",
+          "AQI_ALERT_PIPELINE_APPROVED_WITH_LIMITATIONS"
+        ]
+      },
+      "local_fallback_artifacts_in_image": true
+    },
+    "dashboard": {
+      "dockerfile": "Dockerfile.dashboard",
+      "image_repository": "pearls-aqi/dashboard",
+      "runtime": "Streamlit",
+      "entrypoint": [
+        "streamlit",
+        "run",
+        "dashboard/app.py",
+        "--server.address=0.0.0.0",
+        "--server.port=8501",
+        "--server.headless=true",
+        "--browser.gatherUsageStats=false"
+      ],
+      "port": 8501,
+      "non_root": true,
+      "container_user": "dashboard",
+      "healthcheck": "/_stcore/health",
+      "required_environment": [
+        "FASTAPI_BASE_URL",
+        "DASHBOARD_ENVIRONMENT"
+      ],
+      "optional_environment": [
+        "DASHBOARD_REQUEST_TIMEOUT_SECONDS",
+        "DASHBOARD_CACHE_TTL_SECONDS",
+        "DASHBOARD_TITLE",
+        "DASHBOARD_DEFAULT_TIMEZONE"
+      ],
+      "required_secrets": [],
+      "direct_blob_dependency": false,
+      "direct_hopsworks_dependency": false,
+      "direct_model_registry_dependency": false,
+      "api_dependency": true,
+      "api_protocol": "HTTPS",
+      "api_routes_used": [
+        "/health/live",
+        "/health/ready",
+        "/forecast",
+        "/forecast/hourly",
+        "/forecast/summary",
+        "/alerts",
+        "/alerts/active",
+        "/metadata",
+        "/pipeline/status"
+      ],
+      "http_retry_policy": {
+        "total_retries": 2,
+        "connect_retries": 2,
+        "read_retries": 1,
+        "retry_status_codes": [
+          502,
+          503,
+          504
+        ]
+      }
+    },
+    "pipeline": {
+      "dockerfile": "Dockerfile.pipeline",
+      "image_repository": "pearls-aqi/pipeline",
+      "non_root": true,
+      "container_user": "pipeline",
+      "default_entrypoint": [
+        "python",
+        "-m",
+        "app.pipelines.publish_forecast"
+      ],
+      "workloads": [
+        "hourly feature synchronization",
+        "six-hour forecast publication",
+        "daily retraining",
+        "production health monitoring"
+      ]
+    }
+  },
+  "staging": {
+    "resource_group": {
+      "exists": true,
+      "name": "rg-pearls-aqi-staging",
+      "location": "centralindia"
+    },
+    "container_apps_environment": {
+      "exists": true,
+      "name": "cae-pearls-aqi-staging",
+      "provisioning_state": "Succeeded"
+    },
+    "managed_identity": {
+      "exists": true,
+      "name": "id-pearls-aqi-staging",
+      "client_id_present": true,
+      "principal_id_present": true
+    },
+    "storage": {
+      "exists": true,
+      "account_name": "stpearlsaqiriyan",
+      "container": "artifacts",
+      "public_blob_access": false
+    },
+    "acr": {
+      "exists": true,
+      "name": "walpole",
+      "login_server": "walpole.azurecr.io"
+    },
+    "api": {
+      "exists": true,
+      "name": "ca-pearls-aqi-api-staging",
+      "provisioning_state": "Succeeded",
+      "environment_id": "/subscriptions/674a4416-a05e-4dd5-8b46-e9e33570ad2a/resourceGroups/rg-pearls-aqi-staging/providers/Microsoft.App/managedEnvironments/cae-pearls-aqi-staging",
+      "image": "walpole.azurecr.io/pearls-aqi-api:b311e43",
+      "command": null,
+      "args": null,
+      "cpu": 0.25,
+      "memory": "0.5Gi",
+      "fqdn": "ca-pearls-aqi-api-staging.gentledesert-51a1063f.centralindia.azurecontainerapps.io",
+      "target_port": 8000,
+      "external": true,
+      "transport": "Auto",
+      "environment": {
+        "PEARLS_API_ENVIRONMENT": {
+          "uses_secret": false,
+          "secret_ref": null,
+          "value": "staging"
+        },
+        "PEARLS_API_LOG_LEVEL": {
+          "uses_secret": false,
+          "secret_ref": null,
+          "value": "INFO"
+        },
+        "PEARLS_API_PHASE_6_LATEST_DIRECTORY": {
+          "uses_secret": false,
+          "secret_ref": null,
+          "value": "/app/aqi/latest"
+        },
+        "PEARLS_API_ARTIFACT_CACHE_SECONDS": {
+          "uses_secret": false,
+          "secret_ref": null,
+          "value": "60"
+        },
+        "PEARLS_API_FORECAST_AGING_THRESHOLD_HOURS": {
+          "uses_secret": false,
+          "secret_ref": null,
+          "value": "48"
+        },
+        "PEARLS_API_FORECAST_STALENESS_THRESHOLD_HOURS": {
+          "uses_secret": false,
+          "secret_ref": null,
+          "value": "168"
+        },
+        "APP_ENV": {
+          "uses_secret": false,
+          "secret_ref": null,
+          "value": "staging"
+        },
+        "SERVICE_ROLE": {
+          "uses_secret": false,
+          "secret_ref": null,
+          "value": "api"
+        },
+        "AZURE_CLIENT_ID": {
+          "uses_secret": false,
+          "secret_ref": null,
+          "value": "9aba1b77-0b58-426f-92fa-e3c560f3df32"
+        },
+        "PEARLS_API_APPLICATION_VERSION": {
+          "uses_secret": false,
+          "secret_ref": null,
+          "value": "0.1.0"
+        },
+        "PEARLS_API_ARTIFACT_BACKEND": {
+          "uses_secret": false,
+          "secret_ref": null,
+          "value": "azure_blob"
+        },
+        "PEARLS_API_ARTIFACT_TYPE": {
+          "uses_secret": false,
+          "secret_ref": null,
+          "value": "aqi"
+        },
+        "PEARLS_API_AZURE_STORAGE_ACCOUNT": {
+          "uses_secret": false,
+          "secret_ref": null,
+          "value": "stpearlsaqiriyan"
+        },
+        "PEARLS_API_AZURE_STORAGE_CONTAINER": {
+          "uses_secret": false,
+          "secret_ref": null,
+          "value": "artifacts"
+        },
+        "PEARLS_API_PHASE_6_BLOB_CACHE_DIRECTORY": {
+          "uses_secret": false,
+          "secret_ref": null,
+          "value": "/app/.cache/api/aqi/latest"
+        },
+        "PEARLS_API_ALLOWED_CORS_ORIGINS": {
+          "uses_secret": false,
+          "secret_ref": null,
+          "value": "[\"https://ca-pearls-aqi-dashboard-staging.gentledesert-51a1063f.centralindia.azurecontainerapps.io\"]"
+        }
+      }
+    },
+    "dashboard": {
+      "exists": true,
+      "name": "ca-pearls-aqi-dashboard-staging",
+      "provisioning_state": "Succeeded",
+      "environment_id": "/subscriptions/674a4416-a05e-4dd5-8b46-e9e33570ad2a/resourceGroups/rg-pearls-aqi-staging/providers/Microsoft.App/managedEnvironments/cae-pearls-aqi-staging",
+      "image": "walpole.azurecr.io/pearls-aqi/dashboard:707b7a5f1bdb40d819f9b18a85a0babf83448b78",
+      "command": null,
+      "args": null,
+      "cpu": 0.25,
+      "memory": "0.5Gi",
+      "fqdn": "ca-pearls-aqi-dashboard-staging.gentledesert-51a1063f.centralindia.azurecontainerapps.io",
+      "target_port": 8501,
+      "external": true,
+      "transport": "Auto",
+      "environment": {
+        "FASTAPI_BASE_URL": {
+          "uses_secret": false,
+          "secret_ref": null,
+          "value": "https://ca-pearls-aqi-api-staging.gentledesert-51a1063f.centralindia.azurecontainerapps.io"
+        }
+      }
+    },
+    "jobs": {
+      "hourly_features": {
+        "exists": true,
+        "name": "job-pearls-aqi-features",
+        "provisioning_state": "Succeeded",
+        "image": "walpole.azurecr.io/pearls-aqi/pipeline:8b3b116468e8fe1ad8d529643bf3e11a68b24280",
+        "command": [
+          "/app/bin/run_hourly_features"
+        ],
+        "args": null,
+        "trigger_type": "Schedule",
+        "cron_expression": "15 * * * *",
+        "replica_timeout": 900,
+        "replica_retry_limit": 1
+      },
+      "forecast": {
+        "exists": true,
+        "name": "job-pearls-aqi-forecast",
+        "provisioning_state": "Succeeded",
+        "image": "walpole.azurecr.io/pearls-aqi/pipeline:5c4a9a6",
+        "command": null,
+        "args": null,
+        "trigger_type": "Schedule",
+        "cron_expression": "0 */6 * * *",
+        "replica_timeout": 1800,
+        "replica_retry_limit": 1
+      },
+      "daily_retraining": {
+        "exists": true,
+        "name": "job-pearls-aqi-retraining",
+        "provisioning_state": "Succeeded",
+        "image": "walpole.azurecr.io/pearls-aqi/pipeline:b5a0b027e3d55cfbe91728371a30be577f4984d3",
+        "command": [
+          "/app/bin/run_daily_retraining"
+        ],
+        "args": null,
+        "trigger_type": "Schedule",
+        "cron_expression": "30 3 * * *",
+        "replica_timeout": 3600,
+        "replica_retry_limit": 1
+      },
+      "monitoring": {
+        "exists": true,
+        "name": "job-pearls-aqi-monitoring",
+        "provisioning_state": "Succeeded",
+        "image": "walpole.azurecr.io/pearls-aqi/pipeline:1d54f56e87e22664d097ffd658609c96568b7525",
+        "command": [
+          "/app/bin/run_production_health"
+        ],
+        "args": null,
+        "trigger_type": "Schedule",
+        "cron_expression": "45 * * * *",
+        "replica_timeout": 600,
+        "replica_retry_limit": 1
+      }
+    }
+  },
+  "production_plan": {
+    "resource_group": "rg-pearls-aqi-prod",
+    "location": "centralindia",
+    "container_apps_environment": "cae-pearls-aqi-staging",
+    "managed_identity": "id-pearls-aqi-prod",
+    "api_app": "ca-pearls-aqi-api-prod",
+    "dashboard_app": "ca-pearls-aqi-dashboard-prod",
+    "feature_job": "job-pearls-aqi-features-prod",
+    "forecast_job": "job-pearls-aqi-forecast-prod",
+    "retraining_job": "job-pearls-aqi-retraining-prod",
+    "monitoring_job": "job-pearls-aqi-monitoring-prod",
+    "storage_account": "stpearlsaqiriyan",
+    "artifact_container": "artifacts-prod",
+    "acr_name": "walpole",
+    "acr_server": "walpole.azurecr.io",
+    "api": {
+      "ingress": "external",
+      "target_port": 8000,
+      "min_replicas": 0,
+      "max_replicas": 1,
+      "cpu": 0.25,
+      "memory": "0.5Gi",
+      "artifact_backend": "azure_blob",
+      "artifact_type": "aqi"
+    },
+    "dashboard": {
+      "ingress": "external",
+      "target_port": 8501,
+      "min_replicas": 0,
+      "max_replicas": 1,
+      "cpu": 0.25,
+      "memory": "0.5Gi",
+      "api_connection": "production FastAPI HTTPS FQDN + /api/v1"
+    },
+    "isolation": {
+      "separate_resource_group": true,
+      "separate_container_apps_environment": false,
+      "shared_container_apps_environment": true,
+      "separate_managed_identity": true,
+      "separate_blob_container": true,
+      "shared_storage_account": true,
+      "shared_acr": true,
+      "shared_hopsworks_project": true
+    },
+    "container_apps_environment_constraint": {
+      "shared_environment_name": "cae-pearls-aqi-staging",
+      "reason": "Azure subscription currently permits only one Container Apps environment.",
+      "production_isolation_preserved_by": [
+        "separate app names",
+        "separate job names",
+        "separate managed identity",
+        "separate Blob container",
+        "separate environment variables",
+        "separate secret references"
+      ]
+    },
+    "artifact_boundary": {
+      "staging_container": "artifacts",
+      "production_container": "artifacts-prod",
+      "reason": "Prevent staging writers from advancing production latest pointers."
+    }
+  },
+  "findings": [
+    {
+      "severity": "INFO",
+      "code": "PRODUCTION_ARTIFACT_ISOLATION_REQUIRED",
+      "message": "Production should use 'artifacts-prod' while staging continues using 'artifacts'."
+    },
+    {
+      "severity": "INFO",
+      "code": "DASHBOARD_API_ONLY_DEPENDENCY",
+      "message": "The dashboard consumes FastAPI only and requires no direct Blob, Hopsworks, or model-registry access."
+    },
+    {
+      "severity": "WARNING",
+      "code": "SOURCE_TREE_STATE",
+      "message": "Production images must be built from a clean committed revision."
+    },
+    {
+      "severity": "DECISION_REQUIRED",
+      "code": "API_FRESHNESS_THRESHOLDS",
+      "message": "API defaults/local configuration use 6h aging / 12h stale, while the current staging deployment reports aging='48' and stale='168'. Production thresholds must be selected explicitly in Phase 10M-C."
+    },
+    {
+      "severity": "INFO",
+      "code": "API_LOCAL_FALLBACK_PRESENT",
+      "message": "Dockerfile.api contains a local AQI fallback bundle, but production will explicitly configure artifact_backend=azure_blob."
+    },
+    {
+      "severity": "INFO",
+      "code": "SHARED_CONTAINER_APPS_ENVIRONMENT",
+      "message": "Production reuses the existing Container Apps environment because the Azure subscription environment quota prevents creation of a second one."
+    }
+  ],
+  "missing_staging_resources": [],
+  "production_resources_changed": false,
+  "staging_resources_changed": false,
+  "artifact_pointers_changed": false,
+  "model_registry_changed": false
+}

@@ -1,0 +1,51 @@
+{
+  "phase": "10M",
+  "subphase": "10M-D",
+  "generated_at_utc": "2026-08-07T07:19:40.060051+00:00",
+  "status": "PRODUCTION_RELEASE_VALIDATED",
+  "application_services_deployed": false,
+  "scheduled_jobs_deployed": false,
+  "valid": true,
+  "release_sha": "0d5380b79b54c1c333ce1fec4ebfbfe01bef8cc7",
+  "checks": {
+    "api_exists_in_acr": true,
+    "api_revision_matches": true,
+    "api_version_matches": true,
+    "api_runs_non_root": true,
+    "api_tag_is_immutable": true,
+    "dashboard_exists_in_acr": true,
+    "dashboard_revision_matches": true,
+    "dashboard_version_matches": true,
+    "dashboard_runs_non_root": true,
+    "dashboard_tag_is_immutable": true,
+    "pipeline_exists_in_acr": true,
+    "pipeline_revision_matches": true,
+    "pipeline_version_matches": true,
+    "pipeline_runs_non_root": true,
+    "pipeline_tag_is_immutable": true,
+    "single_release_sha": true
+  },
+  "images": {
+    "api": {
+      "image": "walpole.azurecr.io/pearls-aqi/api:0d5380b79b54c1c333ce1fec4ebfbfe01bef8cc7",
+      "revision": "0d5380b79b54c1c333ce1fec4ebfbfe01bef8cc7",
+      "version": "0d5380b79b54c1c333ce1fec4ebfbfe01bef8cc7",
+      "user": "pearls",
+      "image_id": "sha256:1f54fb53758e395d699d71c7702564d12fe47e404e40ac12c0716c8428069c75"
+    },
+    "dashboard": {
+      "image": "walpole.azurecr.io/pearls-aqi/dashboard:0d5380b79b54c1c333ce1fec4ebfbfe01bef8cc7",
+      "revision": "0d5380b79b54c1c333ce1fec4ebfbfe01bef8cc7",
+      "version": "0d5380b79b54c1c333ce1fec4ebfbfe01bef8cc7",
+      "user": "dashboard",
+      "image_id": "sha256:0d919e4971797bdb2c8b067be75c2dade0a2cc7285691532b9b1b365b2a959bc"
+    },
+    "pipeline": {
+      "image": "walpole.azurecr.io/pearls-aqi/pipeline:0d5380b79b54c1c333ce1fec4ebfbfe01bef8cc7",
+      "revision": "0d5380b79b54c1c333ce1fec4ebfbfe01bef8cc7",
+      "version": "0d5380b79b54c1c333ce1fec4ebfbfe01bef8cc7",
+      "user": "pipeline",
+      "image_id": "sha256:48790f3749c5b36af293618bbe6897a50e2a66cba51733fcdf99583ddfc19a3f"
+    }
+  }
+}

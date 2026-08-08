@@ -1,0 +1,123 @@
+{
+  "phase": "10M",
+  "subphase": "10M-G",
+  "generated_at_utc": "2026-08-07T10:54:36.065939+00:00",
+  "status": "PRODUCTION_JOBS_VALIDATED",
+  "manual_execution_complete": false,
+  "valid": true,
+  "checks": {
+    "features_provisioned": true,
+    "features_schedule_trigger": true,
+    "features_schedule_matches": true,
+    "features_timeout_matches": true,
+    "features_retry_limit_is_one": true,
+    "features_parallelism_is_one": true,
+    "features_completion_count_is_one": true,
+    "features_immutable_image_matches": true,
+    "features_production_environment": true,
+    "forecast_provisioned": true,
+    "forecast_schedule_trigger": true,
+    "forecast_schedule_matches": true,
+    "forecast_timeout_matches": true,
+    "forecast_retry_limit_is_one": true,
+    "forecast_parallelism_is_one": true,
+    "forecast_completion_count_is_one": true,
+    "forecast_immutable_image_matches": true,
+    "forecast_production_environment": true,
+    "forecast_production_blob_container": true,
+    "retraining_provisioned": true,
+    "retraining_schedule_trigger": true,
+    "retraining_schedule_matches": true,
+    "retraining_timeout_matches": true,
+    "retraining_retry_limit_is_one": true,
+    "retraining_parallelism_is_one": true,
+    "retraining_completion_count_is_one": true,
+    "retraining_immutable_image_matches": true,
+    "retraining_production_environment": true,
+    "retraining_production_blob_container": true,
+    "monitoring_provisioned": true,
+    "monitoring_schedule_trigger": true,
+    "monitoring_schedule_matches": true,
+    "monitoring_timeout_matches": true,
+    "monitoring_retry_limit_is_one": true,
+    "monitoring_parallelism_is_one": true,
+    "monitoring_completion_count_is_one": true,
+    "monitoring_immutable_image_matches": true,
+    "monitoring_production_environment": true,
+    "monitoring_production_blob_container": true,
+    "monitoring_monitor_targets_prod_rg": true,
+    "monitoring_monitor_targets_prod_jobs": true
+  },
+  "jobs": {
+    "features": {
+      "name": "job-pearls-aqi-features-prod",
+      "image": "walpole.azurecr.io/pearls-aqi/pipeline:0d5380b79b54c1c333ce1fec4ebfbfe01bef8cc7",
+      "schedule": "15 * * * *",
+      "checks": {
+        "provisioned": true,
+        "schedule_trigger": true,
+        "schedule_matches": true,
+        "timeout_matches": true,
+        "retry_limit_is_one": true,
+        "parallelism_is_one": true,
+        "completion_count_is_one": true,
+        "immutable_image_matches": true,
+        "production_environment": true
+      }
+    },
+    "forecast": {
+      "name": "job-pearls-aqi-forecast-prod",
+      "image": "walpole.azurecr.io/pearls-aqi/pipeline:0d5380b79b54c1c333ce1fec4ebfbfe01bef8cc7",
+      "schedule": "0 */6 * * *",
+      "checks": {
+        "provisioned": true,
+        "schedule_trigger": true,
+        "schedule_matches": true,
+        "timeout_matches": true,
+        "retry_limit_is_one": true,
+        "parallelism_is_one": true,
+        "completion_count_is_one": true,
+        "immutable_image_matches": true,
+        "production_environment": true,
+        "production_blob_container": true
+      }
+    },
+    "retraining": {
+      "name": "job-pearls-aqi-retraining-prod",
+      "image": "walpole.azurecr.io/pearls-aqi/pipeline:0d5380b79b54c1c333ce1fec4ebfbfe01bef8cc7",
+      "schedule": "30 3 * * *",
+      "checks": {
+        "provisioned": true,
+        "schedule_trigger": true,
+        "schedule_matches": true,
+        "timeout_matches": true,
+        "retry_limit_is_one": true,
+        "parallelism_is_one": true,
+        "completion_count_is_one": true,
+        "immutable_image_matches": true,
+        "production_environment": true,
+        "production_blob_container": true
+      }
+    },
+    "monitoring": {
+      "name": "job-pearls-aqi-monitoring-prod",
+      "image": "walpole.azurecr.io/pearls-aqi/pipeline:0d5380b79b54c1c333ce1fec4ebfbfe01bef8cc7",
+      "schedule": "45 * * * *",
+      "checks": {
+        "provisioned": true,
+        "schedule_trigger": true,
+        "schedule_matches": true,
+        "timeout_matches": true,
+        "retry_limit_is_one": true,
+        "parallelism_is_one": true,
+        "completion_count_is_one": true,
+        "immutable_image_matches": true,
+        "production_environment": true,
+        "production_blob_container": true,
+        "monitor_targets_prod_rg": true,
+        "monitor_targets_prod_jobs": true
+      }
+    }
+  },
+  "release_sha": "0d5380b79b54c1c333ce1fec4ebfbfe01bef8cc7"
+}

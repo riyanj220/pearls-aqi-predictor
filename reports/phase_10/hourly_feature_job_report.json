@@ -1,0 +1,42 @@
+{
+  "phase": "10K",
+  "subphase": "10K-B",
+  "generated_at_utc": "2026-08-05T14:58:06.373005+00:00",
+  "status": "HOURLY_FEATURE_JOB_VALIDATED",
+  "approved": true,
+  "resource_group": "rg-pearls-aqi-staging",
+  "job_name": "job-pearls-aqi-features",
+  "image": "walpole.azurecr.io/pearls-aqi/pipeline:8b3b116468e8fe1ad8d529643bf3e11a68b24280",
+  "schedule_utc": "15 * * * *",
+  "latest_execution": {
+    "name": "job-pearls-aqi-features-29765655",
+    "status": "Succeeded",
+    "start_time": "2026-08-05T14:15:00+00:00",
+    "end_time": "2026-08-05T14:20:23+00:00"
+  },
+  "checks": {
+    "trigger_is_schedule": true,
+    "cron_is_hourly": true,
+    "timeout_is_900_seconds": true,
+    "retry_limit_is_one": true,
+    "parallelism_is_one": true,
+    "hourly_entrypoint_is_valid": true,
+    "immutable_image_tag": true,
+    "feature_store_is_hopsworks": true,
+    "dry_run_is_disabled": true,
+    "openaq_uses_secret": true,
+    "hopsworks_uses_secret": true,
+    "latest_execution_succeeded": true
+  },
+  "daily_retraining_job_created": false,
+  "automatic_model_promotion_enabled": false,
+  "container_execution": {
+    "command": [
+      "/app/bin/run_hourly_features"
+    ],
+    "args": [],
+    "uses_python_module_command": false,
+    "uses_hourly_wrapper": true,
+    "effective_parallelism": 1
+  }
+}

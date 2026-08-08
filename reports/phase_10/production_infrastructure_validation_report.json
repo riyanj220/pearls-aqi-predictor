@@ -1,0 +1,54 @@
+{
+  "phase": "10M",
+  "subphase": "10M-B",
+  "generated_at_utc": "2026-08-07T04:20:49.817116+00:00",
+  "status": "PRODUCTION_INFRASTRUCTURE_VALIDATED",
+  "production_resources_created": true,
+  "shared_container_apps_environment": true,
+  "application_services_deployed": false,
+  "scheduled_jobs_deployed": false,
+  "valid": true,
+  "checks": {
+    "resource_group_exists": true,
+    "resource_group_is_production": true,
+    "shared_environment_provisioned": true,
+    "shared_environment_is_staging_environment": true,
+    "production_identity_exists": true,
+    "identity_has_client_id": true,
+    "identity_has_principal_id": true,
+    "acr_exists": true,
+    "identity_has_acr_pull": true,
+    "identity_has_blob_contributor": true,
+    "identity_has_resource_group_reader": true,
+    "production_container_exists": true,
+    "production_aqi_pointer_not_created_yet": true,
+    "production_monitoring_pointer_not_created_yet": true
+  },
+  "resource_group": {
+    "name": "rg-pearls-aqi-prod",
+    "location": "centralindia"
+  },
+  "container_apps_environment": {
+    "name": "cae-pearls-aqi-staging",
+    "resource_group": "rg-pearls-aqi-staging",
+    "shared_between_staging_and_production": true,
+    "provisioning_state": "Succeeded"
+  },
+  "identity": {
+    "name": "id-pearls-aqi-prod",
+    "client_id_present": true,
+    "principal_id_present": true
+  },
+  "storage": {
+    "account_name": "stpearlsaqiriyan",
+    "container_name": "artifacts-prod",
+    "container_exists": true,
+    "aqi_pointer_exists": false,
+    "monitoring_pointer_exists": false
+  },
+  "role_names": [
+    "AcrPull",
+    "Reader",
+    "Storage Blob Data Contributor"
+  ]
+}

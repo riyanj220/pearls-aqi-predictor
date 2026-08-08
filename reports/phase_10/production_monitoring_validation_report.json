@@ -1,0 +1,155 @@
+{
+  "phase": "10L",
+  "subphase": "10L-E",
+  "generated_at_utc": "2026-08-06T13:09:06.608811+00:00",
+  "status": "PRODUCTION_MONITORING_VALIDATED",
+  "resource_group": "rg-pearls-aqi-staging",
+  "job_name": "job-pearls-aqi-monitoring",
+  "valid": true,
+  "checks": {
+    "job_provisioning_succeeded": true,
+    "trigger_is_schedule": true,
+    "cron_is_hourly": true,
+    "parallelism_is_one": true,
+    "completion_count_is_one": true,
+    "timeout_is_600": true,
+    "retry_limit_is_one": true,
+    "entrypoint_is_valid": true,
+    "image_is_immutable": true,
+    "expected_image_matches": true,
+    "latest_execution_succeeded": true,
+    "artifact_backend_is_azure_blob": true,
+    "job_query_backend_is_arm": true,
+    "webhook_is_enabled": true,
+    "webhook_uses_secret": true,
+    "health_pointer_is_valid": true,
+    "manifest_matches_pointer": true,
+    "health_report_checksum_matches": true,
+    "health_report_is_read_only": true,
+    "outbox_exists": true,
+    "outbox_has_valid_pending_count": true
+  },
+  "job": {
+    "image": "walpole.azurecr.io/pearls-aqi/pipeline:1d54f56e87e22664d097ffd658609c96568b7525",
+    "command": [
+      "/app/bin/run_production_health"
+    ],
+    "args": [],
+    "cron_expression": "45 * * * *",
+    "latest_execution": {
+      "id": "/subscriptions/674a4416-a05e-4dd5-8b46-e9e33570ad2a/resourceGroups/rg-pearls-aqi-staging/providers/Microsoft.App/jobs/job-pearls-aqi-monitoring/executions/job-pearls-aqi-monitoring-znvu3yq",
+      "name": "job-pearls-aqi-monitoring-znvu3yq",
+      "properties": {
+        "endTime": "2026-08-06T13:05:15+00:00",
+        "startTime": "2026-08-06T13:04:02+00:00",
+        "status": "Succeeded",
+        "template": {
+          "containers": [
+            {
+              "command": [
+                "/app/bin/run_production_health"
+              ],
+              "env": [
+                {
+                  "name": "APP_ENV",
+                  "value": "staging"
+                },
+                {
+                  "name": "SERVICE_ROLE",
+                  "value": "monitoring"
+                },
+                {
+                  "name": "AZURE_CLIENT_ID",
+                  "value": "9aba1b77-0b58-426f-92fa-e3c560f3df32"
+                },
+                {
+                  "name": "AZURE_SUBSCRIPTION_ID",
+                  "value": "674a4416-a05e-4dd5-8b46-e9e33570ad2a"
+                },
+                {
+                  "name": "AZURE_JOB_QUERY_BACKEND",
+                  "value": "arm"
+                },
+                {
+                  "name": "FEATURE_STORE_BACKEND",
+                  "value": "hopsworks"
+                },
+                {
+                  "name": "MODEL_REGISTRY_BACKEND",
+                  "value": "hopsworks"
+                },
+                {
+                  "name": "MLOPS_DRY_RUN",
+                  "value": "false"
+                },
+                {
+                  "name": "HOPSWORKS_API_KEY",
+                  "secretRef": "cappjob-job-pearls-aqi-monitoring"
+                },
+                {
+                  "name": "HOPSWORKS_PROJECT",
+                  "value": "perarls_aqi_predictor"
+                },
+                {
+                  "name": "HOPSWORKS_HOST",
+                  "value": "eu-west.cloud.hopsworks.ai"
+                },
+                {
+                  "name": "ARTIFACT_BACKEND",
+                  "value": "azure_blob"
+                },
+                {
+                  "name": "AZURE_STORAGE_ACCOUNT",
+                  "value": "stpearlsaqiriyan"
+                },
+                {
+                  "name": "AZURE_STORAGE_CONTAINER",
+                  "value": "artifacts"
+                },
+                {
+                  "name": "PRODUCTION_HEALTH_WEBHOOK_ENABLED",
+                  "value": "true"
+                },
+                {
+                  "name": "PRODUCTION_HEALTH_WEBHOOK_URL",
+                  "secretRef": "cappjob-job-pearls-aqi-monitoring"
+                },
+                {
+                  "name": "PRODUCTION_HEALTH_WEBHOOK_TIMEOUT_SECONDS",
+                  "value": "15"
+                }
+              ],
+              "image": "walpole.azurecr.io/pearls-aqi/pipeline:1d54f56e87e22664d097ffd658609c96568b7525",
+              "imageType": "ContainerImage",
+              "name": "production-monitor",
+              "resources": {
+                "cpu": 0.5,
+                "ephemeralStorage": "",
+                "memory": "1Gi"
+              }
+            }
+          ],
+          "initContainers": []
+        }
+      },
+      "resourceGroup": "rg-pearls-aqi-staging",
+      "type": "Microsoft.App/jobs/executions"
+    }
+  },
+  "health_snapshot": {
+    "run_id": "20260806T130436Z_production_health_06b78fe1",
+    "published_at_utc": "2026-08-06T13:05:11.485659+00:00",
+    "health_status": "PRODUCTION_HEALTH_WARNING",
+    "overall_component_status": "WARNING",
+    "checksum_matches": true
+  },
+  "notifications": {
+    "outbox_exists": true,
+    "pending_count": 0,
+    "receipt_count": 2,
+    "receipt_names": [
+      "production-health/notifications/receipts/incident_opened_be16c894bb25b15b079e.json",
+      "production-health/notifications/receipts/incident_resolved_6df7b9f237b000888477.json"
+    ]
+  }
+}
