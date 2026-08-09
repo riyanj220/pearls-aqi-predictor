@@ -69,6 +69,7 @@ ALLOWED_MODEL_LOADING_MODES = {
 ALLOWED_FEATURE_STORE_BACKENDS = {
     "local",
     "hopsworks",
+    "azure_blob",
 }
 
 
@@ -491,7 +492,7 @@ def validate_common_settings(
                 field="FEATURE_STORE_BACKEND",
                 message=(
                     "FEATURE_STORE_BACKEND must be "
-                    "local or hopsworks."
+                    "local, hopsworks or azure_blob"
                 ),
             )
         )

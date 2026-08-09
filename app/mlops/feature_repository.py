@@ -106,6 +106,19 @@ def create_feature_repository(
             create_if_missing=create_if_missing,
         )
 
+    if (
+        settings.feature_store_backend
+        == FeatureStoreBackend.AZURE_BLOB
+    ):
+        from app.mlops.azure_blob_feature_repository import (
+            AzureBlobFeatureRepository,
+        )
+
+        return AzureBlobFeatureRepository(
+            settings=settings,
+            contracts=contracts,
+        )
+
     raise FeatureRepositoryConfigurationError(
         "No runtime FeatureRepository implementation exists "
         f"for backend={settings.feature_store_backend.value!r}."
