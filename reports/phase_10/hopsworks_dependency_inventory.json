@@ -1,0 +1,2771 @@
+{
+  "phase": "10P",
+  "subphase": "10P-A",
+  "generated_at_utc": "2026-08-09T06:46:56.540964+00:00",
+  "status": "HOPSWORKS_DEPENDENCY_INVENTORY_READY",
+  "read_only": true,
+  "runtime_configuration_changed": false,
+  "production_backend_changed": false,
+  "summary": {
+    "coupled_file_count": 35,
+    "direct_library_file_count": 31,
+    "category_counts": {
+      "hopsworks_reference": 148,
+      "hsfs_reference": 2,
+      "hsml_reference": 0,
+      "feature_store_backend": 17,
+      "model_registry_backend": 12,
+      "feature_group": 35,
+      "feature_view": 15,
+      "training_dataset": 10,
+      "model_registry": 25,
+      "hopsworks_environment": 110
+    }
+  },
+  "direct_library_files": [
+    "app/inference/model_source.py",
+    "app/inference/predictor.py",
+    "app/mlops/__init__.py",
+    "app/mlops/client.py",
+    "app/mlops/config.py",
+    "app/mlops/feature_groups.py",
+    "app/mlops/model_registry.py",
+    "app/operations/cloud_architecture.py",
+    "app/operations/deployment_config.py",
+    "app/operations/forecast_automation_report.py",
+    "app/operations/hopsworks_dependency_inventory.py",
+    "app/operations/hourly_feature_job_validation.py",
+    "app/operations/production_configuration_validation.py",
+    "app/operations/production_deployment_inventory.py",
+    "app/operations/production_health.py",
+    "app/operations/repository_inspection.py",
+    "app/pipelines/build_training_dataset.py",
+    "app/pipelines/daily_retraining.py",
+    "app/pipelines/feature_views.py",
+    "app/pipelines/historical_backfill.py",
+    "app/pipelines/hourly_features.py",
+    "app/pipelines/incremental_features.py",
+    "app/pipelines/refresh_training_dataset.py",
+    "app/pipelines/training_datasets.py",
+    "scripts/deploy_daily_retraining_job.sh",
+    "scripts/deploy_feature_sync_job.sh",
+    "scripts/deploy_forecast_job.sh",
+    "scripts/deploy_production_jobs.sh",
+    "scripts/deploy_production_monitoring_job.sh",
+    "scripts/validate_forecast_job_recovery.sh",
+    "config/production.json"
+  ],
+  "coupled_files": [
+    "app/inference/model_source.py",
+    "app/inference/predictor.py",
+    "app/mlops/__init__.py",
+    "app/mlops/client.py",
+    "app/mlops/config.py",
+    "app/mlops/feature_groups.py",
+    "app/mlops/model_registry.py",
+    "app/mlops/retraining.py",
+    "app/observability/error_codes.py",
+    "app/operations/cloud_architecture.py",
+    "app/operations/deployment_config.py",
+    "app/operations/forecast_automation_report.py",
+    "app/operations/hopsworks_dependency_inventory.py",
+    "app/operations/hourly_feature_job_validation.py",
+    "app/operations/production_configuration_validation.py",
+    "app/operations/production_deployment_inventory.py",
+    "app/operations/production_health.py",
+    "app/operations/repository_inspection.py",
+    "app/pipelines/build_training_dataset.py",
+    "app/pipelines/champion_challenger.py",
+    "app/pipelines/daily_retraining.py",
+    "app/pipelines/feature_views.py",
+    "app/pipelines/historical_backfill.py",
+    "app/pipelines/hourly_features.py",
+    "app/pipelines/incremental_features.py",
+    "app/pipelines/refresh_training_dataset.py",
+    "app/pipelines/register_initial_model.py",
+    "app/pipelines/training_datasets.py",
+    "scripts/deploy_daily_retraining_job.sh",
+    "scripts/deploy_feature_sync_job.sh",
+    "scripts/deploy_forecast_job.sh",
+    "scripts/deploy_production_jobs.sh",
+    "scripts/deploy_production_monitoring_job.sh",
+    "scripts/validate_forecast_job_recovery.sh",
+    "config/production.json"
+  ],
+  "files": [
+    {
+      "path": "app/inference/model_source.py",
+      "responsibilities": [
+        "MODEL_REGISTRY_ACCESS"
+      ],
+      "matches": [
+        {
+          "line": 1,
+          "categories": [
+            "hopsworks_reference"
+          ],
+          "text": "\"\"\"Resolve local or Hopsworks production-model artifacts.\"\"\""
+        },
+        {
+          "line": 18,
+          "categories": [
+            "model_registry"
+          ],
+          "text": "from app.mlops.model_registry import ("
+        },
+        {
+          "line": 238,
+          "categories": [
+            "hopsworks_environment"
+          ],
+          "text": "source=\"HOPSWORKS_REGISTRY_CACHE\","
+        },
+        {
+          "line": 296,
+          "categories": [
+            "hopsworks_environment"
+          ],
+          "text": "source=\"HOPSWORKS_REGISTRY\","
+        },
+        {
+          "line": 354,
+          "categories": [
+            "hopsworks_reference"
+          ],
+          "text": "\"The Hopsworks production model could not be \""
+        }
+      ]
+    },
+    {
+      "path": "app/inference/predictor.py",
+      "responsibilities": [
+        "GENERAL_HOPSWORKS_COUPLING"
+      ],
+      "matches": [
+        {
+          "line": 220,
+          "categories": [
+            "hopsworks_reference"
+          ],
+          "text": "\"HOPSWORKS\""
+        },
+        {
+          "line": 245,
+          "categories": [
+            "hopsworks_reference"
+          ],
+          "text": "The selected source may be local, Hopsworks Registry,"
+        }
+      ]
+    },
+    {
+      "path": "app/mlops/__init__.py",
+      "responsibilities": [
+        "GENERAL_HOPSWORKS_COUPLING"
+      ],
+      "matches": [
+        {
+          "line": 1,
+          "categories": [
+            "hopsworks_reference"
+          ],
+          "text": "\"\"\"Hopsworks and local MLOps integration package.\"\"\""
+        },
+        {
+          "line": 51,
+          "categories": [
+            "model_registry"
+          ],
+          "text": "from app.mlops.model_registry import ("
+        }
+      ]
+    },
+    {
+      "path": "app/mlops/client.py",
+      "responsibilities": [
+        "GENERAL_HOPSWORKS_COUPLING"
+      ],
+      "matches": [
+        {
+          "line": 1,
+          "categories": [
+            "hopsworks_reference"
+          ],
+          "text": "\"\"\"Isolated Hopsworks SDK connection adapter.\"\"\""
+        },
+        {
+          "line": 21,
+          "categories": [
+            "hopsworks_reference"
+          ],
+          "text": "\"\"\"Raised when Hopsworks configuration is invalid.\"\"\""
+        },
+        {
+          "line": 25,
+          "categories": [
+            "hopsworks_reference"
+          ],
+          "text": "\"\"\"Raised when the Hopsworks SDK is unavailable.\"\"\""
+        },
+        {
+          "line": 29,
+          "categories": [
+            "hopsworks_reference"
+          ],
+          "text": "\"\"\"Raised when Hopsworks cannot be reached.\"\"\""
+        },
+        {
+          "line": 34,
+          "categories": [
+            "hopsworks_reference"
+          ],
+          "text": "\"\"\"Resolved Hopsworks project resources.\"\"\""
+        },
+        {
+          "line": 38,
+          "categories": [
+            "model_registry"
+          ],
+          "text": "model_registry: Any | None"
+        },
+        {
+          "line": 45,
+          "categories": [
+            "hopsworks_reference"
+          ],
+          "text": "\"\"\"Return the installed Hopsworks SDK version.\"\"\""
+        },
+        {
+          "line": 48,
+          "categories": [
+            "hopsworks_reference"
+          ],
+          "text": "return version(\"hopsworks\")"
+        },
+        {
+          "line": 51,
+          "categories": [
+            "hopsworks_reference"
+          ],
+          "text": "\"The 'hopsworks' package is not installed. \""
+        },
+        {
+          "line": 53,
+          "categories": [
+            "hopsworks_reference"
+          ],
+          "text": "\"Hopsworks deployment.\""
+        },
+        {
+          "line": 60,
+          "categories": [
+            "hopsworks_reference"
+          ],
+          "text": "\"\"\"Connect and resolve configured Hopsworks resources.\"\"\""
+        },
+        {
+          "line": 69,
+          "categories": [
+            "hopsworks_reference"
+          ],
+          "text": "\"Hopsworks connection was requested while \""
+        },
+        {
+          "line": 75,
+          "categories": [
+            "hopsworks_environment"
+          ],
+          "text": "\"HOPSWORKS_API_KEY is required.\""
+        },
+        {
+          "line": 80,
+          "categories": [
+            "hopsworks_environment"
+          ],
+          "text": "\"HOPSWORKS_PROJECT is required.\""
+        },
+        {
+          "line": 86,
+          "categories": [
+            "hopsworks_reference"
+          ],
+          "text": "import hopsworks"
+        },
+        {
+          "line": 110,
+          "categories": [
+            "hopsworks_reference"
+          ],
+          "text": "project = hopsworks.login("
+        },
+        {
+          "line": 115,
+          "categories": [
+            "model_registry"
+          ],
+          "text": "model_registry = None"
+        },
+        {
+          "line": 119,
+          "categories": [
+            "hopsworks_reference"
+          ],
+          "text": "== FeatureStoreBackend.HOPSWORKS"
+        },
+        {
+          "line": 127,
+          "categories": [
+            "hopsworks_reference"
+          ],
+          "text": "== ModelRegistryBackend.HOPSWORKS"
+        },
+        {
+          "line": 129,
+          "categories": [
+            "model_registry"
+          ],
+          "text": "model_registry = ("
+        },
+        {
+          "line": 155,
+          "categories": [
+            "model_registry"
+          ],
+          "text": "model_registry=model_registry,"
+        },
+        {
+          "line": 169,
+          "categories": [
+            "hopsworks_reference"
+          ],
+          "text": "\"Could not connect to Hopsworks or resolve \""
+        }
+      ]
+    },
+    {
+      "path": "app/mlops/config.py",
+      "responsibilities": [
+        "GENERAL_HOPSWORKS_COUPLING"
+      ],
+      "matches": [
+        {
+          "line": 1,
+          "categories": [
+            "hopsworks_reference"
+          ],
+          "text": "\"\"\"Configuration for local and Hopsworks MLOps backends.\"\"\""
+        },
+        {
+          "line": 24,
+          "categories": [
+            "hopsworks_reference"
+          ],
+          "text": "HOPSWORKS = \"hopsworks\""
+        },
+        {
+          "line": 31,
+          "categories": [
+            "hopsworks_reference"
+          ],
+          "text": "HOPSWORKS = \"hopsworks\""
+        },
+        {
+          "line": 37,
+          "categories": [
+            "hopsworks_environment"
+          ],
+          "text": "HOPSWORKS_REGISTRY = \"HOPSWORKS_REGISTRY\""
+        },
+        {
+          "line": 237,
+          "categories": [
+            "hopsworks_environment"
+          ],
+          "text": "\"HOPSWORKS_ENGINE must be 'python' \""
+        },
+        {
+          "line": 247,
+          "categories": [
+            "hopsworks_reference"
+          ],
+          "text": "\"\"\"Require credentials only when Hopsworks is enabled.\"\"\""
+        },
+        {
+          "line": 252,
+          "categories": [
+            "hopsworks_reference"
+          ],
+          "text": "== FeatureStoreBackend.HOPSWORKS,"
+        },
+        {
+          "line": 254,
+          "categories": [
+            "hopsworks_reference"
+          ],
+          "text": "== ModelRegistryBackend.HOPSWORKS,"
+        },
+        {
+          "line": 265,
+          "categories": [
+            "hopsworks_environment"
+          ],
+          "text": "\"HOPSWORKS_API_KEY\""
+        },
+        {
+          "line": 270,
+          "categories": [
+            "hopsworks_environment"
+          ],
+          "text": "\"HOPSWORKS_PROJECT\""
+        },
+        {
+          "line": 275,
+          "categories": [
+            "hopsworks_reference"
+          ],
+          "text": "\"Missing required Hopsworks configuration: \""
+        },
+        {
+          "line": 288,
+          "categories": [
+            "hopsworks_reference"
+          ],
+          "text": "== FeatureStoreBackend.HOPSWORKS,"
+        },
+        {
+          "line": 290,
+          "categories": [
+            "hopsworks_reference"
+          ],
+          "text": "== ModelRegistryBackend.HOPSWORKS,"
+        },
+        {
+          "line": 308,
+          "categories": [
+            "hopsworks_reference"
+          ],
+          "text": "or \"Hopsworks Serverless/default\""
+        }
+      ]
+    },
+    {
+      "path": "app/mlops/feature_groups.py",
+      "responsibilities": [
+        "GENERAL_HOPSWORKS_COUPLING"
+      ],
+      "matches": [
+        {
+          "line": 1,
+          "categories": [
+            "hopsworks_reference"
+          ],
+          "text": "\"\"\"Hopsworks feature-group schema adapter.\"\"\""
+        },
+        {
+          "line": 33,
+          "categories": [
+            "hopsworks_reference"
+          ],
+          "text": "\"\"\"Resolved Hopsworks feature-group handles.\"\"\""
+        },
+        {
+          "line": 152,
+          "categories": [
+            "hopsworks_reference"
+          ],
+          "text": "\"\"\"Convert local definitions to Hopsworks Feature objects.\"\"\""
+        },
+        {
+          "line": 155,
+          "categories": [
+            "hsfs_reference"
+          ],
+          "text": "from hsfs.feature import Feature"
+        },
+        {
+          "line": 158,
+          "categories": [
+            "hsfs_reference"
+          ],
+          "text": "\"Could not import hsfs.feature.Feature.\""
+        },
+        {
+          "line": 216,
+          "categories": [
+            "hopsworks_reference"
+          ],
+          "text": "\"The Hopsworks Feature Store was not resolved.\""
+        },
+        {
+          "line": 238,
+          "categories": [
+            "hopsworks_reference"
+          ],
+          "text": "\"Could not resolve the required Hopsworks \""
+        }
+      ]
+    },
+    {
+      "path": "app/mlops/model_registry.py",
+      "responsibilities": [
+        "MODEL_REGISTRY_ACCESS"
+      ],
+      "matches": [
+        {
+          "line": 1,
+          "categories": [
+            "hopsworks_reference",
+            "model_registry"
+          ],
+          "text": "\"\"\"Hopsworks Model Registry integration.\"\"\""
+        },
+        {
+          "line": 274,
+          "categories": [
+            "model_registry"
+          ],
+          "text": "if resources.model_registry is None:"
+        },
+        {
+          "line": 276,
+          "categories": [
+            "hopsworks_reference",
+            "model_registry"
+          ],
+          "text": "\"Hopsworks Model Registry was not resolved.\""
+        },
+        {
+          "line": 319,
+          "categories": [
+            "model_registry"
+          ],
+          "text": "resources.model_registry"
+        },
+        {
+          "line": 344,
+          "categories": [
+            "hopsworks_reference",
+            "model_registry"
+          ],
+          "text": "\"in Hopsworks Model Registry.\""
+        },
+        {
+          "line": 428,
+          "categories": [
+            "model_registry"
+          ],
+          "text": "if resources.model_registry is None:"
+        },
+        {
+          "line": 430,
+          "categories": [
+            "hopsworks_reference",
+            "model_registry"
+          ],
+          "text": "\"Hopsworks Model Registry was not resolved.\""
+        },
+        {
+          "line": 443,
+          "categories": [
+            "model_registry"
+          ],
+          "text": "model = resources.model_registry.get_model("
+        },
+        {
+          "line": 454,
+          "categories": [
+            "hopsworks_reference"
+          ],
+          "text": "# Let Hopsworks use its own version-aware cache."
+        },
+        {
+          "line": 601,
+          "categories": [
+            "model_registry"
+          ],
+          "text": "if resources.model_registry is None:"
+        },
+        {
+          "line": 603,
+          "categories": [
+            "hopsworks_reference",
+            "model_registry"
+          ],
+          "text": "\"Hopsworks Model Registry was not resolved.\""
+        },
+        {
+          "line": 668,
+          "categories": [
+            "model_registry"
+          ],
+          "text": "resources.model_registry"
+        }
+      ]
+    },
+    {
+      "path": "app/mlops/retraining.py",
+      "responsibilities": [
+        "MODEL_REGISTRY_ACCESS"
+      ],
+      "matches": [
+        {
+          "line": 24,
+          "categories": [
+            "model_registry"
+          ],
+          "text": "from app.mlops.model_registry import ("
+        }
+      ]
+    },
+    {
+      "path": "app/observability/error_codes.py",
+      "responsibilities": [
+        "GENERAL_HOPSWORKS_COUPLING"
+      ],
+      "matches": [
+        {
+          "line": 5,
+          "categories": [
+            "hopsworks_environment"
+          ],
+          "text": "HOPSWORKS_UNAVAILABLE = \"HOPSWORKS_UNAVAILABLE\""
+        }
+      ]
+    },
+    {
+      "path": "app/operations/cloud_architecture.py",
+      "responsibilities": [
+        "GENERAL_HOPSWORKS_COUPLING"
+      ],
+      "matches": [
+        {
+          "line": 247,
+          "categories": [
+            "hopsworks_reference"
+          ],
+          "text": "\"Store OpenAQ, Hopsworks, and future \""
+        }
+      ]
+    },
+    {
+      "path": "app/operations/deployment_config.py",
+      "responsibilities": [
+        "DEPLOYMENT_CONFIGURATION"
+      ],
+      "matches": [
+        {
+          "line": 66,
+          "categories": [
+            "hopsworks_environment"
+          ],
+          "text": "\"HOPSWORKS_REGISTRY\","
+        },
+        {
+          "line": 71,
+          "categories": [
+            "hopsworks_reference"
+          ],
+          "text": "\"hopsworks\","
+        },
+        {
+          "line": 288,
+          "categories": [
+            "feature_store_backend"
+          ],
+          "text": "\"FEATURE_STORE_BACKEND\","
+        },
+        {
+          "line": 294,
+          "categories": [
+            "model_registry_backend"
+          ],
+          "text": "\"MODEL_REGISTRY_BACKEND\","
+        },
+        {
+          "line": 388,
+          "categories": [
+            "hopsworks_environment"
+          ],
+          "text": "\"HOPSWORKS_API_KEY\","
+        },
+        {
+          "line": 394,
+          "categories": [
+            "hopsworks_environment"
+          ],
+          "text": "\"HOPSWORKS_PROJECT\","
+        },
+        {
+          "line": 400,
+          "categories": [
+            "hopsworks_environment"
+          ],
+          "text": "\"HOPSWORKS_HOST\","
+        },
+        {
+          "line": 479,
+          "categories": [
+            "hopsworks_environment"
+          ],
+          "text": "\"LOCAL_ARTIFACT or HOPSWORKS_REGISTRY.\""
+        },
+        {
+          "line": 491,
+          "categories": [
+            "feature_store_backend"
+          ],
+          "text": "field=\"FEATURE_STORE_BACKEND\","
+        },
+        {
+          "line": 493,
+          "categories": [
+            "feature_store_backend"
+          ],
+          "text": "\"FEATURE_STORE_BACKEND must be \""
+        },
+        {
+          "line": 494,
+          "categories": [
+            "hopsworks_reference"
+          ],
+          "text": "\"local or hopsworks.\""
+        },
+        {
+          "line": 686,
+          "categories": [
+            "hopsworks_environment"
+          ],
+          "text": "== \"HOPSWORKS_REGISTRY\","
+        },
+        {
+          "line": 688,
+          "categories": [
+            "hopsworks_reference"
+          ],
+          "text": "== \"hopsworks\","
+        },
+        {
+          "line": 690,
+          "categories": [
+            "hopsworks_reference"
+          ],
+          "text": "== \"hopsworks\","
+        },
+        {
+          "line": 696,
+          "categories": [
+            "hopsworks_environment"
+          ],
+          "text": "\"HOPSWORKS_API_KEY\": ("
+        },
+        {
+          "line": 699,
+          "categories": [
+            "hopsworks_environment"
+          ],
+          "text": "\"HOPSWORKS_PROJECT\": ("
+        },
+        {
+          "line": 702,
+          "categories": [
+            "hopsworks_environment"
+          ],
+          "text": "\"HOPSWORKS_HOST\": ("
+        },
+        {
+          "line": 714,
+          "categories": [
+            "hopsworks_environment"
+          ],
+          "text": "\"HOPSWORKS_CONFIGURATION_REQUIRED\""
+        },
+        {
+          "line": 719,
+          "categories": [
+            "hopsworks_reference"
+          ],
+          "text": "\"Hopsworks is enabled.\""
+        }
+      ]
+    },
+    {
+      "path": "app/operations/forecast_automation_report.py",
+      "responsibilities": [
+        "GENERAL_HOPSWORKS_COUPLING"
+      ],
+      "matches": [
+        {
+          "line": 394,
+          "categories": [
+            "hopsworks_reference"
+          ],
+          "text": "\"Hopsworks credentials\""
+        },
+        {
+          "line": 483,
+          "categories": [
+            "hopsworks_reference",
+            "model_registry"
+          ],
+          "text": "\"Hopsworks Model Registry\""
+        },
+        {
+          "line": 515,
+          "categories": [
+            "hopsworks_reference"
+          ],
+          "text": "\"Hopsworks\""
+        }
+      ]
+    },
+    {
+      "path": "app/operations/hopsworks_dependency_inventory.py",
+      "responsibilities": [
+        "GENERAL_HOPSWORKS_COUPLING"
+      ],
+      "matches": [
+        {
+          "line": 1,
+          "categories": [
+            "hopsworks_reference"
+          ],
+          "text": "\"\"\"Inventory direct and indirect Hopsworks dependencies."
+        },
+        {
+          "line": 68,
+          "categories": [
+            "feature_group"
+          ],
+          "text": "\"feature_group\": re.compile("
+        },
+        {
+          "line": 73,
+          "categories": [
+            "feature_view"
+          ],
+          "text": "\"feature_view\": re.compile("
+        },
+        {
+          "line": 78,
+          "categories": [
+            "training_dataset"
+          ],
+          "text": "\"training_dataset\": re.compile("
+        },
+        {
+          "line": 83,
+          "categories": [
+            "model_registry"
+          ],
+          "text": "\"model_registry\": re.compile("
+        },
+        {
+          "line": 160,
+          "categories": [
+            "hopsworks_environment"
+          ],
+          "text": "\"HOPSWORKS_API_KEY\""
+        },
+        {
+          "line": 212,
+          "categories": [
+            "feature_group"
+          ],
+          "text": "\"feature_group\""
+        },
+        {
+          "line": 227,
+          "categories": [
+            "feature_view"
+          ],
+          "text": "or \"feature_view\""
+        },
+        {
+          "line": 238,
+          "categories": [
+            "training_dataset"
+          ],
+          "text": "\"training_dataset\""
+        },
+        {
+          "line": 240,
+          "categories": [
+            "feature_view"
+          ],
+          "text": "or \"feature_view\""
+        },
+        {
+          "line": 252,
+          "categories": [
+            "model_registry"
+          ],
+          "text": "\"model_registry\""
+        },
+        {
+          "line": 380,
+          "categories": [
+            "hopsworks_environment"
+          ],
+          "text": "\"HOPSWORKS_DEPENDENCY_INVENTORY_READY\""
+        },
+        {
+          "line": 410,
+          "categories": [
+            "hopsworks_reference"
+          ],
+          "text": "\"hopsworks\""
+        },
+        {
+          "line": 419,
+          "categories": [
+            "model_registry"
+          ],
+          "text": "\"model_registry\": {"
+        },
+        {
+          "line": 421,
+          "categories": [
+            "hopsworks_reference"
+          ],
+          "text": "\"hopsworks\""
+        }
+      ]
+    },
+    {
+      "path": "app/operations/hourly_feature_job_validation.py",
+      "responsibilities": [
+        "FEATURE_WRITE_OR_SYNC"
+      ],
+      "matches": [
+        {
+          "line": 278,
+          "categories": [
+            "feature_store_backend"
+          ],
+          "text": "\"FEATURE_STORE_BACKEND\","
+        },
+        {
+          "line": 281,
+          "categories": [
+            "hopsworks_reference"
+          ],
+          "text": "== \"hopsworks\""
+        },
+        {
+          "line": 299,
+          "categories": [
+            "hopsworks_environment"
+          ],
+          "text": "\"HOPSWORKS_API_KEY\","
+        },
+        {
+          "line": 302,
+          "categories": [
+            "hopsworks_reference"
+          ],
+          "text": "== \"hopsworks-api-key\""
+        }
+      ]
+    },
+    {
+      "path": "app/operations/production_configuration_validation.py",
+      "responsibilities": [
+        "GENERAL_HOPSWORKS_COUPLING"
+      ],
+      "matches": [
+        {
+          "line": 272,
+          "categories": [
+            "hopsworks_reference"
+          ],
+          "text": "== \"hopsworks\""
+        },
+        {
+          "line": 279,
+          "categories": [
+            "hopsworks_reference"
+          ],
+          "text": "== \"hopsworks\""
+        },
+        {
+          "line": 290,
+          "categories": [
+            "hopsworks_environment"
+          ],
+          "text": "\"HOPSWORKS_API_KEY\""
+        }
+      ]
+    },
+    {
+      "path": "app/operations/production_deployment_inventory.py",
+      "responsibilities": [
+        "DEPLOYMENT_CONFIGURATION"
+      ],
+      "matches": [
+        {
+          "line": 1078,
+          "categories": [
+            "hopsworks_reference"
+          ],
+          "text": "\"Hopsworks, or model-registry access.\""
+        }
+      ]
+    },
+    {
+      "path": "app/operations/production_health.py",
+      "responsibilities": [
+        "GENERAL_HOPSWORKS_COUPLING"
+      ],
+      "matches": [
+        {
+          "line": 6,
+          "categories": [
+            "hopsworks_reference"
+          ],
+          "text": "- latest timestamps in the three Hopsworks feature groups;"
+        },
+        {
+          "line": 9,
+          "categories": [
+            "hopsworks_reference",
+            "model_registry"
+          ],
+          "text": "It does not modify Azure resources, Hopsworks data, model registry"
+        },
+        {
+          "line": 736,
+          "categories": [
+            "feature_group"
+          ],
+          "text": "feature_group: Any,"
+        },
+        {
+          "line": 739,
+          "categories": [
+            "feature_group"
+          ],
+          "text": "\"\"\"Read the latest valid event timestamp from a feature group.\"\"\""
+        },
+        {
+          "line": 742,
+          "categories": [
+            "feature_group"
+          ],
+          "text": "dataframe = feature_group.read("
+        },
+        {
+          "line": 747,
+          "categories": [
+            "feature_group"
+          ],
+          "text": "\"Could not read feature group: \""
+        },
+        {
+          "line": 797,
+          "categories": [
+            "hopsworks_reference"
+          ],
+          "text": "!= FeatureStoreBackend.HOPSWORKS"
+        },
+        {
+          "line": 802,
+          "categories": [
+            "feature_store_backend"
+          ],
+          "text": "\"FEATURE_STORE_BACKEND is not configured \""
+        },
+        {
+          "line": 803,
+          "categories": [
+            "hopsworks_reference"
+          ],
+          "text": "\"as hopsworks.\""
+        },
+        {
+          "line": 815,
+          "categories": [
+            "hopsworks_reference"
+          ],
+          "text": "\"Hopsworks Feature Store was not resolved.\""
+        },
+        {
+          "line": 824,
+          "categories": [
+            "feature_group"
+          ],
+          "text": "feature_group = ("
+        },
+        {
+          "line": 834,
+          "categories": [
+            "feature_group"
+          ],
+          "text": "feature_group=feature_group,"
+        },
+        {
+          "line": 934,
+          "categories": [
+            "hopsworks_reference"
+          ],
+          "text": "\"Hopsworks freshness could not be inspected.\""
+        },
+        {
+          "line": 1141,
+          "categories": [
+            "hopsworks_reference"
+          ],
+          "text": "\"Investigate stale Hopsworks data for \""
+        },
+        {
+          "line": 1153,
+          "categories": [
+            "hopsworks_reference"
+          ],
+          "text": "\"Restore Hopsworks visibility for \""
+        }
+      ]
+    },
+    {
+      "path": "app/operations/repository_inspection.py",
+      "responsibilities": [
+        "GENERAL_HOPSWORKS_COUPLING"
+      ],
+      "matches": [
+        {
+          "line": 298,
+          "categories": [
+            "hopsworks_reference"
+          ],
+          "text": "\"Requires Hopsworks credentials when registry \""
+        },
+        {
+          "line": 310,
+          "categories": [
+            "hopsworks_reference"
+          ],
+          "text": "\"with Hopsworks.\""
+        },
+        {
+          "line": 358,
+          "categories": [
+            "training_dataset"
+          ],
+          "text": "\"name\": \"Build training dataset\","
+        },
+        {
+          "line": 364,
+          "categories": [
+            "hopsworks_reference"
+          ],
+          "text": "\"Build and validate the Hopsworks-backed \""
+        },
+        {
+          "line": 365,
+          "categories": [
+            "training_dataset"
+          ],
+          "text": "\"training dataset.\""
+        },
+        {
+          "line": 380,
+          "categories": [
+            "hopsworks_reference",
+            "feature_view"
+          ],
+          "text": "\"Requires the configured Hopsworks feature view.\""
+        }
+      ]
+    },
+    {
+      "path": "app/pipelines/build_training_dataset.py",
+      "responsibilities": [
+        "TRAINING_DATA_ACCESS"
+      ],
+      "matches": [
+        {
+          "line": 1,
+          "categories": [
+            "hopsworks_reference",
+            "training_dataset"
+          ],
+          "text": "\"\"\"Build and validate the Hopsworks-backed training dataset.\"\"\""
+        },
+        {
+          "line": 39,
+          "categories": [
+            "feature_view"
+          ],
+          "text": "\"\"\"Create the feature view and validate dataset parity.\"\"\""
+        },
+        {
+          "line": 46,
+          "categories": [
+            "hopsworks_reference"
+          ],
+          "text": "\"because Hopsworks data must be read.\""
+        },
+        {
+          "line": 57,
+          "categories": [
+            "hopsworks_reference"
+          ],
+          "text": "\"Hopsworks Feature Store was not resolved.\""
+        },
+        {
+          "line": 192,
+          "categories": [
+            "hopsworks_reference"
+          ],
+          "text": "\"Hopsworks reference timestamps:\","
+        },
+        {
+          "line": 229,
+          "categories": [
+            "feature_view"
+          ],
+          "text": "\"feature_view\": ("
+        },
+        {
+          "line": 232,
+          "categories": [
+            "training_dataset"
+          ],
+          "text": "\"training_dataset\": {"
+        },
+        {
+          "line": 260,
+          "categories": [
+            "hopsworks_reference"
+          ],
+          "text": "/ \"hopsworks\""
+        },
+        {
+          "line": 281,
+          "categories": [
+            "feature_view"
+          ],
+          "text": "\"feature_view\": ("
+        },
+        {
+          "line": 284,
+          "categories": [
+            "training_dataset"
+          ],
+          "text": "\"training_dataset\": {"
+        }
+      ]
+    },
+    {
+      "path": "app/pipelines/champion_challenger.py",
+      "responsibilities": [
+        "GENERAL_HOPSWORKS_COUPLING"
+      ],
+      "matches": [
+        {
+          "line": 23,
+          "categories": [
+            "model_registry"
+          ],
+          "text": "from app.mlops.model_registry import ("
+        }
+      ]
+    },
+    {
+      "path": "app/pipelines/daily_retraining.py",
+      "responsibilities": [
+        "TRAINING_DATA_ACCESS"
+      ],
+      "matches": [
+        {
+          "line": 5,
+          "categories": [
+            "hopsworks_reference",
+            "training_dataset"
+          ],
+          "text": "1. rebuilds the current leakage-safe training dataset from Hopsworks;"
+        },
+        {
+          "line": 382,
+          "categories": [
+            "training_dataset"
+          ],
+          "text": "\"training dataset refresh\""
+        }
+      ]
+    },
+    {
+      "path": "app/pipelines/feature_views.py",
+      "responsibilities": [
+        "GENERAL_HOPSWORKS_COUPLING"
+      ],
+      "matches": [
+        {
+          "line": 1,
+          "categories": [
+            "hopsworks_reference"
+          ],
+          "text": "\"\"\"Hopsworks feature-view management.\"\"\""
+        },
+        {
+          "line": 20,
+          "categories": [
+            "feature_view"
+          ],
+          "text": "\"\"\"Raised when a feature view cannot be resolved.\"\"\""
+        },
+        {
+          "line": 27,
+          "categories": [
+            "feature_view"
+          ],
+          "text": "feature_view: Any | None"
+        },
+        {
+          "line": 40,
+          "categories": [
+            "feature_view"
+          ],
+          "text": "\"resolved\": self.feature_view is not None,"
+        },
+        {
+          "line": 52,
+          "categories": [
+            "feature_view"
+          ],
+          "text": "\"\"\"Create or resolve the reference-time feature view.\"\"\""
+        },
+        {
+          "line": 60,
+          "categories": [
+            "feature_view"
+          ],
+          "text": "feature_view=None,"
+        },
+        {
+          "line": 71,
+          "categories": [
+            "hopsworks_reference"
+          ],
+          "text": "\"Hopsworks Feature Store is unavailable.\""
+        },
+        {
+          "line": 79,
+          "categories": [
+            "feature_view"
+          ],
+          "text": "feature_view = ("
+        },
+        {
+          "line": 102,
+          "categories": [
+            "feature_view"
+          ],
+          "text": "\"reference-time feature view.\""
+        },
+        {
+          "line": 106,
+          "categories": [
+            "feature_view"
+          ],
+          "text": "feature_view=feature_view,"
+        }
+      ]
+    },
+    {
+      "path": "app/pipelines/historical_backfill.py",
+      "responsibilities": [
+        "GENERAL_HOPSWORKS_COUPLING"
+      ],
+      "matches": [
+        {
+          "line": 1,
+          "categories": [
+            "hopsworks_reference"
+          ],
+          "text": "\"\"\"Validated historical migration into Hopsworks.\"\"\""
+        },
+        {
+          "line": 353,
+          "categories": [
+            "training_dataset"
+          ],
+          "text": "\"Training dataset is missing engineered \""
+        },
+        {
+          "line": 508,
+          "categories": [
+            "feature_group"
+          ],
+          "text": "feature_group: Any | None,"
+        },
+        {
+          "line": 515,
+          "categories": [
+            "feature_group"
+          ],
+          "text": "if feature_group is None:"
+        },
+        {
+          "line": 521,
+          "categories": [
+            "feature_group"
+          ],
+          "text": "existing = feature_group.read("
+        },
+        {
+          "line": 709,
+          "categories": [
+            "feature_group"
+          ],
+          "text": "feature_group: Any,"
+        },
+        {
+          "line": 717,
+          "categories": [
+            "feature_group"
+          ],
+          "text": "feature_group.insert("
+        },
+        {
+          "line": 921,
+          "categories": [
+            "feature_group"
+          ],
+          "text": "feature_group = handles[group_name]"
+        },
+        {
+          "line": 924,
+          "categories": [
+            "feature_group"
+          ],
+          "text": "feature_group=feature_group,"
+        },
+        {
+          "line": 950,
+          "categories": [
+            "feature_group"
+          ],
+          "text": "and feature_group is not None"
+        },
+        {
+          "line": 953,
+          "categories": [
+            "feature_group"
+          ],
+          "text": "feature_group=feature_group,"
+        },
+        {
+          "line": 1108,
+          "categories": [
+            "hopsworks_reference"
+          ],
+          "text": "\"into Hopsworks.\""
+        }
+      ]
+    },
+    {
+      "path": "app/pipelines/hourly_features.py",
+      "responsibilities": [
+        "FEATURE_WRITE_OR_SYNC"
+      ],
+      "matches": [
+        {
+          "line": 1,
+          "categories": [
+            "hopsworks_reference"
+          ],
+          "text": "\"\"\"Synchronize fresh hourly features with Hopsworks."
+        },
+        {
+          "line": 133,
+          "categories": [
+            "feature_group"
+          ],
+          "text": "historical weather-observation feature group."
+        },
+        {
+          "line": 513,
+          "categories": [
+            "hopsworks_reference"
+          ],
+          "text": "\"\"\"Connect to Hopsworks and resolve existing feature groups.\"\"\""
+        },
+        {
+          "line": 521,
+          "categories": [
+            "hopsworks_reference"
+          ],
+          "text": "\"Hopsworks Feature Store was not resolved.\""
+        },
+        {
+          "line": 762,
+          "categories": [
+            "feature_group"
+          ],
+          "text": "feature_group=feature_groups["
+        },
+        {
+          "line": 965,
+          "categories": [
+            "hopsworks_reference"
+          ],
+          "text": "\"features with Hopsworks.\""
+        }
+      ]
+    },
+    {
+      "path": "app/pipelines/incremental_features.py",
+      "responsibilities": [
+        "FEATURE_WRITE_OR_SYNC"
+      ],
+      "matches": [
+        {
+          "line": 1,
+          "categories": [
+            "hopsworks_reference"
+          ],
+          "text": "\"\"\"Incrementally synchronize validated features with Hopsworks.\"\"\""
+        },
+        {
+          "line": 88,
+          "categories": [
+            "feature_group"
+          ],
+          "text": "feature_group: Any,"
+        },
+        {
+          "line": 91,
+          "categories": [
+            "feature_group"
+          ],
+          "text": "\"\"\"Return the latest stored event time in one feature group.\"\"\""
+        },
+        {
+          "line": 94,
+          "categories": [
+            "feature_group"
+          ],
+          "text": "existing = feature_group.read("
+        },
+        {
+          "line": 99,
+          "categories": [
+            "feature_group"
+          ],
+          "text": "f\"Could not read feature group {contract.name}.\""
+        },
+        {
+          "line": 193,
+          "categories": [
+            "feature_group"
+          ],
+          "text": "feature_group: Any,"
+        },
+        {
+          "line": 210,
+          "categories": [
+            "feature_group"
+          ],
+          "text": "feature_group=feature_group,"
+        },
+        {
+          "line": 253,
+          "categories": [
+            "feature_group"
+          ],
+          "text": "feature_group=feature_group,"
+        },
+        {
+          "line": 272,
+          "categories": [
+            "feature_group"
+          ],
+          "text": "feature_group=feature_group,"
+        },
+        {
+          "line": 471,
+          "categories": [
+            "hopsworks_reference"
+          ],
+          "text": "\"Hopsworks Feature Store was not resolved.\""
+        },
+        {
+          "line": 513,
+          "categories": [
+            "feature_group"
+          ],
+          "text": "feature_group=("
+        },
+        {
+          "line": 607,
+          "categories": [
+            "hopsworks_reference"
+          ],
+          "text": "\"features with Hopsworks.\""
+        }
+      ]
+    },
+    {
+      "path": "app/pipelines/refresh_training_dataset.py",
+      "responsibilities": [
+        "GENERAL_HOPSWORKS_COUPLING"
+      ],
+      "matches": [
+        {
+          "line": 1,
+          "categories": [
+            "hopsworks_reference"
+          ],
+          "text": "\"\"\"Build fresh retraining datasets from Hopsworks feature groups."
+        },
+        {
+          "line": 116,
+          "categories": [
+            "feature_group"
+          ],
+          "text": "feature_group: Any,"
+        },
+        {
+          "line": 119,
+          "categories": [
+            "hopsworks_reference",
+            "feature_group"
+          ],
+          "text": "\"\"\"Read and normalize one complete Hopsworks feature group.\"\"\""
+        },
+        {
+          "line": 122,
+          "categories": [
+            "feature_group"
+          ],
+          "text": "dataframe = feature_group.read("
+        },
+        {
+          "line": 127,
+          "categories": [
+            "feature_group"
+          ],
+          "text": "\"Could not read feature group \""
+        },
+        {
+          "line": 133,
+          "categories": [
+            "feature_group"
+          ],
+          "text": "f\"Feature group is empty: {contract.name}\""
+        },
+        {
+          "line": 255,
+          "categories": [
+            "hopsworks_reference"
+          ],
+          "text": "!= FeatureStoreBackend.HOPSWORKS"
+        },
+        {
+          "line": 258,
+          "categories": [
+            "hopsworks_reference",
+            "feature_store_backend"
+          ],
+          "text": "\"FEATURE_STORE_BACKEND must be hopsworks.\""
+        },
+        {
+          "line": 267,
+          "categories": [
+            "hopsworks_reference"
+          ],
+          "text": "\"Hopsworks Feature Store was not resolved.\""
+        },
+        {
+          "line": 293,
+          "categories": [
+            "feature_group"
+          ],
+          "text": "feature_group=handles[name],"
+        },
+        {
+          "line": 338,
+          "categories": [
+            "hopsworks_reference"
+          ],
+          "text": "\"\"\"Rename Hopsworks weather columns to the model schema.\"\"\""
+        },
+        {
+          "line": 1223,
+          "categories": [
+            "hopsworks_reference"
+          ],
+          "text": "\"source\": \"Hopsworks Feature Store\","
+        },
+        {
+          "line": 1389,
+          "categories": [
+            "hopsworks_reference"
+          ],
+          "text": "\"retraining datasets from Hopsworks.\""
+        }
+      ]
+    },
+    {
+      "path": "app/pipelines/register_initial_model.py",
+      "responsibilities": [
+        "MODEL_REGISTRY_ACCESS"
+      ],
+      "matches": [
+        {
+          "line": 16,
+          "categories": [
+            "model_registry"
+          ],
+          "text": "from app.mlops.model_registry import ("
+        },
+        {
+          "line": 64,
+          "categories": [
+            "hopsworks_environment"
+          ],
+          "text": "\"match HOPSWORKS_PRODUCTION_MODEL_VERSION. \""
+        }
+      ]
+    },
+    {
+      "path": "app/pipelines/training_datasets.py",
+      "responsibilities": [
+        "GENERAL_HOPSWORKS_COUPLING"
+      ],
+      "matches": [
+        {
+          "line": 1,
+          "categories": [
+            "hopsworks_reference"
+          ],
+          "text": "\"\"\"Hopsworks-backed training-dataset construction and parity.\"\"\""
+        },
+        {
+          "line": 24,
+          "categories": [
+            "hopsworks_reference"
+          ],
+          "text": "\"\"\"Result of local-versus-Hopsworks parity checks.\"\"\""
+        },
+        {
+          "line": 77,
+          "categories": [
+            "hopsworks_reference"
+          ],
+          "text": "\"\"\"Read reusable reference-time features from Hopsworks.\"\"\""
+        },
+        {
+          "line": 86,
+          "categories": [
+            "hopsworks_reference"
+          ],
+          "text": "\"from Hopsworks.\""
+        },
+        {
+          "line": 91,
+          "categories": [
+            "feature_group"
+          ],
+          "text": "\"The engineered feature group is empty.\""
+        },
+        {
+          "line": 107,
+          "categories": [
+            "hopsworks_reference"
+          ],
+          "text": "\"Hopsworks engineered features are missing: \""
+        },
+        {
+          "line": 142,
+          "categories": [
+            "hopsworks_reference"
+          ],
+          "text": "\"\"\"Replace local reference features with Hopsworks values.\"\"\""
+        }
+      ]
+    },
+    {
+      "path": "scripts/deploy_daily_retraining_job.sh",
+      "responsibilities": [
+        "DEPLOYMENT_CONFIGURATION",
+        "MODEL_REGISTRY_ACCESS"
+      ],
+      "matches": [
+        {
+          "line": 29,
+          "categories": [
+            "hopsworks_environment"
+          ],
+          "text": "HOPSWORKS_API_KEY"
+        },
+        {
+          "line": 30,
+          "categories": [
+            "hopsworks_environment"
+          ],
+          "text": "HOPSWORKS_PROJECT"
+        },
+        {
+          "line": 31,
+          "categories": [
+            "hopsworks_environment"
+          ],
+          "text": "HOPSWORKS_HOST"
+        },
+        {
+          "line": 105,
+          "categories": [
+            "hopsworks_reference",
+            "hopsworks_environment"
+          ],
+          "text": "\"hopsworks-api-key=<redacted>"
+        },
+        {
+          "line": 109,
+          "categories": [
+            "hopsworks_reference",
+            "feature_store_backend"
+          ],
+          "text": "\"FEATURE_STORE_BACKEND=hopsworks\" \\"
+        },
+        {
+          "line": 110,
+          "categories": [
+            "hopsworks_reference",
+            "model_registry_backend"
+          ],
+          "text": "\"MODEL_REGISTRY_BACKEND=hopsworks\" \\"
+        },
+        {
+          "line": 112,
+          "categories": [
+            "hopsworks_reference",
+            "hopsworks_environment"
+          ],
+          "text": "\"HOPSWORKS_API_KEY=<redacted>"
+        },
+        {
+          "line": 113,
+          "categories": [
+            "hopsworks_environment"
+          ],
+          "text": "\"HOPSWORKS_PROJECT=${HOPSWORKS_PROJECT}\" \\"
+        },
+        {
+          "line": 114,
+          "categories": [
+            "hopsworks_environment"
+          ],
+          "text": "\"HOPSWORKS_HOST=${HOPSWORKS_HOST}\" \\"
+        }
+      ]
+    },
+    {
+      "path": "scripts/deploy_feature_sync_job.sh",
+      "responsibilities": [
+        "DEPLOYMENT_CONFIGURATION",
+        "FEATURE_WRITE_OR_SYNC"
+      ],
+      "matches": [
+        {
+          "line": 24,
+          "categories": [
+            "hopsworks_environment"
+          ],
+          "text": "HOPSWORKS_API_KEY"
+        },
+        {
+          "line": 25,
+          "categories": [
+            "hopsworks_environment"
+          ],
+          "text": "HOPSWORKS_PROJECT"
+        },
+        {
+          "line": 26,
+          "categories": [
+            "hopsworks_environment"
+          ],
+          "text": "HOPSWORKS_HOST"
+        },
+        {
+          "line": 148,
+          "categories": [
+            "hopsworks_reference",
+            "hopsworks_environment"
+          ],
+          "text": "\"hopsworks-api-key=<redacted>"
+        },
+        {
+          "line": 155,
+          "categories": [
+            "hopsworks_reference",
+            "hopsworks_environment"
+          ],
+          "text": "\"HOPSWORKS_API_KEY=<redacted>"
+        },
+        {
+          "line": 156,
+          "categories": [
+            "hopsworks_environment"
+          ],
+          "text": "\"HOPSWORKS_PROJECT=${HOPSWORKS_PROJECT}\" \\"
+        },
+        {
+          "line": 157,
+          "categories": [
+            "hopsworks_environment"
+          ],
+          "text": "\"HOPSWORKS_HOST=${HOPSWORKS_HOST}\" \\"
+        },
+        {
+          "line": 158,
+          "categories": [
+            "hopsworks_environment"
+          ],
+          "text": "\"HOPSWORKS_PORT=443\" \\"
+        },
+        {
+          "line": 159,
+          "categories": [
+            "hopsworks_environment"
+          ],
+          "text": "\"HOPSWORKS_ENGINE=python\" \\"
+        },
+        {
+          "line": 160,
+          "categories": [
+            "hopsworks_environment"
+          ],
+          "text": "\"HOPSWORKS_HOSTNAME_VERIFICATION=true\" \\"
+        },
+        {
+          "line": 161,
+          "categories": [
+            "hopsworks_reference",
+            "feature_store_backend"
+          ],
+          "text": "\"FEATURE_STORE_BACKEND=hopsworks\" \\"
+        },
+        {
+          "line": 162,
+          "categories": [
+            "hopsworks_reference",
+            "model_registry_backend"
+          ],
+          "text": "\"MODEL_REGISTRY_BACKEND=hopsworks\" \\"
+        },
+        {
+          "line": 188,
+          "categories": [
+            "hopsworks_reference",
+            "hopsworks_environment"
+          ],
+          "text": "\"hopsworks-api-key=<redacted>"
+        },
+        {
+          "line": 209,
+          "categories": [
+            "hopsworks_reference",
+            "hopsworks_environment"
+          ],
+          "text": "\"HOPSWORKS_API_KEY=<redacted>"
+        },
+        {
+          "line": 210,
+          "categories": [
+            "hopsworks_environment"
+          ],
+          "text": "\"HOPSWORKS_PROJECT=${HOPSWORKS_PROJECT}\" \\"
+        },
+        {
+          "line": 211,
+          "categories": [
+            "hopsworks_environment"
+          ],
+          "text": "\"HOPSWORKS_HOST=${HOPSWORKS_HOST}\" \\"
+        },
+        {
+          "line": 212,
+          "categories": [
+            "hopsworks_environment"
+          ],
+          "text": "\"HOPSWORKS_PORT=443\" \\"
+        },
+        {
+          "line": 213,
+          "categories": [
+            "hopsworks_environment"
+          ],
+          "text": "\"HOPSWORKS_ENGINE=python\" \\"
+        },
+        {
+          "line": 214,
+          "categories": [
+            "hopsworks_environment"
+          ],
+          "text": "\"HOPSWORKS_HOSTNAME_VERIFICATION=true\" \\"
+        },
+        {
+          "line": 215,
+          "categories": [
+            "hopsworks_reference",
+            "feature_store_backend"
+          ],
+          "text": "\"FEATURE_STORE_BACKEND=hopsworks\" \\"
+        },
+        {
+          "line": 216,
+          "categories": [
+            "hopsworks_reference",
+            "model_registry_backend"
+          ],
+          "text": "\"MODEL_REGISTRY_BACKEND=hopsworks\" \\"
+        }
+      ]
+    },
+    {
+      "path": "scripts/deploy_forecast_job.sh",
+      "responsibilities": [
+        "DEPLOYMENT_CONFIGURATION",
+        "FEATURE_READ_FOR_INFERENCE"
+      ],
+      "matches": [
+        {
+          "line": 24,
+          "categories": [
+            "hopsworks_environment"
+          ],
+          "text": "HOPSWORKS_API_KEY"
+        },
+        {
+          "line": 25,
+          "categories": [
+            "hopsworks_environment"
+          ],
+          "text": "HOPSWORKS_PROJECT"
+        },
+        {
+          "line": 26,
+          "categories": [
+            "hopsworks_environment"
+          ],
+          "text": "HOPSWORKS_HOST"
+        },
+        {
+          "line": 167,
+          "categories": [
+            "hopsworks_reference",
+            "hopsworks_environment"
+          ],
+          "text": "\"hopsworks-api-key=<redacted>"
+        },
+        {
+          "line": 176,
+          "categories": [
+            "hopsworks_environment"
+          ],
+          "text": "\"MODEL_LOADING_MODE=HOPSWORKS_REGISTRY\" \\"
+        },
+        {
+          "line": 177,
+          "categories": [
+            "hopsworks_reference",
+            "feature_store_backend"
+          ],
+          "text": "\"FEATURE_STORE_BACKEND=hopsworks\" \\"
+        },
+        {
+          "line": 178,
+          "categories": [
+            "hopsworks_reference",
+            "model_registry_backend"
+          ],
+          "text": "\"MODEL_REGISTRY_BACKEND=hopsworks\" \\"
+        },
+        {
+          "line": 179,
+          "categories": [
+            "hopsworks_environment"
+          ],
+          "text": "\"HOPSWORKS_PROJECT=${HOPSWORKS_PROJECT}\" \\"
+        },
+        {
+          "line": 180,
+          "categories": [
+            "hopsworks_environment"
+          ],
+          "text": "\"HOPSWORKS_HOST=${HOPSWORKS_HOST}\" \\"
+        },
+        {
+          "line": 181,
+          "categories": [
+            "hopsworks_environment"
+          ],
+          "text": "\"HOPSWORKS_PORT=443\" \\"
+        },
+        {
+          "line": 182,
+          "categories": [
+            "hopsworks_environment"
+          ],
+          "text": "\"HOPSWORKS_ENGINE=python\" \\"
+        },
+        {
+          "line": 183,
+          "categories": [
+            "hopsworks_reference",
+            "hopsworks_environment"
+          ],
+          "text": "\"HOPSWORKS_API_KEY=<redacted>"
+        },
+        {
+          "line": 209,
+          "categories": [
+            "hopsworks_reference",
+            "hopsworks_environment"
+          ],
+          "text": "\"hopsworks-api-key=<redacted>"
+        },
+        {
+          "line": 230,
+          "categories": [
+            "hopsworks_environment"
+          ],
+          "text": "\"MODEL_LOADING_MODE=HOPSWORKS_REGISTRY\" \\"
+        },
+        {
+          "line": 231,
+          "categories": [
+            "hopsworks_reference",
+            "feature_store_backend"
+          ],
+          "text": "\"FEATURE_STORE_BACKEND=hopsworks\" \\"
+        },
+        {
+          "line": 232,
+          "categories": [
+            "hopsworks_reference",
+            "model_registry_backend"
+          ],
+          "text": "\"MODEL_REGISTRY_BACKEND=hopsworks\" \\"
+        },
+        {
+          "line": 233,
+          "categories": [
+            "hopsworks_environment"
+          ],
+          "text": "\"HOPSWORKS_PROJECT=${HOPSWORKS_PROJECT}\" \\"
+        },
+        {
+          "line": 234,
+          "categories": [
+            "hopsworks_environment"
+          ],
+          "text": "\"HOPSWORKS_HOST=${HOPSWORKS_HOST}\" \\"
+        },
+        {
+          "line": 235,
+          "categories": [
+            "hopsworks_environment"
+          ],
+          "text": "\"HOPSWORKS_PORT=443\" \\"
+        },
+        {
+          "line": 236,
+          "categories": [
+            "hopsworks_environment"
+          ],
+          "text": "\"HOPSWORKS_ENGINE=python\" \\"
+        },
+        {
+          "line": 237,
+          "categories": [
+            "hopsworks_reference",
+            "hopsworks_environment"
+          ],
+          "text": "\"HOPSWORKS_API_KEY=<redacted>"
+        }
+      ]
+    },
+    {
+      "path": "scripts/deploy_production_jobs.sh",
+      "responsibilities": [
+        "DEPLOYMENT_CONFIGURATION"
+      ],
+      "matches": [
+        {
+          "line": 45,
+          "categories": [
+            "hopsworks_environment"
+          ],
+          "text": "HOPSWORKS_API_KEY"
+        },
+        {
+          "line": 46,
+          "categories": [
+            "hopsworks_environment"
+          ],
+          "text": "HOPSWORKS_PROJECT"
+        },
+        {
+          "line": 47,
+          "categories": [
+            "hopsworks_environment"
+          ],
+          "text": "HOPSWORKS_HOST"
+        },
+        {
+          "line": 414,
+          "categories": [
+            "hopsworks_reference"
+          ],
+          "text": "- name: hopsworks-api-key"
+        },
+        {
+          "line": 415,
+          "categories": [
+            "hopsworks_environment"
+          ],
+          "text": "value: \"${HOPSWORKS_API_KEY}\""
+        },
+        {
+          "line": 433,
+          "categories": [
+            "feature_store_backend"
+          ],
+          "text": "- name: FEATURE_STORE_BACKEND"
+        },
+        {
+          "line": 434,
+          "categories": [
+            "hopsworks_reference"
+          ],
+          "text": "value: hopsworks"
+        },
+        {
+          "line": 435,
+          "categories": [
+            "model_registry_backend"
+          ],
+          "text": "- name: MODEL_REGISTRY_BACKEND"
+        },
+        {
+          "line": 436,
+          "categories": [
+            "hopsworks_reference"
+          ],
+          "text": "value: hopsworks"
+        },
+        {
+          "line": 441,
+          "categories": [
+            "hopsworks_environment"
+          ],
+          "text": "- name: HOPSWORKS_API_KEY"
+        },
+        {
+          "line": 442,
+          "categories": [
+            "hopsworks_reference"
+          ],
+          "text": "secretRef: hopsworks-api-key"
+        },
+        {
+          "line": 443,
+          "categories": [
+            "hopsworks_environment"
+          ],
+          "text": "- name: HOPSWORKS_PROJECT"
+        },
+        {
+          "line": 444,
+          "categories": [
+            "hopsworks_environment"
+          ],
+          "text": "value: \"${HOPSWORKS_PROJECT}\""
+        },
+        {
+          "line": 445,
+          "categories": [
+            "hopsworks_environment"
+          ],
+          "text": "- name: HOPSWORKS_HOST"
+        },
+        {
+          "line": 446,
+          "categories": [
+            "hopsworks_environment"
+          ],
+          "text": "value: \"${HOPSWORKS_HOST}\""
+        },
+        {
+          "line": 488,
+          "categories": [
+            "hopsworks_reference"
+          ],
+          "text": "- name: hopsworks-api-key"
+        },
+        {
+          "line": 489,
+          "categories": [
+            "hopsworks_environment"
+          ],
+          "text": "value: \"${HOPSWORKS_API_KEY}\""
+        },
+        {
+          "line": 511,
+          "categories": [
+            "feature_store_backend"
+          ],
+          "text": "- name: FEATURE_STORE_BACKEND"
+        },
+        {
+          "line": 512,
+          "categories": [
+            "hopsworks_reference"
+          ],
+          "text": "value: hopsworks"
+        },
+        {
+          "line": 513,
+          "categories": [
+            "model_registry_backend"
+          ],
+          "text": "- name: MODEL_REGISTRY_BACKEND"
+        },
+        {
+          "line": 514,
+          "categories": [
+            "hopsworks_reference"
+          ],
+          "text": "value: hopsworks"
+        },
+        {
+          "line": 519,
+          "categories": [
+            "hopsworks_environment"
+          ],
+          "text": "- name: HOPSWORKS_API_KEY"
+        },
+        {
+          "line": 520,
+          "categories": [
+            "hopsworks_reference"
+          ],
+          "text": "secretRef: hopsworks-api-key"
+        },
+        {
+          "line": 521,
+          "categories": [
+            "hopsworks_environment"
+          ],
+          "text": "- name: HOPSWORKS_PROJECT"
+        },
+        {
+          "line": 522,
+          "categories": [
+            "hopsworks_environment"
+          ],
+          "text": "value: \"${HOPSWORKS_PROJECT}\""
+        },
+        {
+          "line": 523,
+          "categories": [
+            "hopsworks_environment"
+          ],
+          "text": "- name: HOPSWORKS_HOST"
+        },
+        {
+          "line": 524,
+          "categories": [
+            "hopsworks_environment"
+          ],
+          "text": "value: \"${HOPSWORKS_HOST}\""
+        },
+        {
+          "line": 564,
+          "categories": [
+            "hopsworks_reference"
+          ],
+          "text": "- name: hopsworks-api-key"
+        },
+        {
+          "line": 565,
+          "categories": [
+            "hopsworks_environment"
+          ],
+          "text": "value: \"${HOPSWORKS_API_KEY}\""
+        },
+        {
+          "line": 589,
+          "categories": [
+            "feature_store_backend"
+          ],
+          "text": "- name: FEATURE_STORE_BACKEND"
+        },
+        {
+          "line": 590,
+          "categories": [
+            "hopsworks_reference"
+          ],
+          "text": "value: hopsworks"
+        },
+        {
+          "line": 591,
+          "categories": [
+            "model_registry_backend"
+          ],
+          "text": "- name: MODEL_REGISTRY_BACKEND"
+        },
+        {
+          "line": 592,
+          "categories": [
+            "hopsworks_reference"
+          ],
+          "text": "value: hopsworks"
+        },
+        {
+          "line": 595,
+          "categories": [
+            "hopsworks_environment"
+          ],
+          "text": "- name: HOPSWORKS_API_KEY"
+        },
+        {
+          "line": 596,
+          "categories": [
+            "hopsworks_reference"
+          ],
+          "text": "secretRef: hopsworks-api-key"
+        },
+        {
+          "line": 597,
+          "categories": [
+            "hopsworks_environment"
+          ],
+          "text": "- name: HOPSWORKS_PROJECT"
+        },
+        {
+          "line": 598,
+          "categories": [
+            "hopsworks_environment"
+          ],
+          "text": "value: \"${HOPSWORKS_PROJECT}\""
+        },
+        {
+          "line": 599,
+          "categories": [
+            "hopsworks_environment"
+          ],
+          "text": "- name: HOPSWORKS_HOST"
+        },
+        {
+          "line": 600,
+          "categories": [
+            "hopsworks_environment"
+          ],
+          "text": "value: \"${HOPSWORKS_HOST}\""
+        },
+        {
+          "line": 679,
+          "categories": [
+            "hopsworks_reference"
+          ],
+          "text": "- name: hopsworks-api-key"
+        },
+        {
+          "line": 680,
+          "categories": [
+            "hopsworks_environment"
+          ],
+          "text": "value: \"${HOPSWORKS_API_KEY}\""
+        },
+        {
+          "line": 712,
+          "categories": [
+            "feature_store_backend"
+          ],
+          "text": "- name: FEATURE_STORE_BACKEND"
+        },
+        {
+          "line": 713,
+          "categories": [
+            "hopsworks_reference"
+          ],
+          "text": "value: hopsworks"
+        },
+        {
+          "line": 714,
+          "categories": [
+            "model_registry_backend"
+          ],
+          "text": "- name: MODEL_REGISTRY_BACKEND"
+        },
+        {
+          "line": 715,
+          "categories": [
+            "hopsworks_reference"
+          ],
+          "text": "value: hopsworks"
+        },
+        {
+          "line": 718,
+          "categories": [
+            "hopsworks_environment"
+          ],
+          "text": "- name: HOPSWORKS_API_KEY"
+        },
+        {
+          "line": 719,
+          "categories": [
+            "hopsworks_reference"
+          ],
+          "text": "secretRef: hopsworks-api-key"
+        },
+        {
+          "line": 720,
+          "categories": [
+            "hopsworks_environment"
+          ],
+          "text": "- name: HOPSWORKS_PROJECT"
+        },
+        {
+          "line": 721,
+          "categories": [
+            "hopsworks_environment"
+          ],
+          "text": "value: \"${HOPSWORKS_PROJECT}\""
+        },
+        {
+          "line": 722,
+          "categories": [
+            "hopsworks_environment"
+          ],
+          "text": "- name: HOPSWORKS_HOST"
+        },
+        {
+          "line": 723,
+          "categories": [
+            "hopsworks_environment"
+          ],
+          "text": "value: \"${HOPSWORKS_HOST}\""
+        }
+      ]
+    },
+    {
+      "path": "scripts/deploy_production_monitoring_job.sh",
+      "responsibilities": [
+        "DEPLOYMENT_CONFIGURATION",
+        "MONITORING_OR_HEALTH"
+      ],
+      "matches": [
+        {
+          "line": 30,
+          "categories": [
+            "hopsworks_environment"
+          ],
+          "text": "HOPSWORKS_API_KEY"
+        },
+        {
+          "line": 31,
+          "categories": [
+            "hopsworks_environment"
+          ],
+          "text": "HOPSWORKS_PROJECT"
+        },
+        {
+          "line": 32,
+          "categories": [
+            "hopsworks_environment"
+          ],
+          "text": "HOPSWORKS_HOST"
+        },
+        {
+          "line": 145,
+          "categories": [
+            "hopsworks_reference",
+            "hopsworks_environment"
+          ],
+          "text": "\"hopsworks-api-key=<redacted>"
+        },
+        {
+          "line": 153,
+          "categories": [
+            "hopsworks_reference",
+            "feature_store_backend"
+          ],
+          "text": "\"FEATURE_STORE_BACKEND=hopsworks\" \\"
+        },
+        {
+          "line": 154,
+          "categories": [
+            "hopsworks_reference",
+            "model_registry_backend"
+          ],
+          "text": "\"MODEL_REGISTRY_BACKEND=hopsworks\" \\"
+        },
+        {
+          "line": 156,
+          "categories": [
+            "hopsworks_reference",
+            "hopsworks_environment"
+          ],
+          "text": "\"HOPSWORKS_API_KEY=<redacted>"
+        },
+        {
+          "line": 157,
+          "categories": [
+            "hopsworks_environment"
+          ],
+          "text": "\"HOPSWORKS_PROJECT=${HOPSWORKS_PROJECT}\" \\"
+        },
+        {
+          "line": 158,
+          "categories": [
+            "hopsworks_environment"
+          ],
+          "text": "\"HOPSWORKS_HOST=${HOPSWORKS_HOST}\" \\"
+        }
+      ]
+    },
+    {
+      "path": "scripts/validate_forecast_job_recovery.sh",
+      "responsibilities": [
+        "FEATURE_READ_FOR_INFERENCE"
+      ],
+      "matches": [
+        {
+          "line": 178,
+          "categories": [
+            "hopsworks_environment"
+          ],
+          "text": "require_environment_variable \"HOPSWORKS_API_KEY\""
+        },
+        {
+          "line": 179,
+          "categories": [
+            "hopsworks_environment"
+          ],
+          "text": "require_environment_variable \"HOPSWORKS_PROJECT\""
+        },
+        {
+          "line": 180,
+          "categories": [
+            "hopsworks_environment"
+          ],
+          "text": "require_environment_variable \"HOPSWORKS_HOST\""
+        },
+        {
+          "line": 270,
+          "categories": [
+            "hopsworks_reference",
+            "hopsworks_environment"
+          ],
+          "text": "\"hopsworks-api-key=<redacted>"
+        },
+        {
+          "line": 279,
+          "categories": [
+            "hopsworks_environment"
+          ],
+          "text": "\"MODEL_LOADING_MODE=HOPSWORKS_REGISTRY\" \\"
+        },
+        {
+          "line": 280,
+          "categories": [
+            "hopsworks_reference",
+            "feature_store_backend"
+          ],
+          "text": "\"FEATURE_STORE_BACKEND=hopsworks\" \\"
+        },
+        {
+          "line": 281,
+          "categories": [
+            "hopsworks_reference",
+            "model_registry_backend"
+          ],
+          "text": "\"MODEL_REGISTRY_BACKEND=hopsworks\" \\"
+        },
+        {
+          "line": 282,
+          "categories": [
+            "hopsworks_environment"
+          ],
+          "text": "\"HOPSWORKS_PROJECT=${HOPSWORKS_PROJECT}\" \\"
+        },
+        {
+          "line": 283,
+          "categories": [
+            "hopsworks_environment"
+          ],
+          "text": "\"HOPSWORKS_HOST=${HOPSWORKS_HOST}\" \\"
+        },
+        {
+          "line": 284,
+          "categories": [
+            "hopsworks_environment"
+          ],
+          "text": "\"HOPSWORKS_PORT=443\" \\"
+        },
+        {
+          "line": 285,
+          "categories": [
+            "hopsworks_environment"
+          ],
+          "text": "\"HOPSWORKS_ENGINE=python\" \\"
+        },
+        {
+          "line": 286,
+          "categories": [
+            "hopsworks_reference",
+            "hopsworks_environment"
+          ],
+          "text": "\"HOPSWORKS_API_KEY=<redacted>"
+        }
+      ]
+    },
+    {
+      "path": "config/production.json",
+      "responsibilities": [
+        "GENERAL_HOPSWORKS_COUPLING"
+      ],
+      "matches": [
+        {
+          "line": 98,
+          "categories": [
+            "hopsworks_reference"
+          ],
+          "text": "\"feature_store_backend\": \"hopsworks\","
+        },
+        {
+          "line": 99,
+          "categories": [
+            "hopsworks_reference"
+          ],
+          "text": "\"model_registry_backend\": \"hopsworks\","
+        },
+        {
+          "line": 105,
+          "categories": [
+            "hopsworks_environment"
+          ],
+          "text": "\"HOPSWORKS_API_KEY\","
+        }
+      ]
+    }
+  ],
+  "migration_target": {
+    "feature_store": {
+      "current": "hopsworks",
+      "planned_production": "azure_blob",
+      "hopsworks_retained": true
+    },
+    "model_registry": {
+      "current": "hopsworks",
+      "planned_production": "azure_blob",
+      "hopsworks_retained": true
+    }
+  }
+}
