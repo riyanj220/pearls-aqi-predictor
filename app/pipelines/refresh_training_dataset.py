@@ -1269,6 +1269,10 @@ def run_training_dataset_refresh(
         "status": (
             "TRAINING_DATASET_REFRESH_COMPLETED"
         ),
+        "source": repository.source_label,
+        "feature_repository_backend": (
+            repository.backend_name
+        ),
         "started_at_utc": (
             started_at.isoformat()
         ),
