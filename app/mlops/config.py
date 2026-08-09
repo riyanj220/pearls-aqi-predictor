@@ -28,12 +28,14 @@ class ModelRegistryBackend(StrEnum):
 
     LOCAL = "local"
     HOPSWORKS = "hopsworks"
+    AZURE_BLOB = "azure_blob"
 
 class ModelLoadingMode(StrEnum):
     """Supported inference model sources."""
 
     LOCAL_ARTIFACT = "LOCAL_ARTIFACT"
     HOPSWORKS_REGISTRY = "HOPSWORKS_REGISTRY"
+    AZURE_BLOB_REGISTRY = "AZURE_BLOB_REGISTRY"
 
 class MLOpsSettings(BaseSettings):
     """Environment-driven Phase 9 configuration."""
@@ -61,6 +63,10 @@ class MLOpsSettings(BaseSettings):
 
     azure_feature_store_prefix: str = (
         "feature-store"
+    )
+
+    azure_model_registry_prefix: str = (
+        "model-registry"
     )
 
     mlops_dry_run: bool = True
@@ -287,14 +293,26 @@ class MLOpsSettings(BaseSettings):
                     + ", ".join(missing_fields)
                 )
 
+        azure_blob_required = any(
+            (
+                self.feature_store_backend
+                == FeatureStoreBackend.AZURE_BLOB,
+
+                self.model_registry_backend
+                == ModelRegistryBackend.AZURE_BLOB,
+
+                self.model_loading_mode
+                == ModelLoadingMode.AZURE_BLOB_REGISTRY,
+            )
+        )
+
         if (
-            self.feature_store_backend
-            == FeatureStoreBackend.AZURE_BLOB
+            azure_blob_required
             and not self.azure_storage_account
         ):
             raise ValueError(
                 "AZURE_STORAGE_ACCOUNT is required "
-                "when FEATURE_STORE_BACKEND=azure_blob."
+                "when an Azure Blob MLOps backend is enabled."
             )
 
         return self
@@ -449,6 +467,9 @@ class MLOpsSettings(BaseSettings):
             ),
             "azure_feature_store_prefix": (
                 self.azure_feature_store_prefix
+            ),
+            "azure_model_registry_prefix": (
+                self.azure_model_registry_prefix
             ),
         }
 

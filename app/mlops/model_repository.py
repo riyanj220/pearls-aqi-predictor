@@ -69,6 +69,18 @@ def create_model_repository(
             settings=settings
         )
 
+    if (
+        settings.model_registry_backend
+        == ModelRegistryBackend.AZURE_BLOB
+    ):
+        from app.mlops.azure_blob_model_repository import (
+            AzureBlobModelRepository,
+        )
+
+        return AzureBlobModelRepository(
+            settings=settings
+        )
+
     raise ModelRepositoryConfigurationError(
         "No runtime ModelRepository implementation exists "
         f"for backend={settings.model_registry_backend.value!r}."
