@@ -1,0 +1,270 @@
+{
+  "phase": "10P",
+  "subphase": "10P-D",
+  "status": "HOPSWORKS_TO_BLOB_FEATURE_MIGRATION_VALIDATED",
+  "started_at_utc": "2026-08-09T09:49:07.848338+00:00",
+  "completed_at_utc": "2026-08-09T09:50:39.291178+00:00",
+  "duration_seconds": 91.44284,
+  "source_backend": "hopsworks",
+  "source_label": "Hopsworks Feature Store",
+  "target_backend": "azure_blob",
+  "target_label": "Azure Blob Feature Repository",
+  "azure_storage_account": "stpearlsaqiriyan",
+  "azure_storage_container": "artifacts-prod",
+  "azure_feature_store_prefix": "feature-store",
+  "datasets": {
+    "pm25": {
+      "dataset_name": "pm25_hourly_observations",
+      "dataset_version": 1,
+      "status": "FEATURE_DATASET_MIGRATED",
+      "comparison": {
+        "checks": {
+          "row_count_matches": true,
+          "columns_match": true,
+          "logical_keys_match": true,
+          "event_time_range_matches": true,
+          "source_has_no_duplicate_keys": true,
+          "target_has_no_duplicate_keys": true,
+          "content_digest_matches": true
+        },
+        "valid": true,
+        "source": {
+          "rows": 9330,
+          "columns": [
+            "location_key",
+            "location_id",
+            "sensor_id",
+            "datetime_utc",
+            "pm25_ug_m3",
+            "pm25_quality_status",
+            "pm25_is_missing",
+            "source",
+            "retrieved_at_utc",
+            "pipeline_run_id",
+            "source_data_version"
+          ],
+          "duplicate_keys": 0,
+          "event_time_range": {
+            "minimum": "2025-07-08T00:00:00+00:00",
+            "maximum": "2026-08-09T03:00:00+00:00"
+          },
+          "content_sha256": "eb14cc8242339b81254707137994a8c3cdaa8b237de0e0463c4a2464a676c50d"
+        },
+        "target": {
+          "rows": 9330,
+          "columns": [
+            "location_key",
+            "location_id",
+            "sensor_id",
+            "datetime_utc",
+            "pm25_ug_m3",
+            "pm25_quality_status",
+            "pm25_is_missing",
+            "source",
+            "retrieved_at_utc",
+            "pipeline_run_id",
+            "source_data_version"
+          ],
+          "duplicate_keys": 0,
+          "event_time_range": {
+            "minimum": "2025-07-08T00:00:00+00:00",
+            "maximum": "2026-08-09T03:00:00+00:00"
+          },
+          "content_sha256": "eb14cc8242339b81254707137994a8c3cdaa8b237de0e0463c4a2464a676c50d"
+        }
+      }
+    },
+    "weather": {
+      "dataset_name": "weather_hourly_observations",
+      "dataset_version": 1,
+      "status": "FEATURE_DATASET_MIGRATED",
+      "comparison": {
+        "checks": {
+          "row_count_matches": true,
+          "columns_match": true,
+          "logical_keys_match": true,
+          "event_time_range_matches": true,
+          "source_has_no_duplicate_keys": true,
+          "target_has_no_duplicate_keys": true,
+          "content_digest_matches": true
+        },
+        "valid": true,
+        "source": {
+          "rows": 9330,
+          "columns": [
+            "location_key",
+            "datetime_utc",
+            "temperature_2m_c",
+            "relative_humidity_2m_pct",
+            "dew_point_2m_c",
+            "surface_pressure_hpa",
+            "precipitation_mm",
+            "rain_mm",
+            "cloud_cover_pct",
+            "wind_speed_10m_kmh",
+            "wind_direction_10m_deg",
+            "wind_gusts_10m_kmh",
+            "source",
+            "retrieved_at_utc",
+            "pipeline_run_id",
+            "source_data_version"
+          ],
+          "duplicate_keys": 0,
+          "event_time_range": {
+            "minimum": "2025-07-08T00:00:00+00:00",
+            "maximum": "2026-08-09T03:00:00+00:00"
+          },
+          "content_sha256": "961781a40cad57cab2f2382d7bd58f191d0782b97594d0593df1d2873a5f8873"
+        },
+        "target": {
+          "rows": 9330,
+          "columns": [
+            "location_key",
+            "datetime_utc",
+            "temperature_2m_c",
+            "relative_humidity_2m_pct",
+            "dew_point_2m_c",
+            "surface_pressure_hpa",
+            "precipitation_mm",
+            "rain_mm",
+            "cloud_cover_pct",
+            "wind_speed_10m_kmh",
+            "wind_direction_10m_deg",
+            "wind_gusts_10m_kmh",
+            "source",
+            "retrieved_at_utc",
+            "pipeline_run_id",
+            "source_data_version"
+          ],
+          "duplicate_keys": 0,
+          "event_time_range": {
+            "minimum": "2025-07-08T00:00:00+00:00",
+            "maximum": "2026-08-09T03:00:00+00:00"
+          },
+          "content_sha256": "961781a40cad57cab2f2382d7bd58f191d0782b97594d0593df1d2873a5f8873"
+        }
+      }
+    },
+    "engineered": {
+      "dataset_name": "pm25_hourly_features",
+      "dataset_version": 2,
+      "status": "FEATURE_DATASET_MIGRATED",
+      "comparison": {
+        "checks": {
+          "row_count_matches": true,
+          "columns_match": true,
+          "logical_keys_match": true,
+          "event_time_range_matches": true,
+          "source_has_no_duplicate_keys": true,
+          "target_has_no_duplicate_keys": true,
+          "content_digest_matches": true
+        },
+        "valid": true,
+        "source": {
+          "rows": 7457,
+          "columns": [
+            "location_key",
+            "reference_time",
+            "pm25_current",
+            "pm25_lag_1h",
+            "pm25_lag_3h",
+            "pm25_lag_6h",
+            "pm25_lag_12h",
+            "pm25_lag_24h",
+            "pm25_mean_3h",
+            "pm25_mean_6h",
+            "pm25_mean_12h",
+            "pm25_mean_24h",
+            "pm25_change_1h",
+            "pm25_change_6h",
+            "pm25_change_24h",
+            "temperature_2m",
+            "relative_humidity_2m",
+            "dew_point_2m",
+            "surface_pressure",
+            "precipitation",
+            "rain",
+            "cloud_cover",
+            "wind_speed_10m",
+            "wind_direction_10m",
+            "wind_gusts_10m",
+            "wind_direction_10m_sin",
+            "wind_direction_10m_cos",
+            "reference_hour",
+            "reference_day_of_week",
+            "reference_month",
+            "reference_hour_sin",
+            "reference_hour_cos",
+            "reference_day_of_week_sin",
+            "reference_day_of_week_cos",
+            "reference_month_sin",
+            "reference_month_cos",
+            "feature_pipeline_version",
+            "pipeline_run_id"
+          ],
+          "duplicate_keys": 0,
+          "event_time_range": {
+            "minimum": "2025-07-09T00:00:00+00:00",
+            "maximum": "2026-08-09T01:00:00+00:00"
+          },
+          "content_sha256": "5b5efa4fc7572580f3f67446d121ee5e19a5b9190ec590ce4535cca142f19f44"
+        },
+        "target": {
+          "rows": 7457,
+          "columns": [
+            "location_key",
+            "reference_time",
+            "pm25_current",
+            "pm25_lag_1h",
+            "pm25_lag_3h",
+            "pm25_lag_6h",
+            "pm25_lag_12h",
+            "pm25_lag_24h",
+            "pm25_mean_3h",
+            "pm25_mean_6h",
+            "pm25_mean_12h",
+            "pm25_mean_24h",
+            "pm25_change_1h",
+            "pm25_change_6h",
+            "pm25_change_24h",
+            "temperature_2m",
+            "relative_humidity_2m",
+            "dew_point_2m",
+            "surface_pressure",
+            "precipitation",
+            "rain",
+            "cloud_cover",
+            "wind_speed_10m",
+            "wind_direction_10m",
+            "wind_gusts_10m",
+            "wind_direction_10m_sin",
+            "wind_direction_10m_cos",
+            "reference_hour",
+            "reference_day_of_week",
+            "reference_month",
+            "reference_hour_sin",
+            "reference_hour_cos",
+            "reference_day_of_week_sin",
+            "reference_day_of_week_cos",
+            "reference_month_sin",
+            "reference_month_cos",
+            "feature_pipeline_version",
+            "pipeline_run_id"
+          ],
+          "duplicate_keys": 0,
+          "event_time_range": {
+            "minimum": "2025-07-09T00:00:00+00:00",
+            "maximum": "2026-08-09T01:00:00+00:00"
+          },
+          "content_sha256": "5b5efa4fc7572580f3f67446d121ee5e19a5b9190ec590ce4535cca142f19f44"
+        }
+      }
+    }
+  },
+  "validation": {
+    "all_datasets_migrated": true,
+    "all_dataset_parity_checks_passed": true,
+    "production_backend_changed": false,
+    "hopsworks_source_preserved": true
+  }
+}

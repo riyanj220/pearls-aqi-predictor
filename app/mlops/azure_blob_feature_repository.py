@@ -382,13 +382,16 @@ class AzureBlobFeatureRepository(
             contract=contract
         )
 
-        combined = pd.concat(
-            [
-                existing,
-                dataframe,
-            ],
-            ignore_index=True,
-        )
+        if existing.empty:
+            combined = dataframe.copy()
+        else:
+            combined = pd.concat(
+                [
+                    existing,
+                    dataframe,
+                ],
+                ignore_index=True,
+            )
 
         combined = (
             self._normalize_dataset(
