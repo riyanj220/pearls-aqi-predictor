@@ -38,8 +38,8 @@ from app.data_sources.openaq_client import (
 from app.features.live_feature_builder import (
     build_reference_feature_table,
 )
-from app.mlops.client import (
-    connect_to_hopsworks,
+from app.mlops.feature_repository import (
+    create_feature_repository,
 )
 from app.mlops.config import (
     MLOpsSettings,
@@ -502,55 +502,6 @@ def prepare_feature_group_rows(
     return prepared_rows
 
 
-def resolve_feature_groups(
-    *,
-    settings: MLOpsSettings,
-    contracts: dict[
-        str,
-        FeatureGroupContract,
-    ],
-) -> dict[str, Any]:
-    """Connect to Hopsworks and resolve existing feature groups."""
-
-    resources = connect_to_hopsworks(
-        settings
-    )
-
-    if resources.feature_store is None:
-        raise HourlyFeaturePipelineError(
-            "Hopsworks Feature Store was not resolved."
-        )
-
-    feature_store = resources.feature_store
-
-    return {
-        "pm25": feature_store.get_feature_group(
-            name=contracts["pm25"].name,
-            version=contracts["pm25"].version,
-        ),
-        "weather": (
-            feature_store.get_feature_group(
-                name=contracts[
-                    "weather"
-                ].name,
-                version=contracts[
-                    "weather"
-                ].version,
-            )
-        ),
-        "engineered": (
-            feature_store.get_feature_group(
-                name=contracts[
-                    "engineered"
-                ].name,
-                version=contracts[
-                    "engineered"
-                ].version,
-            )
-        ),
-    }
-
-
 def run_hourly_feature_pipeline(
     *,
     mlops_settings: MLOpsSettings,
@@ -649,66 +600,6 @@ def run_hourly_feature_pipeline(
         )
     )
 
-    ## temporaray
-    print(
-            "Observed PM2.5 rows:",
-            len(observed_pm25_df),
-    )
-
-    print(
-        "Observed PM2.5 range:",
-        observed_pm25_df[
-            "datetime_utc"
-        ].min(),
-        "to",
-        observed_pm25_df[
-            "datetime_utc"
-        ].max(),
-    )
-
-    print(
-        "Missing PM2.5 values:",
-        observed_pm25_df[
-            "pm25_ug_m3"
-        ].isna().sum(),
-    )
-
-    expected_hours = pd.date_range(
-        start=observed_pm25_df[
-            "datetime_utc"
-        ].min(),
-        end=observed_pm25_df[
-            "datetime_utc"
-        ].max(),
-        freq="h",
-        tz="UTC",
-    )
-
-    actual_hours = pd.DatetimeIndex(
-        observed_pm25_df[
-            "datetime_utc"
-        ]
-    )
-
-    missing_hours = (
-        expected_hours.difference(
-            actual_hours
-        )
-    )
-
-    print(
-        "Missing PM2.5 hours:",
-        len(missing_hours),
-    )
-
-    print(
-        missing_hours[
-            -20:
-        ].tolist()
-    )
-
-    ##end
-
     engineered_df = (
         build_live_engineered_features(
             pm25_df=observed_pm25_df,
@@ -737,11 +628,9 @@ def run_hourly_feature_pipeline(
         )
     )
 
-    feature_groups = (
-        resolve_feature_groups(
-            settings=mlops_settings,
-            contracts=contracts,
-        )
+    repository = create_feature_repository(
+        settings=mlops_settings,
+        contracts=contracts,
     )
 
     group_reports: dict[
@@ -759,9 +648,7 @@ def run_hourly_feature_pipeline(
                 dataframe=prepared_rows[
                     group_name
                 ],
-                feature_group=feature_groups[
-                    group_name
-                ],
+                repository=repository,
                 contract=contracts[
                     group_name
                 ],
@@ -893,8 +780,10 @@ def run_hourly_feature_pipeline(
         },
         "feature_store": {
             "backend": (
-                mlops_settings
-                .feature_store_backend
+                repository.backend_name
+            ),
+            "source": (
+                repository.source_label
             ),
             "remote_writes_performed": (
                 not mlops_settings.mlops_dry_run

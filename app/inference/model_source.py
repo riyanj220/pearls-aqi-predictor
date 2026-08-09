@@ -7,10 +7,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from app.mlops.client import (
-    HopsworksConnectionError,
-    connect_to_hopsworks,
-)
 from app.mlops.config import (
     MLOpsSettings,
     ModelLoadingMode,
@@ -18,9 +14,12 @@ from app.mlops.config import (
 from app.mlops.model_registry import (
     ModelRegistryError,
     calculate_sha256,
-    resolve_production_model,
 )
 
+from app.mlops.model_repository import (
+    ModelRepositoryError,
+    create_model_repository,
+)
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
@@ -252,14 +251,12 @@ def resolve_registry_artifacts(
 ) -> ModelArtifactPaths:
     """Resolve the explicitly promoted registry model."""
 
-    resources = connect_to_hopsworks(
-        settings
+    repository = create_model_repository(
+        settings=settings
     )
 
-    resolved = resolve_production_model(
-        resources=resources,
-        settings=settings,
-        project_root=PROJECT_ROOT,
+    resolved = repository.resolve_production_model(
+        project_root=PROJECT_ROOT
     )
 
     model_metadata_path = (
@@ -324,7 +321,7 @@ def resolve_model_artifact_paths(
         )
 
     except (
-        HopsworksConnectionError,
+        ModelRepositoryError,
         ModelRegistryError,
         ModelSourceError,
     ) as error:
@@ -351,6 +348,6 @@ def resolve_model_artifact_paths(
         )
 
     raise ModelSourceError(
-        "The Hopsworks production model could not be "
+        "The configured production model could not be "
         "resolved and all configured fallbacks failed."
     ) from registry_error

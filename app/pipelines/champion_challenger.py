@@ -14,15 +14,15 @@ import pandas as pd
 from app.mlops.champion_challenger import (
     evaluate_promotion_gates,
 )
-from app.mlops.client import (
-    connect_to_hopsworks,
-)
+
 from app.mlops.config import (
     get_mlops_settings,
 )
-from app.mlops.model_registry import (
-    register_candidate_model,
+
+from app.mlops.model_repository import (
+    create_model_repository,
 )
+
 from app.mlops.retraining import (
     evaluate_candidate,
     load_feature_columns,
@@ -238,33 +238,34 @@ def run_champion_challenger(
                 "cannot be registered as approved."
             )
 
-        resources = connect_to_hopsworks(
-            settings
+        repository = create_model_repository(
+            settings=settings
         )
 
-        registered_model = register_candidate_model(
-            resources=resources,
-            settings=settings,
-            candidate_directory=(
-                candidate_directory
-            ),
-            metrics={
-                "test_mae": float(
-                    challenger_metrics[
-                        "overall"
-                    ]["mae"]
+        registered_model = (
+            repository
+            .register_candidate_model(
+                candidate_directory=(
+                    candidate_directory
                 ),
-                "test_rmse": float(
-                    challenger_metrics[
-                        "overall"
-                    ]["rmse"]
-                ),
-                "test_r2": float(
-                    challenger_metrics[
-                        "overall"
-                    ]["r2"]
-                ),
-            },
+                metrics={
+                    "test_mae": float(
+                        challenger_metrics[
+                            "overall"
+                        ]["mae"]
+                    ),
+                    "test_rmse": float(
+                        challenger_metrics[
+                            "overall"
+                        ]["rmse"]
+                    ),
+                    "test_r2": float(
+                        challenger_metrics[
+                            "overall"
+                        ]["r2"]
+                    ),
+                },
+            )
         )
 
     status = (

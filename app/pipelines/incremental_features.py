@@ -11,7 +11,6 @@ from typing import Any
 
 import pandas as pd
 
-from app.mlops.client import connect_to_hopsworks
 from app.mlops.config import (
     MLOpsSettings,
     get_mlops_settings,
@@ -27,8 +26,14 @@ from app.pipelines.historical_backfill import (
     prepare_engineered_rows,
     prepare_pm25_rows,
     prepare_weather_rows,
-    read_existing_rows,
-    upsert_rows,
+
+)
+
+from app.mlops.feature_repository import (
+    FeatureRepository,
+    FeatureRepositoryError,
+    create_feature_repository,
+    empty_feature_frame,
 )
 
 
@@ -85,47 +90,20 @@ def get_dataframe_event_range(
 
 def get_latest_stored_event_time(
     *,
-    feature_group: Any,
+    repository: FeatureRepository,
     contract: FeatureGroupContract,
 ) -> pd.Timestamp | None:
-    """Return the latest stored event time in one feature group."""
+    """Return the latest stored event time."""
 
     try:
-        existing = feature_group.read(
-            dataframe_type="pandas"
+        return repository.latest_event_time(
+            contract=contract
         )
-    except Exception as error:
+    except FeatureRepositoryError as error:
         raise IncrementalFeatureError(
-            f"Could not read feature group {contract.name}."
+            f"Could not inspect stored dataset "
+            f"{contract.name}."
         ) from error
-
-    if existing is None or existing.empty:
-        return None
-
-    existing.columns = [
-        str(column).lower()
-        for column in existing.columns
-    ]
-
-    event_time_column = contract.event_time
-
-    if event_time_column not in existing.columns:
-        raise IncrementalFeatureError(
-            f"{contract.name} readback does not contain "
-            f"{event_time_column}."
-        )
-
-    event_times = pd.to_datetime(
-        existing[event_time_column],
-        utc=True,
-        errors="coerce",
-    ).dropna()
-
-    if event_times.empty:
-        return None
-
-    return event_times.max().floor("h")
-
 
 def calculate_incremental_start(
     *,
@@ -190,7 +168,7 @@ def filter_incremental_rows(
 def synchronize_group(
     *,
     dataframe: pd.DataFrame,
-    feature_group: Any,
+    repository: FeatureRepository,
     contract: FeatureGroupContract,
     settings: MLOpsSettings,
 ) -> dict[str, Any]:
@@ -207,7 +185,7 @@ def synchronize_group(
 
     latest_stored_time = (
         get_latest_stored_event_time(
-            feature_group=feature_group,
+            repository=repository,
             contract=contract,
         )
     )
@@ -249,14 +227,20 @@ def synchronize_group(
         + pd.Timedelta(hours=1)
     )
 
-    existing = read_existing_rows(
-        feature_group=feature_group,
-        contract=contract,
-        start_time_utc=incremental_start,
-        end_time_exclusive_utc=(
-            end_exclusive
-        ),
-    )
+    try:
+        existing = repository.read_range(
+            contract=contract,
+            start_time_utc=incremental_start,
+            end_time_exclusive_utc=end_exclusive,
+        )
+
+    except FeatureRepositoryError:
+        # Preserve the previous synchronization behavior:
+        # an unavailable overlap read is treated as no
+        # existing rows for classification.
+        existing = empty_feature_frame(
+            contract
+        )
 
     classification = classify_rows(
         candidate=candidate,
@@ -268,11 +252,9 @@ def synchronize_group(
         not settings.mlops_dry_run
         and not classification.writable.empty
     ):
-        upsert_rows(
-            feature_group=feature_group,
-            dataframe=(
-                classification.writable
-            ),
+        repository.upsert(
+            contract=contract,
+            dataframe=classification.writable,
         )
 
     return {
@@ -462,41 +444,10 @@ def run_incremental_feature_pipeline(
         ),
     }
 
-    resources = connect_to_hopsworks(
-        settings
+    repository = create_feature_repository(
+        settings=settings,
+        contracts=contracts,
     )
-
-    if resources.feature_store is None:
-        raise IncrementalFeatureError(
-            "Hopsworks Feature Store was not resolved."
-        )
-
-    feature_store = resources.feature_store
-
-    feature_groups = {
-        "pm25": feature_store.get_feature_group(
-            name=contracts["pm25"].name,
-            version=contracts["pm25"].version,
-        ),
-        "weather": feature_store.get_feature_group(
-            name=contracts["weather"].name,
-            version=contracts["weather"].version,
-        ),
-        "engineered": (
-            feature_store.get_feature_group(
-                name=(
-                    contracts[
-                        "engineered"
-                    ].name
-                ),
-                version=(
-                    contracts[
-                        "engineered"
-                    ].version
-                ),
-            )
-        ),
-    }
 
     group_reports: dict[str, Any] = {}
 
@@ -506,16 +457,14 @@ def run_incremental_feature_pipeline(
         "engineered",
     ):
         group_reports[group_name] = (
-            synchronize_group(
-                dataframe=(
-                    prepared_rows[group_name]
-                ),
-                feature_group=(
-                    feature_groups[group_name]
-                ),
-                contract=(
-                    contracts[group_name]
-                ),
+           synchronize_group(
+                dataframe=prepared_rows[
+                    group_name
+                ],
+                repository=repository,
+                contract=contracts[
+                    group_name
+                ],
                 settings=settings,
             )
         )
@@ -566,6 +515,9 @@ def run_incremental_feature_pipeline(
             total_rows_written
         ),
         "groups": group_reports,
+        "feature_repository_backend": (
+            repository.backend_name
+        ),
     }
 
 
