@@ -279,6 +279,13 @@ def resolve_registry_artifacts(
             "as PRODUCTION."
         )
 
+    source = (
+        "AZURE_BLOB_REGISTRY"
+        if repository.backend_name
+        == "azure_blob"
+        else "HOPSWORKS_REGISTRY"
+    )
+
     return ModelArtifactPaths(
         model_path=resolved.model_artifact_path,
         feature_columns_path=(
@@ -290,7 +297,7 @@ def resolve_registry_artifacts(
         registry_metadata_path=(
             resolved.metadata_path
         ),
-        source="HOPSWORKS_REGISTRY",
+        source=source,
         model_name=resolved.name,
         model_version=resolved.version,
         checksum_sha256=(
@@ -312,6 +319,18 @@ def resolve_model_artifact_paths(
         == ModelLoadingMode.LOCAL_ARTIFACT
     ):
         return resolve_local_artifacts()
+
+    if (
+        settings.model_loading_mode
+        not in {
+            ModelLoadingMode.HOPSWORKS_REGISTRY,
+            ModelLoadingMode.AZURE_BLOB_REGISTRY,
+        }
+    ):
+        raise ModelSourceError(
+            "Unsupported model loading mode: "
+            f"{settings.model_loading_mode.value}"
+        )
 
     registry_error: Exception | None = None
 

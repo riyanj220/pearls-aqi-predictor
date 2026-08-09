@@ -1,0 +1,60 @@
+{
+  "phase": "10P",
+  "subphase": "10P-F",
+  "status": "AZURE_BLOB_PRODUCTION_MODEL_SEEDED",
+  "started_at_utc": "2026-08-09T14:46:24.520043+00:00",
+  "completed_at_utc": "2026-08-09T14:46:56.631286+00:00",
+  "duration_seconds": 32.111243,
+  "source": {
+    "model_name": "pearls_aqi_pm25_forecaster",
+    "version": 1,
+    "checksum_sha256": "9d1cbb032a6f376892c2ad047bbf93bf485d18b21b47d12872a2c367073b5a49",
+    "package_directory": "/home/riyan/Riyan/projects/pearls-aqi-predictor/models/blob_registry_seed/pearls_aqi_pm25_forecaster_v1"
+  },
+  "target": {
+    "backend": "azure_blob",
+    "azure_storage_account": "stpearlsaqiriyan",
+    "azure_storage_container": "artifacts-prod",
+    "registry_prefix": "model-registry",
+    "registered": {
+      "name": "pearls_aqi_pm25_forecaster",
+      "version": 1,
+      "status": "PRODUCTION",
+      "checksum_sha256": "9d1cbb032a6f376892c2ad047bbf93bf485d18b21b47d12872a2c367073b5a49",
+      "model_directory": "model-registry/pearls_aqi_pm25_forecaster/versions/1"
+    },
+    "production_pointer": {
+      "model_name": "pearls_aqi_pm25_forecaster",
+      "version": 1,
+      "artifact_prefix": "model-registry/pearls_aqi_pm25_forecaster/versions/1",
+      "manifest_path": "model-registry/pearls_aqi_pm25_forecaster/versions/1/manifest.json",
+      "model_checksum_sha256": "9d1cbb032a6f376892c2ad047bbf93bf485d18b21b47d12872a2c367073b5a49",
+      "production_status": "PRODUCTION",
+      "promoted_at_utc": "2026-08-09T14:46:54.633502+00:00"
+    }
+  },
+  "resolved": {
+    "name": "pearls_aqi_pm25_forecaster",
+    "version": 1,
+    "status": "PRODUCTION",
+    "downloaded_directory": "/home/riyan/Riyan/projects/pearls-aqi-predictor/models/registry_cache",
+    "model_artifact_path": "/home/riyan/Riyan/projects/pearls-aqi-predictor/models/registry_cache/best_model.joblib",
+    "feature_columns_path": "/home/riyan/Riyan/projects/pearls-aqi-predictor/models/registry_cache/model_feature_columns.json",
+    "metadata_path": "/home/riyan/Riyan/projects/pearls-aqi-predictor/models/registry_cache/registry_metadata.json",
+    "checksum_sha256": "9d1cbb032a6f376892c2ad047bbf93bf485d18b21b47d12872a2c367073b5a49"
+  },
+  "validation": {
+    "valid": true,
+    "checks": {
+      "version_matches": true,
+      "status_is_production": true,
+      "checksum_matches": true,
+      "model_exists": true,
+      "feature_columns_exist": true,
+      "metadata_exists": true,
+      "joblib_load_succeeds": true
+    }
+  },
+  "production_runtime_configuration_changed": false,
+  "hopsworks_model_preserved": true
+}

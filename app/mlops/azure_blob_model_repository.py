@@ -1033,3 +1033,204 @@ class AzureBlobModelRepository(
                 actual_checksum
             ),
         )
+
+    def seed_production_model(
+        self,
+        *,
+        package_directory: Path,
+        version: int,
+        checksum_sha256: str,
+    ) -> RegisteredModelResult:
+        """
+        Seed an existing approved production model.
+
+        This operation is intended for one-time registry migration.
+        It publishes the supplied version immutably and does not
+        allocate a new challenger version.
+        """
+
+        package_directory = (
+            package_directory.resolve()
+        )
+
+        if version < 1:
+            raise ModelRepositoryError(
+                "Production model version must be >= 1."
+            )
+
+        required_files = [
+            package_directory
+            / "best_model.joblib",
+            package_directory
+            / "model_feature_columns.json",
+            package_directory
+            / "model_metadata.json",
+            package_directory
+            / "model_selection_report.json",
+            package_directory
+            / "registry_metadata.json",
+        ]
+
+        missing_files = [
+            str(path)
+            for path in required_files
+            if not path.exists()
+        ]
+
+        if missing_files:
+            raise ModelRepositoryError(
+                "Production model package is incomplete: "
+                f"{missing_files}"
+            )
+
+        model_path = (
+            package_directory
+            / "best_model.joblib"
+        )
+
+        actual_checksum = (
+            calculate_file_sha256(
+                model_path
+            )
+        )
+
+        if actual_checksum != checksum_sha256:
+            raise ModelRepositoryError(
+                "Production model checksum does not "
+                "match the supplied checksum."
+            )
+
+        try:
+            joblib.load(
+                model_path
+            )
+        except Exception as error:
+            raise ModelRepositoryError(
+                "Production model cannot be loaded "
+                "with joblib."
+            ) from error
+
+        version_prefix = (
+            self.version_prefix(
+                version
+            )
+        )
+
+        manifest_path = (
+            self.manifest_path(
+                version
+            )
+        )
+
+        try:
+            if self.repository.exists(
+                manifest_path
+            ):
+                raise ModelRepositoryError(
+                    "Production model version already "
+                    f"exists: {version}"
+                )
+
+        except ArtifactRepositoryError as error:
+            raise ModelRepositoryError(
+                "Could not inspect target model version."
+            ) from error
+
+        published_at = (
+            datetime.now(
+                timezone.utc
+            ).isoformat()
+        )
+
+        records: list[
+            dict[str, Any]
+        ] = []
+
+        try:
+            for source_path in sorted(
+                required_files
+            ):
+                destination = (
+                    f"{version_prefix}/"
+                    f"{source_path.name}"
+                )
+
+                record = (
+                    self.repository
+                    .upload_file(
+                        source_path=source_path,
+                        destination_path=destination,
+                        overwrite=False,
+                    )
+                )
+
+                records.append(
+                    {
+                        "relative_path": (
+                            source_path.name
+                        ),
+                        "size_bytes": (
+                            record.size_bytes
+                        ),
+                        "sha256": (
+                            record.sha256
+                        ),
+                    }
+                )
+
+            manifest = {
+                "model_name": (
+                    self.model_name
+                ),
+                "version": version,
+                "registration_status": (
+                    "PRODUCTION"
+                ),
+                "artifact_prefix": (
+                    version_prefix
+                ),
+                "registered_at_utc": (
+                    published_at
+                ),
+                "model_checksum_sha256": (
+                    actual_checksum
+                ),
+                "files": records,
+            }
+
+            self.repository.upload_json(
+                payload=manifest,
+                destination_path=(
+                    manifest_path
+                ),
+                overwrite=False,
+            )
+
+        except ArtifactRepositoryError as error:
+            raise ModelRepositoryError(
+                "Could not seed Azure Blob "
+                "production model."
+            ) from error
+
+        self._write_index_entry(
+            version=version,
+            status="PRODUCTION",
+            checksum_sha256=(
+                actual_checksum
+            ),
+            registered_at_utc=(
+                published_at
+            ),
+        )
+
+        return RegisteredModelResult(
+            name=self.model_name,
+            version=version,
+            status="PRODUCTION",
+            checksum_sha256=(
+                actual_checksum
+            ),
+            model_directory=(
+                version_prefix
+            ),
+        )
