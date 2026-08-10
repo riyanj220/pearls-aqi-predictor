@@ -607,24 +607,45 @@ def validate_monitoring(
             )
             == "arm"
         ),
-        "webhook_is_enabled": (
+
+        "notification_channel_is_email": (
             environment.get(
-                "PRODUCTION_HEALTH_WEBHOOK_ENABLED",
+                "PRODUCTION_HEALTH_NOTIFICATION_CHANNEL",
                 {},
             ).get(
                 "value"
             )
-            == "true"
+            == "email"
         ),
-        "webhook_uses_secret": (
+
+        "email_endpoint_is_configured": bool(
             environment.get(
-                "PRODUCTION_HEALTH_WEBHOOK_URL",
+                "PRODUCTION_HEALTH_EMAIL_ENDPOINT",
+                {},
+            ).get(
+                "value"
+            )
+        ),
+
+        "email_sender_is_configured": bool(
+            environment.get(
+                "PRODUCTION_HEALTH_EMAIL_SENDER",
+                {},
+            ).get(
+                "value"
+            )
+        ),
+
+        "email_recipient_uses_secret": (
+            environment.get(
+                "PRODUCTION_HEALTH_EMAIL_RECIPIENT",
                 {},
             ).get(
                 "secretRef"
             )
-            == "production-health-webhook-url"
+            == "production-health-email-recipient"
         ),
+
         "health_pointer_is_valid": (
             pointer.get(
                 "artifact_type"

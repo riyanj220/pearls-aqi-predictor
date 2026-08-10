@@ -282,9 +282,7 @@ def extract_unhealthy_components(
         }:
             components.append(
                 normalize_component(
-                    category=(
-                        "hopsworks_feature_group"
-                    ),
+                    category="feature_dataset",
                     name=name,
                     result=result,
                 )
@@ -913,8 +911,10 @@ def run_persisted_production_health(
     )
 
     notification_failed = (
-        notification_delivery["status"]
-        == "WEBHOOK_DELIVERY_FAILED"
+        notification_delivery[
+            "failed_count"
+        ]
+        > 0
     )
 
     completed_at = utc_now()

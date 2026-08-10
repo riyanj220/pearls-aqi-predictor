@@ -2,7 +2,7 @@
 
 An end-to-end data science, MLOps, and production deployment project for forecasting PM2.5 concentration and Air Quality Index for the Zafar Memon DHA reference location in Karachi.
 
-The system automatically collects recent air-quality and weather data, generates a 72-hour PM2.5 forecast, converts predicted PM2.5 values into AQI information, identifies potentially hazardous conditions, publishes validated immutable artifacts, serves forecasts through FastAPI and Streamlit, and continuously monitors the deployed production pipeline.
+The system automatically collects recent air-quality and weather data, maintains production features, generates a validated 72-hour PM2.5 forecast, converts predictions into AQI information, evaluates alert conditions, publishes immutable artifacts, serves results through FastAPI and Streamlit, evaluates retraining opportunities, and continuously monitors production health.
 
 The project was developed as part of the **10Pearls Shine Data Science Internship**.
 
@@ -11,15 +11,14 @@ The project was developed as part of the **10Pearls Shine Data Science Internshi
 ## Table of Contents
 
 - [Project Overview](#project-overview)
-- [What the System Does](#what-the-system-does)
+- [System Flow](#system-flow)
 - [Production Architecture](#production-architecture)
 - [Automated Production Workloads](#automated-production-workloads)
-- [Forecasting Approach](#forecasting-approach)
-- [AQI and Alert Generation](#aqi-and-alert-generation)
+- [Forecasting and AQI](#forecasting-and-aqi)
 - [MLOps Architecture](#mlops-architecture)
-- [Artifact Publication Model](#artifact-publication-model)
+- [Hopsworks to Azure Blob Migration](#hopsworks-to-azure-blob-migration)
+- [Artifact Publication](#artifact-publication)
 - [Production Monitoring](#production-monitoring)
-- [Production Evidence](#production-evidence)
 - [Repository Structure](#repository-structure)
 - [Technology Stack](#technology-stack)
 - [Getting Started](#getting-started)
@@ -30,20 +29,18 @@ The project was developed as part of the **10Pearls Shine Data Science Internshi
 - [Security and Reliability](#security-and-reliability)
 - [Development Notebooks](#development-notebooks)
 - [Project Status](#project-status)
-- [Useful Commands](#useful-commands)
 
 ---
 
 ## Project Overview
 
-Pearls AQI Predictor covers the complete lifecycle of a production-oriented data science system:
+Pearls AQI Predictor covers the complete lifecycle of a production-oriented forecasting system:
 
 - air-quality source discovery and validation;
-- historical PM2.5 collection;
-- historical and forecast weather collection;
+- historical PM2.5 and weather collection;
 - canonical dataset creation;
 - data-quality validation;
-- exploratory data analysis;
+- exploratory analysis;
 - time-series feature engineering;
 - chronological model evaluation;
 - PM2.5 forecasting;
@@ -52,38 +49,41 @@ Pearls AQI Predictor covers the complete lifecycle of a production-oriented data
 - FastAPI serving;
 - Streamlit visualization;
 - Docker containerization;
-- Azure Blob artifact publication;
+- Azure Blob feature and artifact storage;
+- Blob-backed model registry;
 - Azure Container Registry image management;
 - Azure Container Apps deployment;
-- Hopsworks feature-store integration;
-- Hopsworks model-registry integration;
-- automated feature synchronization;
-- automated forecast publication;
+- scheduled feature synchronization;
+- scheduled forecast publication;
 - automated retraining evaluation;
 - production-health monitoring;
 - durable incident and notification state;
 - staging and production isolation;
 - immutable release validation.
 
-The deployed production system generates and serves a validated **72-hour PM2.5-based AQI forecast** for the reference location.
+The deployed system serves a validated **72-hour PM2.5-based AQI forecast** for the reference location.
 
 ---
 
-## What the System Does
+# System Flow
 
 ```text
-Air-quality data
+OpenAQ PM2.5
       +
 Weather data
+      │
+      ▼
+Azure Blob Feature Store
       │
       ▼
 Feature engineering
       │
       ▼
-PM2.5 prediction
+Production model
+Azure Blob Model Registry
       │
       ▼
-72-hour forecast
+72-hour PM2.5 forecast
       │
       ▼
 AQI conversion
@@ -100,20 +100,34 @@ Immutable publication
       ▼
 Azure Blob Storage
       │
-      ▼
-FastAPI
-      │
-      ▼
-Streamlit Dashboard
+      ├──────────────► FastAPI
+      │                    │
+      │                    ▼
+      └──────────────► Streamlit
 ```
 
-In parallel, operational workloads continuously update features, evaluate retraining eligibility, and monitor the health of the production system.
+In parallel:
+
+```text
+Scheduled feature updates
+Scheduled retraining evaluation
+Scheduled production monitoring
+          │
+          ▼
+Azure Blob + Azure ARM
+          │
+          ▼
+Durable health state
+          │
+          ▼
+Azure Communication Services Email
+```
 
 ---
 
 # Production Architecture
 
-The final deployment uses separate staging and production workloads while sharing selected Azure infrastructure to remain compatible with the Azure for Students subscription.
+Production workloads run in a dedicated production resource group while reusing the existing Container Apps Environment required by the Azure for Students subscription.
 
 ```text
                          Azure Subscription
@@ -121,61 +135,48 @@ The final deployment uses separate staging and production workloads while sharin
                ┌────────────────┴────────────────┐
                │                                 │
                ▼                                 ▼
-
       rg-pearls-aqi-staging              rg-pearls-aqi-prod
                │                                 │
                │                         id-pearls-aqi-prod
                │                                 │
                ▼                                 │
-     cae-pearls-aqi-staging                      │
-       shared ACA runtime                        │
-               │                                 │
-       ┌───────┴────────┐                        │
-       │                │                        │
-       ▼                ▼                        │
-   Staging          Production                   │
-   workloads        workloads                    │
-       │                │                        │
-       └────────────────┴───────────────┬────────┘
-                                        │
-                                        ▼
-                            Shared infrastructure
-                                        │
-                    ┌───────────────────┼──────────────────┐
-                    │                   │                  │
-                    ▼                   ▼                  ▼
-            Azure Container        Azure Storage       Hopsworks
-               Registry               Account
-                    │                   │
-                    │          ┌────────┴────────┐
-                    │          │                 │
-                    ▼          ▼                 ▼
-             immutable     artifacts         artifacts-prod
-              images       staging            production
+     cae-pearls-aqi-staging ◄────────────────────┘
+      shared ACA environment
+               │
+       ┌───────┴─────────────────────────────┐
+       │                                     │
+       ▼                                     ▼
+   Staging                              Production
+   workloads                            workloads
+                                             │
+                     ┌───────────────────────┼───────────────────────┐
+                     │                       │                       │
+                     ▼                       ▼                       ▼
+             Azure Container          Azure Blob              Azure ARM
+                Registry                Storage                monitoring
+                                             │
+                              ┌──────────────┴──────────────┐
+                              │                             │
+                              ▼                             ▼
+                         artifacts                     artifacts-prod
+                          staging                       production
 ```
 
-### Why the Container Apps environment is shared
-
-The Azure subscription used for this project allows only one Container Apps Environment.
-
-Instead of deleting staging or changing subscriptions, the production architecture reuses the existing Container Apps Environment while preserving isolation through:
+Production state is isolated through:
 
 - separate resource groups;
-- separate application names;
-- separate job names;
-- separate managed identities;
-- separate runtime configuration;
+- separate application and job names;
+- a dedicated production managed identity;
+- production-specific configuration;
 - separate secret references;
 - separate Blob containers;
 - separate latest pointers.
 
-This provides practical production isolation while staying within the subscription limits.
+The shared Container Apps Environment is an infrastructure constraint, not a shared application state boundary.
 
 ---
 
 ## Production Application Layer
-
-The deployed production application consists of:
 
 ```text
 Internet
@@ -198,7 +199,7 @@ The API exposes endpoints for:
 
 - liveness;
 - readiness;
-- forecast data;
+- latest forecast;
 - hourly forecast data;
 - forecast summaries;
 - alerts;
@@ -206,20 +207,18 @@ The API exposes endpoints for:
 - metadata;
 - pipeline status.
 
-The API dynamically materializes the latest validated production forecast from Azure Blob Storage.
+The API materializes the latest validated forecast from Azure Blob Storage and does not perform model inference on request.
 
 ### Streamlit
 
-The dashboard communicates only with FastAPI.
+The dashboard communicates with FastAPI rather than directly accessing storage or MLOps infrastructure.
 
-It does not directly access:
+It therefore does not require:
 
-- Azure Blob Storage;
-- Hopsworks;
-- the model registry;
-- Azure credentials.
-
-This keeps the presentation layer isolated from data-platform credentials.
+- Azure Blob credentials;
+- model-registry access;
+- feature-store access;
+- Hopsworks credentials.
 
 ---
 
@@ -234,59 +233,68 @@ Four Azure Container Apps Jobs operate the production pipeline.
 | Retraining evaluation   | `job-pearls-aqi-retraining-prod` | `30 3 * * *`  |
 | Production monitoring   | `job-pearls-aqi-monitoring-prod` | `45 * * * *`  |
 
-Azure Container Apps cron schedules are evaluated in UTC.
+Container Apps cron schedules are evaluated in UTC.
 
 ### Hourly feature synchronization
 
 The feature job:
 
-- collects the latest air-quality observations;
-- collects required weather information;
+- fetches recent PM2.5 observations;
+- fetches required weather information;
 - validates incoming records;
-- generates production features;
-- writes feature data to Hopsworks.
+- generates engineered features;
+- incrementally updates the production Azure Blob feature repository.
+
+Production datasets include:
+
+```text
+feature-store/
+├── pm25_hourly_observations/
+├── weather_hourly_observations/
+└── pm25_hourly_features/
+```
 
 ### Six-hour forecast publication
 
 The forecast job:
 
-- resolves the production model;
-- loads current features;
+- reads current features from Azure Blob;
+- resolves the production model from the Azure Blob model registry;
 - generates the 72-hour PM2.5 forecast;
-- converts PM2.5 predictions into AQI;
+- converts predictions into AQI;
 - evaluates alert conditions;
-- validates the artifact package;
+- validates the complete package;
 - publishes an immutable run;
-- advances the production latest pointer.
+- atomically advances the production latest pointer.
 
 ### Daily retraining evaluation
 
 The retraining workflow:
 
-- checks whether sufficient new training data are available;
-- refreshes training data when appropriate;
-- trains a candidate model when retraining criteria are met;
-- evaluates the candidate against the current production model;
-- only promotes a model when the promotion requirements pass.
+- evaluates whether sufficient new training data exist;
+- reads training features from Azure Blob;
+- trains a candidate when retraining criteria are met;
+- compares candidate and production models;
+- registers/promotes a model only when promotion requirements pass.
 
-A retraining execution may therefore successfully complete without replacing the production model.
+A successful retraining execution does **not** imply that the production model changed.
 
 ### Hourly production monitoring
 
-The monitoring workload checks:
+The monitoring job checks:
 
-- feature synchronization health;
-- forecast publication health;
-- retraining health;
-- production forecast freshness;
-- artifact validity;
-- recent execution status.
+- Azure Container Apps Job execution health;
+- feature freshness;
+- forecast freshness;
+- retraining status;
+- publication validity;
+- artifact availability.
 
-Monitoring state is persisted as durable production artifacts.
+Monitoring state and notification delivery records are durably persisted to Azure Blob Storage.
 
 ---
 
-# Forecasting Approach
+# Forecasting and AQI
 
 The system forecasts PM2.5 for the next **72 hours**.
 
@@ -307,17 +315,13 @@ Feature engineering includes:
 - wind gusts;
 - cyclical time features.
 
-Chronological train, validation, and test splits are used to prevent future information from leaking into model evaluation.
+Chronological train, validation, and test splits are used to avoid future-information leakage.
 
-The final inference design combines persistence behavior where appropriate with the trained forecasting model for longer forecast horizons.
-
----
-
-# AQI and Alert Generation
+The inference strategy combines recent persistence behavior where appropriate with the trained forecasting model for longer forecast horizons.
 
 Predicted PM2.5 values are converted into indicative AQI information.
 
-Each hourly forecast includes information such as:
+Each hourly forecast includes:
 
 - predicted PM2.5;
 - indicative hourly AQI;
@@ -329,57 +333,130 @@ Each hourly forecast includes information such as:
 - health message;
 - recommended action.
 
-The production API currently serves exactly:
+A valid production publication contains exactly:
 
 ```text
 72 hourly forecast rows
 ```
 
-for each successful forecast publication.
-
-> The generated AQI information is intended for forecasting and demonstration purposes and is not an official regulatory AQI product.
+> AQI values are model-generated forecasting outputs and are not an official regulatory AQI product.
 
 ---
 
 # MLOps Architecture
 
-The project supports both local development and remote MLOps services.
+The application uses backend abstractions rather than binding pipeline logic directly to one external MLOps provider.
 
 ```text
-                     Hopsworks
-             ┌───────────┴───────────┐
-             │                       │
-             ▼                       ▼
-       Feature Store            Model Registry
-             │                       │
-             └───────────┬───────────┘
+                  Feature Repository
+                         │
+          ┌──────────────┴──────────────┐
+          │                             │
+          ▼                             ▼
+     Azure Blob                    Hopsworks
+     production                 optional/demo
+          │
+          └──────────────┬──────────────┘
                          │
                          ▼
-                Production pipeline
+                  Feature pipeline
+
+
+                    Model Registry
+                         │
+          ┌──────────────┴──────────────┐
+          │                             │
+          ▼                             ▼
+     Azure Blob                    Hopsworks
+     production                 optional/demo
+          │
+          └──────────────┬──────────────┘
                          │
                          ▼
-                 AQI forecast artifacts
+                 Forecast / Retraining
 ```
 
-The system includes:
+Supported feature-store backends include:
 
-- feature-group validation;
-- incremental feature updates;
-- historical feature backfilling;
-- training-dataset refresh;
-- model registration;
-- production-model resolution;
-- candidate-versus-champion evaluation;
-- controlled model promotion;
-- remote model loading with fallback support.
+```text
+FEATURE_STORE_BACKEND=azure_blob
+FEATURE_STORE_BACKEND=hopsworks
+```
+
+Supported model-registry backends include:
+
+```text
+MODEL_REGISTRY_BACKEND=azure_blob
+MODEL_REGISTRY_BACKEND=hopsworks
+```
+
+Production uses:
+
+```text
+FEATURE_STORE_BACKEND=azure_blob
+MODEL_REGISTRY_BACKEND=azure_blob
+MODEL_LOADING_MODE=AZURE_BLOB_REGISTRY
+```
+
+Hopsworks remains available for staging, demonstration, and experimentation.
 
 ---
 
-# Artifact Publication Model
+# Hopsworks to Azure Blob Migration
 
-Forecast artifacts are never published directly into a mutable serving directory.
+The first MLOps implementation used Hopsworks for both the feature store and model registry.
 
-Each valid execution first creates an immutable run:
+That implementation was retained, but the production architecture was later migrated to Azure Blob Storage so the deployed system would not depend on Hopsworks service availability or free-tier compute limits.
+
+The migration introduced backend-neutral repository interfaces and Azure Blob implementations for:
+
+- feature datasets;
+- model versions;
+- registry indexes;
+- production model pointers;
+- immutable model artifacts.
+
+The production model registry now follows a structure similar to:
+
+```text
+model-registry/
+└── pearls_aqi_pm25_forecaster/
+    ├── index.json
+    ├── production/
+    │   └── pointer.json
+    └── versions/
+        └── 1/
+            ├── best_model.joblib
+            ├── manifest.json
+            ├── model_feature_columns.json
+            ├── model_metadata.json
+            ├── model_selection_report.json
+            └── registry_metadata.json
+```
+
+The migration was validated independently across:
+
+- feature synchronization;
+- feature freshness;
+- 72-hour forecast generation;
+- AQI publication;
+- production API serving;
+- daily retraining;
+- safe champion/challenger behavior;
+- production monitoring;
+- scheduled Azure executions.
+
+The final production jobs contain **no Hopsworks environment variables or Hopsworks secrets**.
+
+This migration intentionally did not remove Hopsworks from the codebase. It changed Hopsworks from a production dependency into an optional backend.
+
+---
+
+# Artifact Publication
+
+Forecast artifacts are not published directly into a mutable serving directory.
+
+Each valid execution creates an immutable package:
 
 ```text
 aqi/runs/<run-id>/
@@ -391,36 +468,18 @@ aqi/runs/<run-id>/
 └── phase_6_validation_report.json
 ```
 
-The manifest records:
+The manifest records artifact information including:
 
-- artifact names;
+- file names;
 - sizes;
 - content types;
 - SHA-256 checksums.
 
-After the complete package passes validation, the serving pointer is updated:
+After the complete package passes validation, production serving state advances through:
 
 ```text
 aqi/latest/pointer.json
 ```
-
-The production storage boundary is:
-
-```text
-artifacts-prod
-```
-
-while staging uses:
-
-```text
-artifacts
-```
-
-This prevents staging forecast state from becoming production serving state.
-
----
-
-## Publication Safety
 
 The publication sequence is:
 
@@ -438,46 +497,67 @@ Validate uploaded package
 Advance latest pointer
 ```
 
-A failed or incomplete run therefore cannot automatically replace the previous valid forecast.
+A failed or incomplete execution therefore cannot replace the previous valid forecast.
 
 ---
 
 # Production Monitoring
 
-Production-health snapshots are persisted under:
+Production-health snapshots are stored under:
 
 ```text
 production-health/runs/<run-id>/
 ```
 
-The latest monitoring state is referenced through:
+The latest state is referenced through:
 
 ```text
 production-health/latest/pointer.json
 ```
 
-The system also maintains durable notification state:
+Notification state is persisted under:
 
 ```text
-production-health/notifications/outbox.json
+production-health/notifications/
+├── outbox.json
+└── receipts/
 ```
 
-This supports:
+This provides:
 
+- durable incident state;
 - incident deduplication;
-- durable pending notifications;
+- pending-delivery persistence;
 - delivery receipts;
-- incident resolution tracking.
+- incident-change tracking.
 
-External notification delivery is intentionally treated as an operational integration rather than a requirement for forecast generation or serving availability.
+External notifications are delivered through **Azure Communication Services Email** using the production managed identity.
+
+The notification flow is:
+
+```text
+Production health check
+        │
+        ▼
+Incident evaluation
+        │
+        ▼
+Durable outbox
+        │
+        ▼
+ACS Email
+        │
+        ▼
+Delivery receipt
+```
+
+Monitoring and forecast serving remain independent: notification failure cannot invalidate an otherwise valid forecast publication.
 
 ---
 
 # Production Release Model
 
-API, dashboard, and pipeline images are built from a single release revision.
-
-Images follow:
+Production Docker images use immutable release tags rather than a mutable `latest` tag.
 
 ```text
 walpole.azurecr.io/pearls-aqi/api:<git-sha>
@@ -485,9 +565,7 @@ walpole.azurecr.io/pearls-aqi/dashboard:<git-sha>
 walpole.azurecr.io/pearls-aqi/pipeline:<git-sha>
 ```
 
-No mutable `latest` tag is required for production deployment.
-
-Each production image contains OCI metadata including:
+Images contain OCI metadata such as:
 
 - image title;
 - application version;
@@ -496,47 +574,48 @@ Each production image contains OCI metadata including:
 
 Runtime containers use non-root users.
 
-The release validated during the final production deployment used:
+The original production application release used:
 
 ```text
 0d5380b79b54c1c333ce1fec4ebfbfe01bef8cc7
 ```
 
-Subsequent documentation commits do not require rebuilding this locked release unless application code changes.
+The production pipeline was later rebuilt for the Hopsworks-independent backend migration using:
+
+```text
+030d2e51cc5afffe1afa90467d9e69a7ae73ab49
+```
+
+Production deployment scripts require an explicit immutable image tag. They do not automatically assume that the current Git `HEAD` has a corresponding image in Azure Container Registry.
 
 ---
 
 # Production Evidence
 
-A curated set of generated validation reports is included in the repository under:
+Curated machine-readable validation reports are stored under:
 
 ```text
 reports/phase_10/
 ```
 
-These reports provide machine-readable evidence of the deployed system state.
+They document areas such as:
 
-### Most important reports
+- production infrastructure;
+- immutable image validation;
+- scheduled-job validation;
+- initial publication;
+- API deployment;
+- dashboard deployment;
+- forecast publication;
+- feature synchronization;
+- retraining;
+- monitoring;
+- artifact repository behavior;
+- model registry publication.
 
-| Report                                                  | Purpose                                                                            |
-| ------------------------------------------------------- | ---------------------------------------------------------------------------------- |
-| `production_deployment_validation_report.json`          | End-to-end validation of the complete deployed production system                   |
-| `production_release_declaration.json`                   | Final release declaration, release SHA, endpoints, artifacts, and rollback anchors |
-| `production_initial_publication_validation_report.json` | Verifies the first controlled production execution and AQI publication             |
-| `production_jobs_validation_report.json`                | Validates all production scheduled jobs, images, schedules, and configuration      |
-| `production_api_validation_report.json`                 | Validates the production FastAPI deployment                                        |
-| `production_dashboard_validation_report.json`           | Validates the production Streamlit deployment                                      |
-| `production_infrastructure_validation_report.json`      | Validates Azure infrastructure and production identity                             |
-| `production_release_validation_report.json`             | Verifies immutable API, dashboard, and pipeline images                             |
-| `production_monitoring_validation_report.json`          | Validates monitoring configuration and operational checks                          |
-| `production_health_report.json`                         | Captures generated production-health state                                         |
-| `artifact_repository_validation_report.json`            | Validates artifact repository behavior                                             |
-| `forecast_publication_report.json`                      | Records forecast publication results                                               |
-| `hourly_feature_job_report.json`                        | Records hourly feature-job validation                                              |
-| `daily_retraining_job_report.json`                      | Records retraining workflow validation                                             |
-| `registry_publication_report.json`                      | Records model-registry publication behavior                                        |
+These reports are validation evidence rather than application runtime requirements.
 
-These files contain validation evidence and infrastructure metadata but do not intentionally contain secret values.
+Secret values are not intentionally included.
 
 ---
 
@@ -546,12 +625,13 @@ These files contain validation evidence and infrastructure metadata but do not i
 pearls-aqi-predictor/
 ├── app/
 │   ├── api/                    # FastAPI service
-│   ├── core/                   # Shared configuration and utilities
-│   ├── data_sources/           # Air-quality and weather clients
+│   ├── core/                   # Shared configuration
+│   ├── data_sources/           # PM2.5 and weather clients
 │   ├── inference/              # Model loading and inference
-│   ├── mlops/                  # Hopsworks and registry integration
-│   ├── operations/             # Monitoring and deployment validation
-│   ├── pipelines/              # Production data and inference pipelines
+│   ├── mlops/                  # Feature/model repository abstractions
+│   ├── notifications/          # External notification integrations
+│   ├── operations/             # Monitoring and validation
+│   ├── pipelines/              # Production workflows
 │   └── storage/                # Local and Azure Blob repositories
 │
 ├── dashboard/                  # Streamlit application
@@ -561,16 +641,11 @@ pearls-aqi-predictor/
 ├── inference/                  # Local inference artifacts
 │
 ├── reports/
-│   └── phase_10/               # Curated production validation evidence
+│   └── phase_10/               # Curated deployment evidence
 │
-├── scripts/
-│   ├── deployment utilities
-│   ├── Azure job deployment
-│   ├── image publication
-│   └── operational validation
-│
+├── scripts/                    # Deployment and validation scripts
 ├── tests/                      # Automated tests
-├── config/                     # Deployment configuration contracts
+├── config/                     # Configuration contracts
 │
 ├── Dockerfile.api
 ├── Dockerfile.dashboard
@@ -589,7 +664,7 @@ pearls-aqi-predictor/
 
 ## Data Science
 
-- Python 3.12
+- Python
 - Pandas
 - NumPy
 - PyArrow
@@ -610,11 +685,15 @@ pearls-aqi-predictor/
 
 ## MLOps
 
+- backend-neutral feature repository
+- Azure Blob Feature Store
+- backend-neutral model registry
+- Azure Blob Model Registry
 - Hopsworks Feature Store
 - Hopsworks Model Registry
-- immutable model and artifact publication
+- immutable artifact publication
 - automated retraining evaluation
-- candidate/champion model comparison
+- champion/challenger comparison
 
 ## Infrastructure
 
@@ -625,6 +704,8 @@ pearls-aqi-predictor/
 - Azure Container Apps Jobs
 - Azure Blob Storage
 - Azure Managed Identity
+- Azure Communication Services Email
+- Azure Resource Manager
 - Azure CLI
 - Git / GitHub
 - `uv`
@@ -637,14 +718,12 @@ pearls-aqi-predictor/
 
 Install:
 
-- Python 3.12
+- Python
 - Git
 - `uv`
 - Docker
 - Docker Compose
 - Azure CLI for Azure operations
-
-Check:
 
 ```bash
 python3 --version
@@ -662,21 +741,14 @@ git clone https://github.com/riyanj220/pearls-aqi-predictor.git
 cd pearls-aqi-predictor
 ```
 
----
-
 ## Install Dependencies
 
 ```bash
 uv sync --all-groups
-```
-
-Activate:
-
-```bash
 source .venv/bin/activate
 ```
 
-Commands can also be run directly:
+Commands can also be executed directly through `uv`:
 
 ```bash
 uv run python --version
@@ -686,7 +758,7 @@ uv run python --version
 
 # Environment Configuration
 
-Example environment files are provided.
+Example environment files are provided:
 
 ```text
 .env.example
@@ -702,7 +774,17 @@ Create a local environment:
 cp .env.example .env
 ```
 
-Never commit real API keys, webhook URLs containing credentials, bearer tokens, Azure storage keys, or Hopsworks credentials.
+Never commit real:
+
+- API keys;
+- Hopsworks credentials;
+- email recipients;
+- ACS credentials;
+- Azure storage keys;
+- SAS tokens;
+- bearer tokens.
+
+Azure-hosted production workloads use managed identity where supported.
 
 ### Local pipeline
 
@@ -710,18 +792,33 @@ Never commit real API keys, webhook URLs containing credentials, bearer tokens, 
 OPENAQ_API_KEY=replace-with-your-key
 
 MODEL_LOADING_MODE=LOCAL_ARTIFACT
-FEATURE_STORE_BACKEND=local
-MODEL_REGISTRY_BACKEND=local
-
 ARTIFACT_BACKEND=local
 ```
 
-### Local API
+### Azure Blob-backed pipeline
 
 ```env
-PEARLS_API_ARTIFACT_BACKEND=local
-PEARLS_API_ARTIFACT_TYPE=aqi
-PEARLS_API_PHASE_6_LATEST_DIRECTORY=aqi/latest
+FEATURE_STORE_BACKEND=azure_blob
+MODEL_REGISTRY_BACKEND=azure_blob
+MODEL_LOADING_MODE=AZURE_BLOB_REGISTRY
+
+ARTIFACT_BACKEND=azure_blob
+
+AZURE_STORAGE_ACCOUNT=replace-with-storage-account
+AZURE_STORAGE_CONTAINER=artifacts-prod
+AZURE_FEATURE_STORE_PREFIX=feature-store
+AZURE_MODEL_REGISTRY_PREFIX=model-registry
+```
+
+### Optional Hopsworks backend
+
+```env
+FEATURE_STORE_BACKEND=hopsworks
+MODEL_REGISTRY_BACKEND=hopsworks
+
+HOPSWORKS_API_KEY=replace-with-key
+HOPSWORKS_PROJECT=replace-with-project
+HOPSWORKS_HOST=replace-with-host
 ```
 
 ### Azure Blob API backend
@@ -747,10 +844,9 @@ uv run uvicorn app.api.main:app \
   --reload
 ```
 
-Endpoints:
+Useful endpoints:
 
 ```text
-http://localhost:8000
 http://localhost:8000/docs
 http://localhost:8000/redoc
 ```
@@ -778,12 +874,6 @@ uv run streamlit run dashboard/app.py \
   --server.port 8501
 ```
 
-Open:
-
-```text
-http://localhost:8501
-```
-
 Configure the API:
 
 ```env
@@ -792,39 +882,43 @@ FASTAPI_BASE_URL=http://localhost:8000/api/v1
 
 ---
 
-## Forecast Pipeline
+## Production-style Pipelines
 
-Run live inference:
-
-```bash
-uv run python -m app.pipelines.live_inference
-```
-
-Generate AQI and alerts:
+Hourly feature synchronization:
 
 ```bash
-uv run python -m app.pipelines.aqi_alert_pipeline
+uv run python -m app.pipelines.hourly_features
 ```
 
-Run the complete publication workflow:
+Forecast publication:
 
 ```bash
 uv run python -m app.pipelines.publish_forecast
+```
+
+Daily retraining:
+
+```bash
+uv run python -m app.pipelines.daily_retraining
+```
+
+Production-health inspection:
+
+```bash
+uv run python -m app.operations.persist_production_health
 ```
 
 ---
 
 # Docker Workflow
 
-## Build Images
-
-Use the full Git SHA for traceability:
+Use a full immutable Git SHA when producing release images:
 
 ```bash
 export IMAGE_TAG="$(git rev-parse HEAD)"
 ```
 
-API:
+Build API:
 
 ```bash
 docker build \
@@ -833,7 +927,7 @@ docker build \
   .
 ```
 
-Dashboard:
+Build dashboard:
 
 ```bash
 docker build \
@@ -842,7 +936,7 @@ docker build \
   .
 ```
 
-Pipeline:
+Build pipeline:
 
 ```bash
 docker build \
@@ -851,32 +945,12 @@ docker build \
   .
 ```
 
----
-
-## Docker Compose
-
-Start API and dashboard:
+Run API and dashboard locally:
 
 ```bash
 docker compose \
   -f compose.production.yml \
   up -d api dashboard
-```
-
-Check:
-
-```bash
-docker compose \
-  -f compose.production.yml \
-  ps
-```
-
-Logs:
-
-```bash
-docker compose \
-  -f compose.production.yml \
-  logs -f api
 ```
 
 Stop:
@@ -889,18 +963,6 @@ docker compose \
 
 ---
 
-## Run Pipeline with Docker Compose
-
-```bash
-docker compose \
-  -f compose.production.yml \
-  -f compose.local-pipeline.yml \
-  --profile jobs \
-  run --rm pipeline
-```
-
----
-
 # Testing
 
 Run the complete suite:
@@ -909,13 +971,13 @@ Run the complete suite:
 uv run pytest -v
 ```
 
-API:
+API tests:
 
 ```bash
 uv run pytest tests/api -v
 ```
 
-Dashboard:
+Dashboard tests:
 
 ```bash
 uv run pytest tests/dashboard -v
@@ -924,17 +986,6 @@ uv run pytest tests/dashboard -v
 ---
 
 # Azure Deployment
-
-Production deployment is intentionally split into explicit, auditable steps.
-
-Important deployment utilities include scripts for:
-
-- infrastructure preparation;
-- production API deployment;
-- production dashboard deployment;
-- production scheduled jobs;
-- immutable image publication;
-- controlled initial production execution.
 
 Production resources include:
 
@@ -949,7 +1000,7 @@ rg-pearls-aqi-prod
 └── job-pearls-aqi-monitoring-prod
 ```
 
-The applications and jobs run inside the shared:
+They run inside the shared:
 
 ```text
 cae-pearls-aqi-staging
@@ -957,27 +1008,29 @@ cae-pearls-aqi-staging
 
 Container Apps Environment because of the subscription environment quota.
 
----
+Production deployment scripts use explicit immutable image tags.
 
-## Publish Immutable Images
-
-Authenticate:
+Example:
 
 ```bash
-az acr login --name walpole
+export PIPELINE_IMAGE_TAG="<existing-acr-image-sha>"
 ```
 
-Set release:
+Production scheduled workloads can then be deployed through:
 
 ```bash
-export IMAGE_TAG="$(git rev-parse HEAD)"
+./scripts/deploy_production_jobs.sh
 ```
 
-Publish:
+The production script:
 
-```bash
-./scripts/publish_acr_images.sh
-```
+- creates missing jobs;
+- updates existing jobs in place;
+- restores schedules explicitly;
+- configures Azure Blob feature/model backends;
+- removes legacy production Hopsworks configuration;
+- configures ACS email monitoring;
+- validates the resulting job state.
 
 ---
 
@@ -987,37 +1040,31 @@ Publish:
 
 Azure-hosted workloads use a user-assigned managed identity.
 
-Typical roles include:
+Required roles depend on workload, including:
 
 ```text
 AcrPull
 Storage Blob Data Contributor
 Reader
+Communication and Email Service access
 ```
 
-No Azure registry password or Blob storage key needs to be embedded into production images.
-
----
+Registry passwords and Blob storage keys are not embedded in production images.
 
 ## Secret References
 
-Sensitive values such as:
+Production Container Apps secrets are limited to values that genuinely require secret handling.
+
+Examples include:
 
 ```text
 OPENAQ_API_KEY
-HOPSWORKS_API_KEY
-PRODUCTION_HEALTH_WEBHOOK_URL
+production-health-email-recipient
 ```
 
-are injected at runtime through Azure Container Apps secret references.
-
-Public validation reports may include secret **names** and `secretRef` identifiers but do not intentionally expose secret values.
-
----
+Hopsworks credentials are not present in the final production jobs.
 
 ## Non-root containers
-
-Production images run with dedicated non-root users:
 
 ```text
 API        → pearls
@@ -1025,32 +1072,28 @@ Dashboard  → dashboard
 Pipeline   → pipeline
 ```
 
----
-
 ## Forecast Freshness
 
-Production API thresholds are:
-
 ```text
-0 – 7 hours     FRESH
-7 – 13 hours    AGING
-> 13 hours      STALE
+0 – 7 hours      FRESH
+7 – 13 hours     AGING
+> 13 hours       STALE
 ```
 
-This aligns with the six-hour forecast publication schedule while allowing reasonable execution tolerance.
-
----
+These thresholds align with the six-hour forecast publication schedule while allowing execution tolerance.
 
 ## Failure and Recovery
 
-The project validates that:
+The system is designed so that:
 
 - failed forecast runs do not replace valid artifacts;
 - the latest pointer remains unchanged after failed publication;
-- the API continues serving the last valid forecast;
-- successful recovery produces a new immutable run;
-- the latest pointer advances only after validation;
-- the API discovers recovered artifacts without redeployment.
+- the API continues serving the previous valid forecast;
+- successful recovery creates a new immutable run;
+- serving state advances only after validation;
+- the API discovers newly published artifacts without redeployment;
+- retraining cannot replace the production model merely because training completed;
+- monitoring and notification failures do not corrupt forecast state.
 
 ---
 
@@ -1083,105 +1126,46 @@ The core project is **production deployed and operational**.
 
 Completed areas include:
 
-- [x] air-quality source discovery;
-- [x] weather-source validation;
-- [x] historical data collection;
-- [x] canonical dataset creation;
-- [x] data-quality validation;
-- [x] feature engineering;
-- [x] chronological model evaluation;
-- [x] model explainability;
-- [x] 72-hour PM2.5 inference;
-- [x] AQI conversion;
-- [x] alert generation;
-- [x] FastAPI service;
-- [x] Streamlit dashboard;
-- [x] Docker production images;
-- [x] Azure Container Registry;
-- [x] Azure Blob artifact repository;
-- [x] Hopsworks Feature Store;
-- [x] Hopsworks Model Registry;
-- [x] automated feature synchronization;
-- [x] automated forecast publication;
-- [x] automated retraining evaluation;
-- [x] production-health monitoring;
-- [x] durable monitoring snapshots;
-- [x] incident deduplication;
-- [x] notification outbox;
-- [x] managed-identity authentication;
-- [x] staging deployment;
-- [x] production deployment;
-- [x] immutable production release;
-- [x] staging/production artifact isolation;
-- [x] initial production publication;
-- [x] end-to-end production validation;
-- [x] production release declaration.
+- [x] air-quality and weather source validation
+- [x] historical dataset creation
+- [x] feature engineering
+- [x] chronological model evaluation
+- [x] model explainability
+- [x] 72-hour PM2.5 forecasting
+- [x] AQI conversion and alert generation
+- [x] FastAPI service
+- [x] Streamlit dashboard
+- [x] Docker production images
+- [x] Azure Container Registry
+- [x] immutable Azure Blob artifact publication
+- [x] Hopsworks feature-store implementation
+- [x] Hopsworks model-registry implementation
+- [x] backend-neutral feature repository
+- [x] Azure Blob feature repository
+- [x] backend-neutral model registry
+- [x] Azure Blob model registry
+- [x] automated feature synchronization
+- [x] automated forecast publication
+- [x] automated retraining evaluation
+- [x] champion/challenger promotion safeguards
+- [x] durable production-health monitoring
+- [x] incident deduplication and notification outbox
+- [x] Azure Communication Services email alerts
+- [x] managed-identity authentication
+- [x] staging deployment
+- [x] production deployment
+- [x] staging/production artifact isolation
+- [x] immutable production releases
+- [x] Hopsworks-independent production workloads
+- [x] end-to-end production independence validation
 
-### Accepted operational constraints
+## Accepted Infrastructure Constraint
 
-The final deployment intentionally retains two documented constraints:
+**Shared Container Apps Environment**
 
-1. **Shared Container Apps Environment**
-   Staging and production share one Azure Container Apps Environment because the Azure subscription allows only one environment.
+Staging and production share one Azure Container Apps Environment because of the Azure for Students subscription quota.
 
-2. **External notification delivery**
-   Durable production-health monitoring and notification outbox persistence are implemented. Permanent external delivery is treated as an optional operational integration and does not block forecast generation, serving, or monitoring persistence.
-
----
-
-# Useful Commands
-
-### Start API
-
-```bash
-uv run uvicorn app.api.main:app --reload
-```
-
-### Start dashboard
-
-```bash
-uv run streamlit run dashboard/app.py
-```
-
-### Run complete forecast publication
-
-```bash
-uv run python -m app.pipelines.publish_forecast
-```
-
-### Run production deployment validator
-
-```bash
-uv run python -m \
-  app.operations.production_deployment_validation \
-  --release-sha "<production-release-sha>"
-```
-
-### Generate production release declaration
-
-```bash
-uv run python -m \
-  app.operations.production_release_declaration \
-  --release-sha "<production-release-sha>"
-```
-
-### Run tests
-
-```bash
-uv run pytest -v
-```
-
-### Inspect Docker usage
-
-```bash
-docker system df
-```
-
-### Remove unused build cache
-
-```bash
-docker builder prune
-```
+Application state, identities, jobs, storage boundaries, and runtime configuration remain separated.
 
 ---
 

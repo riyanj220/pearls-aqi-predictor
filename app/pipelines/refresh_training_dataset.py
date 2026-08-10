@@ -1,4 +1,4 @@
-"""Build fresh retraining datasets from Hopsworks feature groups.
+"""Build fresh retraining datasets from production feature datasets.
 
 The pipeline reads:
 
@@ -25,9 +25,7 @@ import numpy as np
 import pandas as pd
 
 from app.core.config import PROJECT_ROOT
-from app.mlops.client import connect_to_hopsworks
 from app.mlops.config import (
-    FeatureStoreBackend,
     MLOpsSettings,
     get_mlops_settings,
 )
@@ -37,6 +35,11 @@ from app.mlops.contracts import (
 )
 from app.pipelines.historical_backfill import (
     load_feature_columns,
+)
+
+from app.mlops.feature_repository import (
+    FeatureRepository,
+    create_feature_repository,
 )
 
 
@@ -110,79 +113,6 @@ def normalize_utc_hour(
         errors="raise",
     ).dt.floor("h")
 
-
-def read_feature_group(
-    *,
-    feature_group: Any,
-    contract: FeatureGroupContract,
-) -> pd.DataFrame:
-    """Read and normalize one complete Hopsworks feature group."""
-
-    try:
-        dataframe = feature_group.read(
-            dataframe_type="pandas"
-        )
-    except Exception as error:
-        raise TrainingDatasetRefreshError(
-            "Could not read feature group "
-            f"{contract.name}."
-        ) from error
-
-    if dataframe is None or dataframe.empty:
-        raise TrainingDatasetRefreshError(
-            f"Feature group is empty: {contract.name}"
-        )
-
-    dataframe.columns = [
-        str(column).lower()
-        for column in dataframe.columns
-    ]
-
-    missing_columns = sorted(
-        set(contract.feature_names).difference(
-            dataframe.columns
-        )
-    )
-
-    if missing_columns:
-        raise TrainingDatasetRefreshError(
-            f"{contract.name} is missing columns: "
-            f"{missing_columns}"
-        )
-
-    result = dataframe[
-        contract.feature_names
-    ].copy()
-
-    result[
-        contract.event_time
-    ] = normalize_utc_hour(
-        result[contract.event_time]
-    )
-
-    logical_key = list(
-        dict.fromkeys(
-            [
-                *contract.primary_key,
-                contract.event_time,
-            ]
-        )
-    )
-
-    result = (
-        result.sort_values(
-            contract.event_time
-        )
-        .drop_duplicates(
-            subset=logical_key,
-            keep="last",
-        )
-        .reset_index(drop=True)
-    )
-
-    return result
-
-
 def build_contracts(
     settings: MLOpsSettings,
 ) -> tuple[
@@ -240,60 +170,103 @@ def build_contracts(
     return contracts, model_feature_columns
 
 
-def read_hopsworks_sources(
+def read_feature_dataset(
     *,
-    settings: MLOpsSettings,
+    repository: FeatureRepository,
+    contract: FeatureGroupContract,
+) -> pd.DataFrame:
+    """Read and normalize one complete feature dataset."""
+
+    try:
+        dataframe = (
+            repository.read_dataset(
+                contract=contract
+            )
+        )
+    except Exception as error:
+        raise TrainingDatasetRefreshError(
+            "Could not read feature dataset "
+            f"{contract.name}."
+        ) from error
+
+    if dataframe.empty:
+        raise TrainingDatasetRefreshError(
+            f"Feature dataset is empty: "
+            f"{contract.name}"
+        )
+
+    missing_columns = sorted(
+        set(
+            contract.feature_names
+        ).difference(
+            dataframe.columns
+        )
+    )
+
+    if missing_columns:
+        raise TrainingDatasetRefreshError(
+            f"{contract.name} is missing "
+            f"columns: {missing_columns}"
+        )
+
+    result = dataframe[
+        contract.feature_names
+    ].copy()
+
+    result[
+        contract.event_time
+    ] = normalize_utc_hour(
+        result[
+            contract.event_time
+        ]
+    )
+
+    logical_key = list(
+        dict.fromkeys(
+            [
+                *contract.primary_key,
+                contract.event_time,
+            ]
+        )
+    )
+
+    return (
+        result
+        .sort_values(
+            contract.event_time
+        )
+        .drop_duplicates(
+            subset=logical_key,
+            keep="last",
+        )
+        .reset_index(
+            drop=True
+        )
+    )
+
+
+def read_feature_sources(
+    *,
+    repository: FeatureRepository,
     contracts: dict[
         str,
         FeatureGroupContract,
     ],
 ) -> dict[str, pd.DataFrame]:
-    """Read the latest three production feature groups."""
-
-    if (
-        settings.feature_store_backend
-        != FeatureStoreBackend.HOPSWORKS
-    ):
-        raise TrainingDatasetRefreshError(
-            "FEATURE_STORE_BACKEND must be hopsworks."
-        )
-
-    resources = connect_to_hopsworks(
-        settings
-    )
-
-    if resources.feature_store is None:
-        raise TrainingDatasetRefreshError(
-            "Hopsworks Feature Store was not resolved."
-        )
-
-    feature_store = resources.feature_store
-
-    handles = {
-        "pm25": feature_store.get_feature_group(
-            name=contracts["pm25"].name,
-            version=contracts["pm25"].version,
-        ),
-        "weather": feature_store.get_feature_group(
-            name=contracts["weather"].name,
-            version=contracts["weather"].version,
-        ),
-        "engineered": (
-            feature_store.get_feature_group(
-                name=contracts["engineered"].name,
-                version=contracts[
-                    "engineered"
-                ].version,
-            )
-        ),
-    }
+    """Read the latest three production feature datasets."""
 
     return {
-        name: read_feature_group(
-            feature_group=handles[name],
-            contract=contracts[name],
+        name: read_feature_dataset(
+            repository=repository,
+            contract=contracts[
+                name
+            ],
         )
-        for name in handles
+        for name in (
+            "pm25",
+            "weather",
+            "engineered",
+        )
     }
 
 
@@ -335,7 +308,7 @@ def prepare_pm25_lookup(
 def prepare_weather_lookup(
     dataframe: pd.DataFrame,
 ) -> pd.DataFrame:
-    """Rename Hopsworks weather columns to the model schema."""
+    """Rename weather contract columns to the model schema."""
 
     required_columns = {
         "datetime_utc",
@@ -1148,8 +1121,13 @@ def run_training_dataset_refresh(
         build_contracts(settings)
     )
 
-    sources = read_hopsworks_sources(
+    repository = create_feature_repository(
         settings=settings,
+        contracts=contracts,
+    )
+
+    sources = read_feature_sources(
+        repository=repository,
         contracts=contracts,
     )
 
@@ -1220,7 +1198,10 @@ def run_training_dataset_refresh(
         "generated_at_utc": datetime.now(
             timezone.utc
         ).isoformat(),
-        "source": "Hopsworks Feature Store",
+        "source": repository.source_label,
+        "feature_repository_backend": (
+            repository.backend_name
+        ),
         "feature_count": len(
             model_feature_columns
         ),
@@ -1287,6 +1268,10 @@ def run_training_dataset_refresh(
         "pipeline_run_id": run_id,
         "status": (
             "TRAINING_DATASET_REFRESH_COMPLETED"
+        ),
+        "source": repository.source_label,
+        "feature_repository_backend": (
+            repository.backend_name
         ),
         "started_at_utc": (
             started_at.isoformat()
@@ -1386,7 +1371,8 @@ def main() -> int:
     parser = argparse.ArgumentParser(
         description=(
             "Build fresh leakage-safe PM2.5 "
-            "retraining datasets from Hopsworks."
+            "retraining datasets from the configured "
+            "feature repository."
         )
     )
 

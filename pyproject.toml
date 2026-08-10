@@ -18,6 +18,7 @@ dependencies = [
     "pydantic-settings>=2.14.2",
     "azure-identity>=1.25.0",
     "azure-storage-blob>=12.28.0",
+    "azure-communication-email>=1.1.0",
 ]
 
 [dependency-groups]

@@ -22,7 +22,13 @@ RETRY_LIMIT="${AZURE_RETRAINING_RETRY_LIMIT:-1}"
 STORAGE_ACCOUNT="${AZURE_STORAGE_ACCOUNT:-stpearlsaqiriyan}"
 STORAGE_CONTAINER="${AZURE_STORAGE_CONTAINER:-artifacts}"
 
-IMAGE_TAG="${PIPELINE_IMAGE_TAG:-$(git rev-parse HEAD)}"
+IMAGE_TAG="${PIPELINE_IMAGE_TAG:-}"
+
+if [[ -z "${IMAGE_TAG}" ]]; then
+  echo "PIPELINE_IMAGE_TAG must be set to an existing ACR image tag." >&2
+  exit 1
+fi
+
 IMAGE="${ACR_SERVER}/${IMAGE_REPOSITORY}:${IMAGE_TAG}"
 
 required_environment_variables=(

@@ -2,815 +2,839 @@
 
 set -Eeuo pipefail
 
+# -----------------------------------------------------------------------------
+# Production scheduled jobs deployment
+# -----------------------------------------------------------------------------
+#
+# Deploys or updates the four production Container Apps Jobs without requiring
+# Hopsworks:
+#
+#   - hourly feature synchronization
+#   - 6-hour forecast publication
+#   - daily retraining
+#   - hourly production monitoring + ACS email notification
+#
+# Production reuses the shared Container Apps Environment in the staging
+# resource group because the Azure for Students subscription has a single
+# Container Apps Environment quota.
+#
+# This script is intentionally idempotent:
+#   - missing jobs are created
+#   - existing jobs are updated in place
+#   - schedules are explicitly patched after update
+#   - legacy Hopsworks/webhook configuration is removed
+#
+# IMPORTANT:
+# PIPELINE_IMAGE_TAG (or RELEASE_SHA) must point to an image that already exists
+# in ACR. The script does not default to the current Git HEAD because script-only
+# commits do not necessarily have a matching container image.
+# -----------------------------------------------------------------------------
 
-# ---------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # Configuration
-# ---------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 
 PRODUCTION_RESOURCE_GROUP="${PRODUCTION_RESOURCE_GROUP:-rg-pearls-aqi-prod}"
-SOURCE_RESOURCE_GROUP="${SOURCE_RESOURCE_GROUP:-rg-pearls-aqi-staging}"
+
 ENVIRONMENT_NAME="${ENVIRONMENT_NAME:-cae-pearls-aqi-staging}"
 ENVIRONMENT_RESOURCE_GROUP="${ENVIRONMENT_RESOURCE_GROUP:-rg-pearls-aqi-staging}"
+
 IDENTITY_NAME="${IDENTITY_NAME:-id-pearls-aqi-prod}"
 
 ACR_NAME="${ACR_NAME:-walpole}"
 ACR_SERVER="${ACR_SERVER:-walpole.azurecr.io}"
+PIPELINE_IMAGE_REPOSITORY="${PIPELINE_IMAGE_REPOSITORY:-pearls-aqi/pipeline}"
 
 STORAGE_ACCOUNT="${STORAGE_ACCOUNT:-stpearlsaqiriyan}"
+STORAGE_RESOURCE_GROUP="${STORAGE_RESOURCE_GROUP:-rg-pearls-aqi-staging}"
 STORAGE_CONTAINER="${STORAGE_CONTAINER:-artifacts-prod}"
 
-RELEASE_SHA="${RELEASE_SHA:-$(git rev-parse HEAD)}"
-PIPELINE_IMAGE="${ACR_SERVER}/pearls-aqi/pipeline:${RELEASE_SHA}"
+FEATURE_STORE_PREFIX="${FEATURE_STORE_PREFIX:-feature-store}"
+MODEL_REGISTRY_PREFIX="${MODEL_REGISTRY_PREFIX:-model-registry}"
 
-AZURE_RETRY_ATTEMPTS="${AZURE_RETRY_ATTEMPTS:-5}"
-AZURE_RETRY_DELAY_SECONDS="${AZURE_RETRY_DELAY_SECONDS:-10}"
+FEATURE_JOB="${FEATURE_JOB:-job-pearls-aqi-features-prod}"
+FORECAST_JOB="${FORECAST_JOB:-job-pearls-aqi-forecast-prod}"
+RETRAINING_JOB="${RETRAINING_JOB:-job-pearls-aqi-retraining-prod}"
+MONITORING_JOB="${MONITORING_JOB:-job-pearls-aqi-monitoring-prod}"
 
-SOURCE_FEATURE_JOB="job-pearls-aqi-features"
-SOURCE_FORECAST_JOB="job-pearls-aqi-forecast"
-SOURCE_RETRAINING_JOB="job-pearls-aqi-retraining"
-SOURCE_MONITORING_JOB="job-pearls-aqi-monitoring"
+FEATURE_CRON="${FEATURE_CRON:-15 * * * *}"
+FORECAST_CRON="${FORECAST_CRON:-0 */6 * * *}"
+RETRAINING_CRON="${RETRAINING_CRON:-30 3 * * *}"
+MONITORING_CRON="${MONITORING_CRON:-45 * * * *}"
 
-FEATURE_JOB="job-pearls-aqi-features-prod"
-FORECAST_JOB="job-pearls-aqi-forecast-prod"
-RETRAINING_JOB="job-pearls-aqi-retraining-prod"
-MONITORING_JOB="job-pearls-aqi-monitoring-prod"
+FEATURE_CPU="${FEATURE_CPU:-0.5}"
+FEATURE_MEMORY="${FEATURE_MEMORY:-1.0Gi}"
+FEATURE_TIMEOUT="${FEATURE_TIMEOUT:-2700}"
 
+FORECAST_CPU="${FORECAST_CPU:-0.5}"
+FORECAST_MEMORY="${FORECAST_MEMORY:-1.0Gi}"
+FORECAST_TIMEOUT="${FORECAST_TIMEOUT:-1800}"
 
-# ---------------------------------------------------------------------------
-# Required secrets
-# ---------------------------------------------------------------------------
+RETRAINING_CPU="${RETRAINING_CPU:-1.0}"
+RETRAINING_MEMORY="${RETRAINING_MEMORY:-2.0Gi}"
+RETRAINING_TIMEOUT="${RETRAINING_TIMEOUT:-3600}"
+
+MONITORING_CPU="${MONITORING_CPU:-0.5}"
+MONITORING_MEMORY="${MONITORING_MEMORY:-1.0Gi}"
+MONITORING_TIMEOUT="${MONITORING_TIMEOUT:-600}"
+
+REPLICA_RETRY_LIMIT="${REPLICA_RETRY_LIMIT:-1}"
+
+IMAGE_TAG="${PIPELINE_IMAGE_TAG:-${RELEASE_SHA:-}}"
+
+if [[ -z "${IMAGE_TAG}" ]]; then
+  echo \
+    "PIPELINE_IMAGE_TAG or RELEASE_SHA must be set to an immutable ACR image tag." \
+    >&2
+  exit 1
+fi
+
+PIPELINE_IMAGE="${ACR_SERVER}/${PIPELINE_IMAGE_REPOSITORY}:${IMAGE_TAG}"
+
+# -----------------------------------------------------------------------------
+# Required runtime values
+# -----------------------------------------------------------------------------
 
 required_variables=(
-    OPENAQ_API_KEY
-    HOPSWORKS_API_KEY
-    HOPSWORKS_PROJECT
-    HOPSWORKS_HOST
+  OPENAQ_API_KEY
+  PRODUCTION_HEALTH_EMAIL_ENDPOINT
+  PRODUCTION_HEALTH_EMAIL_SENDER
+  PRODUCTION_HEALTH_EMAIL_RECIPIENT
 )
 
 for variable_name in "${required_variables[@]}"; do
-    if [[ -z "${!variable_name:-}" ]]; then
-        echo "Missing required variable: ${variable_name}" >&2
-        exit 1
-    fi
+  if [[ -z "${!variable_name:-}" ]]; then
+    echo "Missing required environment variable: ${variable_name}" >&2
+    exit 1
+  fi
 done
 
-
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
-
-retry_command() {
-    local attempt=1
-
-    while (( attempt <= AZURE_RETRY_ATTEMPTS )); do
-        if "$@"; then
-            return 0
-        fi
-
-        if (( attempt == AZURE_RETRY_ATTEMPTS )); then
-            echo "Command failed after ${AZURE_RETRY_ATTEMPTS} attempts:" >&2
-            printf '  %q' "$@" >&2
-            echo >&2
-            return 1
-        fi
-
-        echo \
-            "Azure command failed on attempt ${attempt}/${AZURE_RETRY_ATTEMPTS}; " \
-            "retrying in ${AZURE_RETRY_DELAY_SECONDS}s..." \
-            >&2
-
-        sleep "${AZURE_RETRY_DELAY_SECONDS}"
-        attempt=$((attempt + 1))
-    done
-}
-
-
-source_value() {
-    local job_name="$1"
-    local query="$2"
-
-    retry_command \
-        az containerapp job show \
-        --resource-group "${SOURCE_RESOURCE_GROUP}" \
-        --name "${job_name}" \
-        --query "${query}" \
-        --output tsv
-}
-
+# -----------------------------------------------------------------------------
+# Azure helpers
+# -----------------------------------------------------------------------------
 
 job_exists() {
-    local job_name="$1"
+  local job_name="$1"
 
-    az containerapp job show \
-        --resource-group "${PRODUCTION_RESOURCE_GROUP}" \
-        --name "${job_name}" \
-        --output none \
-        >/dev/null 2>&1
+  az containerapp job show \
+    --resource-group "${PRODUCTION_RESOURCE_GROUP}" \
+    --name "${job_name}" \
+    --output none \
+    >/dev/null 2>&1
 }
 
+ensure_role_assignment() {
+  local role_name="$1"
+  local scope="$2"
 
-delete_existing_job() {
-    local job_name="$1"
+  local assignment_count
 
-    if job_exists "${job_name}"; then
-        echo "Deleting existing ${job_name}..."
+  assignment_count="$(
+    az role assignment list \
+      --assignee-object-id "${IDENTITY_PRINCIPAL_ID}" \
+      --scope "${scope}" \
+      --role "${role_name}" \
+      --query 'length(@)' \
+      --output tsv
+  )"
 
-        retry_command \
-            az containerapp job delete \
-            --resource-group "${PRODUCTION_RESOURCE_GROUP}" \
-            --name "${job_name}" \
-            --yes \
-            --output none
-    fi
+  if [[ "${assignment_count}" == "0" ]]; then
+    echo "Assigning ${role_name} at ${scope}"
+
+    az role assignment create \
+      --assignee-object-id "${IDENTITY_PRINCIPAL_ID}" \
+      --assignee-principal-type ServicePrincipal \
+      --role "${role_name}" \
+      --scope "${scope}" \
+      --output none
+  else
+    echo "${role_name} already assigned."
+  fi
 }
 
+patch_schedule() {
+  local job_name="$1"
+  local cron_expression="$2"
+  local timeout_seconds="$3"
 
-deploy_job_from_yaml() {
-    local job_name="$1"
-    local yaml_file="$2"
-    local attempt=1
-    local state=""
-
-    while (( attempt <= AZURE_RETRY_ATTEMPTS )); do
-        echo \
-            "Deploying ${job_name} " \
-            "(attempt ${attempt}/${AZURE_RETRY_ATTEMPTS})..."
-
-        if az containerapp job create \
-            --resource-group "${PRODUCTION_RESOURCE_GROUP}" \
-            --name "${job_name}" \
-            --yaml "${yaml_file}" \
-            --output none
-        then
-            return 0
-        fi
-
-        # A connection reset can happen after Azure accepts the request.
-        # Check whether the resource was created before retrying.
-        state="$(
-            az containerapp job show \
-                --resource-group "${PRODUCTION_RESOURCE_GROUP}" \
-                --name "${job_name}" \
-                --query properties.provisioningState \
-                --output tsv \
-                2>/dev/null \
-                || true
-        )"
-
-        if [[ "${state}" == "Succeeded" ]]; then
-            echo \
-                "${job_name} exists and provisioning succeeded " \
-                "despite the client-side error."
-            return 0
-        fi
-
-        if (( attempt == AZURE_RETRY_ATTEMPTS )); then
-            echo \
-                "Failed to deploy ${job_name} after " \
-                "${AZURE_RETRY_ATTEMPTS} attempts." \
-                >&2
-            return 1
-        fi
-
-        if job_exists "${job_name}"; then
-            echo \
-                "${job_name} exists in state '${state:-unknown}'. " \
-                "Deleting it before retry..."
-
-            retry_command \
-                az containerapp job delete \
-                --resource-group "${PRODUCTION_RESOURCE_GROUP}" \
-                --name "${job_name}" \
-                --yes \
-                --output none
-        fi
-
-        sleep "${AZURE_RETRY_DELAY_SECONDS}"
-        attempt=$((attempt + 1))
-    done
+  az rest \
+    --method PATCH \
+    --uri "https://management.azure.com/subscriptions/${SUBSCRIPTION_ID}/resourceGroups/${PRODUCTION_RESOURCE_GROUP}/providers/Microsoft.App/jobs/${job_name}?api-version=2025-07-01" \
+    --headers "Content-Type=application/json" \
+    --body "{
+      \"properties\": {
+        \"configuration\": {
+          \"triggerType\": \"Schedule\",
+          \"replicaTimeout\": ${timeout_seconds},
+          \"replicaRetryLimit\": ${REPLICA_RETRY_LIMIT},
+          \"scheduleTriggerConfig\": {
+            \"cronExpression\": \"${cron_expression}\",
+            \"parallelism\": 1,
+            \"replicaCompletionCount\": 1
+          }
+        }
+      }
+    }" \
+    --output none
 }
 
+remove_legacy_env_vars() {
+  local job_name="$1"
+  shift
 
-validate_deployed_job() {
-    local job_name="$1"
+  if (( $# == 0 )); then
+    return 0
+  fi
 
-    retry_command \
-        az containerapp job show \
-        --resource-group "${PRODUCTION_RESOURCE_GROUP}" \
-        --name "${job_name}" \
-        --query '{
-            name:name,
-            state:properties.provisioningState,
-            environmentId:properties.environmentId,
-            image:properties.template.containers[0].image
-        }' \
-        --output json
+  az containerapp job update \
+    --resource-group "${PRODUCTION_RESOURCE_GROUP}" \
+    --name "${job_name}" \
+    --remove-env-vars "$@" \
+    --output none \
+    2>/dev/null || true
 }
 
+remove_legacy_secrets() {
+  local job_name="$1"
+  shift
 
-# ---------------------------------------------------------------------------
+  if (( $# == 0 )); then
+    return 0
+  fi
+
+  az containerapp job secret remove \
+    --resource-group "${PRODUCTION_RESOURCE_GROUP}" \
+    --name "${job_name}" \
+    --secret-names "$@" \
+    --output none \
+    2>/dev/null || true
+}
+
+verify_job() {
+  local job_name="$1"
+
+  az containerapp job show \
+    --resource-group "${PRODUCTION_RESOURCE_GROUP}" \
+    --name "${job_name}" \
+    --query '{
+      name:name,
+      provisioningState:properties.provisioningState,
+      triggerType:properties.configuration.triggerType,
+      cron:properties.configuration.scheduleTriggerConfig.cronExpression,
+      image:properties.template.containers[0].image,
+      command:properties.template.containers[0].command
+    }' \
+    --output json
+}
+
+# -----------------------------------------------------------------------------
 # Preflight
-# ---------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 
-echo "Validating production scheduled-job deployment..."
+echo "Validating production job deployment prerequisites..."
 
-retry_command \
-    az account show \
-    --output none
+az account show --output none
 
-# This file may intentionally be modified locally as a deployment-only
-# workaround. RELEASE_SHA still pins the immutable Docker image, so local
-# uncommitted script changes are not included in the deployed image.
-if [[ -n "$(git status --porcelain)" ]]; then
-    echo
-    echo "WARNING: Working tree is not clean."
-    echo "Only this already-built immutable image will be deployed:"
-    echo "  ${PIPELINE_IMAGE}"
-    echo "Uncommitted local files are NOT inside that image."
-    echo
-fi
-
-if ! retry_command \
-    az acr repository show \
-    --name "${ACR_NAME}" \
-    --image "pearls-aqi/pipeline:${RELEASE_SHA}" \
-    --output none
-then
-    echo "Production pipeline image does not exist: ${PIPELINE_IMAGE}" >&2
-    exit 1
-fi
-
-
-# ---------------------------------------------------------------------------
-# Resolve Azure infrastructure
-# ---------------------------------------------------------------------------
+SUBSCRIPTION_ID="$(
+  az account show \
+    --query id \
+    --output tsv
+)"
 
 ENVIRONMENT_RESOURCE_ID="$(
-    retry_command \
-        az containerapp env show \
-        --resource-group "${ENVIRONMENT_RESOURCE_GROUP}" \
-        --name "${ENVIRONMENT_NAME}" \
-        --query id \
-        --output tsv
+  az containerapp env show \
+    --resource-group "${ENVIRONMENT_RESOURCE_GROUP}" \
+    --name "${ENVIRONMENT_NAME}" \
+    --query id \
+    --output tsv
 )"
 
 IDENTITY_RESOURCE_ID="$(
-    retry_command \
-        az identity show \
-        --resource-group "${PRODUCTION_RESOURCE_GROUP}" \
-        --name "${IDENTITY_NAME}" \
-        --query id \
-        --output tsv
+  az identity show \
+    --resource-group "${PRODUCTION_RESOURCE_GROUP}" \
+    --name "${IDENTITY_NAME}" \
+    --query id \
+    --output tsv
 )"
 
 IDENTITY_CLIENT_ID="$(
-    retry_command \
-        az identity show \
-        --resource-group "${PRODUCTION_RESOURCE_GROUP}" \
-        --name "${IDENTITY_NAME}" \
-        --query clientId \
-        --output tsv
+  az identity show \
+    --resource-group "${PRODUCTION_RESOURCE_GROUP}" \
+    --name "${IDENTITY_NAME}" \
+    --query clientId \
+    --output tsv
 )"
 
-SUBSCRIPTION_ID="$(
-    retry_command \
-        az account show \
-        --query id \
-        --output tsv
+IDENTITY_PRINCIPAL_ID="$(
+  az identity show \
+    --resource-group "${PRODUCTION_RESOURCE_GROUP}" \
+    --name "${IDENTITY_NAME}" \
+    --query principalId \
+    --output tsv
 )"
 
-ENVIRONMENT_STATE="$(
-    retry_command \
-        az containerapp env show \
-        --resource-group "${ENVIRONMENT_RESOURCE_GROUP}" \
-        --name "${ENVIRONMENT_NAME}" \
-        --query properties.provisioningState \
-        --output tsv
+ACR_RESOURCE_ID="$(
+  az acr show \
+    --name "${ACR_NAME}" \
+    --query id \
+    --output tsv
 )"
 
-if [[ "${ENVIRONMENT_STATE}" != "Succeeded" ]]; then
-    echo \
-        "Shared Container Apps environment is not ready: ${ENVIRONMENT_STATE}" \
-        >&2
-    exit 1
-fi
-
-
-echo
-echo "Using shared Container Apps environment:"
-echo "  ${ENVIRONMENT_RESOURCE_ID}"
-echo
-echo "Using immutable pipeline image:"
-echo "  ${PIPELINE_IMAGE}"
-
-
-# ---------------------------------------------------------------------------
-# Resolve proven staging resource profiles
-# ---------------------------------------------------------------------------
-
-FEATURE_CPU="$(
-    source_value \
-        "${SOURCE_FEATURE_JOB}" \
-        'properties.template.containers[0].resources.cpu'
+STORAGE_RESOURCE_ID="$(
+  az storage account show \
+    --resource-group "${STORAGE_RESOURCE_GROUP}" \
+    --name "${STORAGE_ACCOUNT}" \
+    --query id \
+    --output tsv
 )"
 
-FEATURE_MEMORY="$(
-    source_value \
-        "${SOURCE_FEATURE_JOB}" \
-        'properties.template.containers[0].resources.memory'
+PRODUCTION_RESOURCE_GROUP_ID="$(
+  az group show \
+    --name "${PRODUCTION_RESOURCE_GROUP}" \
+    --query id \
+    --output tsv
 )"
 
-FORECAST_CPU="$(
-    source_value \
-        "${SOURCE_FORECAST_JOB}" \
-        'properties.template.containers[0].resources.cpu'
-)"
-
-FORECAST_MEMORY="$(
-    source_value \
-        "${SOURCE_FORECAST_JOB}" \
-        'properties.template.containers[0].resources.memory'
-)"
-
-RETRAINING_CPU="$(
-    source_value \
-        "${SOURCE_RETRAINING_JOB}" \
-        'properties.template.containers[0].resources.cpu'
-)"
-
-RETRAINING_MEMORY="$(
-    source_value \
-        "${SOURCE_RETRAINING_JOB}" \
-        'properties.template.containers[0].resources.memory'
-)"
-
-MONITORING_CPU="$(
-    source_value \
-        "${SOURCE_MONITORING_JOB}" \
-        'properties.template.containers[0].resources.cpu'
-)"
-
-MONITORING_MEMORY="$(
-    source_value \
-        "${SOURCE_MONITORING_JOB}" \
-        'properties.template.containers[0].resources.memory'
-)"
-
-
-echo
-echo "Resolved workload profiles:"
-echo "Features:   ${FEATURE_CPU} CPU / ${FEATURE_MEMORY}"
-echo "Forecast:   ${FORECAST_CPU} CPU / ${FORECAST_MEMORY}"
-echo "Retraining: ${RETRAINING_CPU} CPU / ${RETRAINING_MEMORY}"
-echo "Monitoring: ${MONITORING_CPU} CPU / ${MONITORING_MEMORY}"
-
-
-# ---------------------------------------------------------------------------
-# Temporary YAML files
-# ---------------------------------------------------------------------------
-
-JOB_YAML_DIR="$(mktemp -d)"
-chmod 700 "${JOB_YAML_DIR}"
-
-cleanup() {
-    rm -rf "${JOB_YAML_DIR}"
-}
-
-trap cleanup EXIT
-
-
-# ---------------------------------------------------------------------------
-# Hourly features YAML
-# ---------------------------------------------------------------------------
-
-FEATURE_YAML="${JOB_YAML_DIR}/features.yaml"
-
-cat >"${FEATURE_YAML}" <<EOF_YAML
-identity:
-  type: UserAssigned
-  userAssignedIdentities:
-    "${IDENTITY_RESOURCE_ID}": {}
-
-properties:
-  environmentId: "${ENVIRONMENT_RESOURCE_ID}"
-
-  configuration:
-    triggerType: Schedule
-    replicaTimeout: 900
-    replicaRetryLimit: 1
-
-    scheduleTriggerConfig:
-      cronExpression: "15 * * * *"
-      parallelism: 1
-      replicaCompletionCount: 1
-
-    registries:
-      - server: "${ACR_SERVER}"
-        identity: "${IDENTITY_RESOURCE_ID}"
-
-    secrets:
-      - name: openaq-api-key
-        value: "${OPENAQ_API_KEY}"
-      - name: hopsworks-api-key
-        value: "${HOPSWORKS_API_KEY}"
-
-  template:
-    containers:
-      - name: hourly-features
-        image: "${PIPELINE_IMAGE}"
-        command:
-          - "/app/bin/run_hourly_features"
-        resources:
-          cpu: ${FEATURE_CPU}
-          memory: "${FEATURE_MEMORY}"
-        env:
-          - name: APP_ENV
-            value: production
-          - name: SERVICE_ROLE
-            value: hourly_features
-          - name: AZURE_CLIENT_ID
-            value: "${IDENTITY_CLIENT_ID}"
-          - name: FEATURE_STORE_BACKEND
-            value: hopsworks
-          - name: MODEL_REGISTRY_BACKEND
-            value: hopsworks
-          - name: MLOPS_DRY_RUN
-            value: "false"
-          - name: OPENAQ_API_KEY
-            secretRef: openaq-api-key
-          - name: HOPSWORKS_API_KEY
-            secretRef: hopsworks-api-key
-          - name: HOPSWORKS_PROJECT
-            value: "${HOPSWORKS_PROJECT}"
-          - name: HOPSWORKS_HOST
-            value: "${HOPSWORKS_HOST}"
-
-tags:
-  project: pearls-aqi
-  environment: production
-  workload: hourly-features
-  release: "${RELEASE_SHA}"
-EOF_YAML
-
-
-# ---------------------------------------------------------------------------
-# Forecast YAML
-# ---------------------------------------------------------------------------
-
-FORECAST_YAML="${JOB_YAML_DIR}/forecast.yaml"
-
-cat >"${FORECAST_YAML}" <<EOF_YAML
-identity:
-  type: UserAssigned
-  userAssignedIdentities:
-    "${IDENTITY_RESOURCE_ID}": {}
-
-properties:
-  environmentId: "${ENVIRONMENT_RESOURCE_ID}"
-
-  configuration:
-    triggerType: Schedule
-    replicaTimeout: 1800
-    replicaRetryLimit: 1
-
-    scheduleTriggerConfig:
-      cronExpression: "0 */6 * * *"
-      parallelism: 1
-      replicaCompletionCount: 1
-
-    registries:
-      - server: "${ACR_SERVER}"
-        identity: "${IDENTITY_RESOURCE_ID}"
-
-    secrets:
-      - name: openaq-api-key
-        value: "${OPENAQ_API_KEY}"
-      - name: hopsworks-api-key
-        value: "${HOPSWORKS_API_KEY}"
-
-  template:
-    containers:
-      - name: forecast-publication
-        image: "${PIPELINE_IMAGE}"
-        resources:
-          cpu: ${FORECAST_CPU}
-          memory: "${FORECAST_MEMORY}"
-        env:
-          - name: APP_ENV
-            value: production
-          - name: SERVICE_ROLE
-            value: forecast
-          - name: AZURE_CLIENT_ID
-            value: "${IDENTITY_CLIENT_ID}"
-          - name: ARTIFACT_BACKEND
-            value: azure_blob
-          - name: AZURE_STORAGE_ACCOUNT
-            value: "${STORAGE_ACCOUNT}"
-          - name: AZURE_STORAGE_CONTAINER
-            value: "${STORAGE_CONTAINER}"
-          - name: FEATURE_STORE_BACKEND
-            value: hopsworks
-          - name: MODEL_REGISTRY_BACKEND
-            value: hopsworks
-          - name: MLOPS_DRY_RUN
-            value: "false"
-          - name: OPENAQ_API_KEY
-            secretRef: openaq-api-key
-          - name: HOPSWORKS_API_KEY
-            secretRef: hopsworks-api-key
-          - name: HOPSWORKS_PROJECT
-            value: "${HOPSWORKS_PROJECT}"
-          - name: HOPSWORKS_HOST
-            value: "${HOPSWORKS_HOST}"
-
-tags:
-  project: pearls-aqi
-  environment: production
-  workload: forecast-publication
-  release: "${RELEASE_SHA}"
-EOF_YAML
-
-
-# ---------------------------------------------------------------------------
-# Retraining YAML
-# ---------------------------------------------------------------------------
-
-RETRAINING_YAML="${JOB_YAML_DIR}/retraining.yaml"
-
-cat >"${RETRAINING_YAML}" <<EOF_YAML
-identity:
-  type: UserAssigned
-  userAssignedIdentities:
-    "${IDENTITY_RESOURCE_ID}": {}
-
-properties:
-  environmentId: "${ENVIRONMENT_RESOURCE_ID}"
-
-  configuration:
-    triggerType: Schedule
-    replicaTimeout: 3600
-    replicaRetryLimit: 1
-
-    scheduleTriggerConfig:
-      cronExpression: "30 3 * * *"
-      parallelism: 1
-      replicaCompletionCount: 1
-
-    registries:
-      - server: "${ACR_SERVER}"
-        identity: "${IDENTITY_RESOURCE_ID}"
-
-    secrets:
-      - name: hopsworks-api-key
-        value: "${HOPSWORKS_API_KEY}"
-
-  template:
-    containers:
-      - name: daily-retraining
-        image: "${PIPELINE_IMAGE}"
-        command:
-          - "/app/bin/run_daily_retraining"
-        resources:
-          cpu: ${RETRAINING_CPU}
-          memory: "${RETRAINING_MEMORY}"
-        env:
-          - name: APP_ENV
-            value: production
-          - name: SERVICE_ROLE
-            value: retraining
-          - name: AZURE_CLIENT_ID
-            value: "${IDENTITY_CLIENT_ID}"
-          - name: ARTIFACT_BACKEND
-            value: azure_blob
-          - name: AZURE_STORAGE_ACCOUNT
-            value: "${STORAGE_ACCOUNT}"
-          - name: AZURE_STORAGE_CONTAINER
-            value: "${STORAGE_CONTAINER}"
-          - name: FEATURE_STORE_BACKEND
-            value: hopsworks
-          - name: MODEL_REGISTRY_BACKEND
-            value: hopsworks
-          - name: MLOPS_DRY_RUN
-            value: "false"
-          - name: HOPSWORKS_API_KEY
-            secretRef: hopsworks-api-key
-          - name: HOPSWORKS_PROJECT
-            value: "${HOPSWORKS_PROJECT}"
-          - name: HOPSWORKS_HOST
-            value: "${HOPSWORKS_HOST}"
-
-tags:
-  project: pearls-aqi
-  environment: production
-  workload: daily-retraining
-  release: "${RELEASE_SHA}"
-EOF_YAML
-
-
-# ---------------------------------------------------------------------------
-# Monitoring YAML
-# ---------------------------------------------------------------------------
-
-MONITORING_YAML="${JOB_YAML_DIR}/monitoring.yaml"
-
-WEBHOOK_SECRET_BLOCK=""
-WEBHOOK_ENV_BLOCK=""
-WEBHOOK_TOKEN_SECRET_BLOCK=""
-WEBHOOK_TOKEN_ENV_BLOCK=""
-
-if [[ -n "${PRODUCTION_HEALTH_WEBHOOK_URL:-}" ]]; then
-    WEBHOOK_ENABLED="true"
-
-    WEBHOOK_SECRET_BLOCK="$(cat <<EOF_BLOCK
-      - name: production-health-webhook-url
-        value: "${PRODUCTION_HEALTH_WEBHOOK_URL}"
-EOF_BLOCK
-)"
-
-    WEBHOOK_ENV_BLOCK="$(cat <<EOF_BLOCK
-          - name: PRODUCTION_HEALTH_WEBHOOK_URL
-            secretRef: production-health-webhook-url
-EOF_BLOCK
-)"
-else
-    WEBHOOK_ENABLED="false"
-fi
-
-if [[ -n "${PRODUCTION_HEALTH_WEBHOOK_URL:-}" ]] \
-    && [[ -n "${PRODUCTION_HEALTH_WEBHOOK_BEARER_TOKEN:-}" ]]
+if ! az acr repository show \
+  --name "${ACR_NAME}" \
+  --image "${PIPELINE_IMAGE_REPOSITORY}:${IMAGE_TAG}" \
+  --output none \
+  >/dev/null 2>&1
 then
-    WEBHOOK_TOKEN_SECRET_BLOCK="$(cat <<EOF_BLOCK
-      - name: production-health-webhook-token
-        value: "${PRODUCTION_HEALTH_WEBHOOK_BEARER_TOKEN}"
-EOF_BLOCK
-)"
-
-    WEBHOOK_TOKEN_ENV_BLOCK="$(cat <<EOF_BLOCK
-          - name: PRODUCTION_HEALTH_WEBHOOK_BEARER_TOKEN
-            secretRef: production-health-webhook-token
-EOF_BLOCK
-)"
+  echo "Pipeline image does not exist in ACR: ${PIPELINE_IMAGE}" >&2
+  exit 1
 fi
 
-cat >"${MONITORING_YAML}" <<EOF_YAML
-identity:
-  type: UserAssigned
-  userAssignedIdentities:
-    "${IDENTITY_RESOURCE_ID}": {}
+echo "Using immutable image: ${PIPELINE_IMAGE}"
+echo "Using shared Container Apps Environment: ${ENVIRONMENT_RESOURCE_ID}"
 
-properties:
-  environmentId: "${ENVIRONMENT_RESOURCE_ID}"
+# The production identity pulls the private image.
+ensure_role_assignment \
+  "AcrPull" \
+  "${ACR_RESOURCE_ID}"
 
-  configuration:
-    triggerType: Schedule
-    replicaTimeout: 600
-    replicaRetryLimit: 1
+# Production workloads read/write durable Blob data.
+ensure_role_assignment \
+  "Storage Blob Data Contributor" \
+  "${STORAGE_RESOURCE_ID}"
 
-    scheduleTriggerConfig:
-      cronExpression: "45 * * * *"
-      parallelism: 1
-      replicaCompletionCount: 1
+# Monitoring inspects production Container Apps Jobs through ARM.
+ensure_role_assignment \
+  "Reader" \
+  "${PRODUCTION_RESOURCE_GROUP_ID}"
 
-    registries:
-      - server: "${ACR_SERVER}"
-        identity: "${IDENTITY_RESOURCE_ID}"
+# Azure Communication Services email RBAC is expected to be provisioned by
+# production infrastructure setup. This script configures the monitoring job
+# to use that already-authorized managed identity.
 
-    secrets:
-      - name: hopsworks-api-key
-        value: "${HOPSWORKS_API_KEY}"
-${WEBHOOK_SECRET_BLOCK}
-${WEBHOOK_TOKEN_SECRET_BLOCK}
-
-  template:
-    containers:
-      - name: production-monitor
-        image: "${PIPELINE_IMAGE}"
-        command:
-          - "/app/bin/run_production_health"
-        resources:
-          cpu: ${MONITORING_CPU}
-          memory: "${MONITORING_MEMORY}"
-        env:
-          - name: APP_ENV
-            value: production
-          - name: SERVICE_ROLE
-            value: monitoring
-          - name: AZURE_CLIENT_ID
-            value: "${IDENTITY_CLIENT_ID}"
-          - name: PRODUCTION_RESOURCE_GROUP
-            value: "${PRODUCTION_RESOURCE_GROUP}"
-          - name: FEATURE_JOB_NAME
-            value: "${FEATURE_JOB}"
-          - name: FORECAST_JOB_NAME
-            value: "${FORECAST_JOB}"
-          - name: RETRAINING_JOB_NAME
-            value: "${RETRAINING_JOB}"
-          - name: AZURE_SUBSCRIPTION_ID
-            value: "${SUBSCRIPTION_ID}"
-          - name: AZURE_JOB_QUERY_BACKEND
-            value: arm
-          - name: FEATURE_STORE_BACKEND
-            value: hopsworks
-          - name: MODEL_REGISTRY_BACKEND
-            value: hopsworks
-          - name: MLOPS_DRY_RUN
-            value: "false"
-          - name: HOPSWORKS_API_KEY
-            secretRef: hopsworks-api-key
-          - name: HOPSWORKS_PROJECT
-            value: "${HOPSWORKS_PROJECT}"
-          - name: HOPSWORKS_HOST
-            value: "${HOPSWORKS_HOST}"
-          - name: ARTIFACT_BACKEND
-            value: azure_blob
-          - name: AZURE_STORAGE_ACCOUNT
-            value: "${STORAGE_ACCOUNT}"
-          - name: AZURE_STORAGE_CONTAINER
-            value: "${STORAGE_CONTAINER}"
-          - name: PRODUCTION_HEALTH_WEBHOOK_ENABLED
-            value: "${WEBHOOK_ENABLED}"
-          - name: PRODUCTION_HEALTH_WEBHOOK_TIMEOUT_SECONDS
-            value: "15"
-${WEBHOOK_ENV_BLOCK}
-${WEBHOOK_TOKEN_ENV_BLOCK}
-
-tags:
-  project: pearls-aqi
-  environment: production
-  workload: production-monitoring
-  release: "${RELEASE_SHA}"
-EOF_YAML
-
-# These temporary files contain secret values.
-chmod 600 \
-    "${FEATURE_YAML}" \
-    "${FORECAST_YAML}" \
-    "${RETRAINING_YAML}" \
-    "${MONITORING_YAML}"
-
-
-# ---------------------------------------------------------------------------
-# Deploy jobs
-# ---------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+# 1. Hourly feature job
+# -----------------------------------------------------------------------------
 
 echo
-echo "Creating production hourly feature job..."
-delete_existing_job "${FEATURE_JOB}"
-deploy_job_from_yaml "${FEATURE_JOB}" "${FEATURE_YAML}"
+echo "Deploying production feature job: ${FEATURE_JOB}"
 
+FEATURE_ENV_VARS=(
+  "APP_ENV=production"
+  "SERVICE_ROLE=hourly_features"
+
+  "AZURE_CLIENT_ID=${IDENTITY_CLIENT_ID}"
+
+  "FEATURE_STORE_BACKEND=azure_blob"
+  "MLOPS_DRY_RUN=false"
+
+  "OPENAQ_API_KEY=secretref:openaq-api-key"
+
+  "AZURE_STORAGE_ACCOUNT=${STORAGE_ACCOUNT}"
+  "AZURE_STORAGE_CONTAINER=${STORAGE_CONTAINER}"
+  "AZURE_FEATURE_STORE_PREFIX=${FEATURE_STORE_PREFIX}"
+)
+
+if job_exists "${FEATURE_JOB}"; then
+  az containerapp job identity assign \
+    --resource-group "${PRODUCTION_RESOURCE_GROUP}" \
+    --name "${FEATURE_JOB}" \
+    --user-assigned "${IDENTITY_RESOURCE_ID}" \
+    --output none
+
+  az containerapp job secret set \
+    --resource-group "${PRODUCTION_RESOURCE_GROUP}" \
+    --name "${FEATURE_JOB}" \
+    --secrets \
+      "openaq-api-key=${OPENAQ_API_KEY}" \
+    --output none
+
+  az containerapp job update \
+    --resource-group "${PRODUCTION_RESOURCE_GROUP}" \
+    --name "${FEATURE_JOB}" \
+    --image "${PIPELINE_IMAGE}" \
+    --container-name hourly-features \
+    --cpu "${FEATURE_CPU}" \
+    --memory "${FEATURE_MEMORY}" \
+    --command "/app/bin/run_hourly_features" \
+    --set-env-vars "${FEATURE_ENV_VARS[@]}" \
+    --tags \
+      "project=pearls-aqi" \
+      "environment=production" \
+      "workload=hourly-features" \
+      "release=${IMAGE_TAG}" \
+    --output none
+else
+  az containerapp job create \
+    --resource-group "${PRODUCTION_RESOURCE_GROUP}" \
+    --name "${FEATURE_JOB}" \
+    --environment "${ENVIRONMENT_RESOURCE_ID}" \
+    --trigger-type Schedule \
+    --cron-expression "${FEATURE_CRON}" \
+    --replica-timeout "${FEATURE_TIMEOUT}" \
+    --replica-retry-limit "${REPLICA_RETRY_LIMIT}" \
+    --replica-completion-count 1 \
+    --parallelism 1 \
+    --cpu "${FEATURE_CPU}" \
+    --memory "${FEATURE_MEMORY}" \
+    --image "${PIPELINE_IMAGE}" \
+    --container-name hourly-features \
+    --command "/app/bin/run_hourly_features" \
+    --mi-user-assigned "${IDENTITY_RESOURCE_ID}" \
+    --registry-server "${ACR_SERVER}" \
+    --registry-identity "${IDENTITY_RESOURCE_ID}" \
+    --secrets \
+      "openaq-api-key=${OPENAQ_API_KEY}" \
+    --env-vars "${FEATURE_ENV_VARS[@]}" \
+    --tags \
+      "project=pearls-aqi" \
+      "environment=production" \
+      "workload=hourly-features" \
+      "release=${IMAGE_TAG}" \
+    --output none
+fi
+
+az containerapp job registry set \
+  --resource-group "${PRODUCTION_RESOURCE_GROUP}" \
+  --name "${FEATURE_JOB}" \
+  --server "${ACR_SERVER}" \
+  --identity "${IDENTITY_RESOURCE_ID}" \
+  --output none
+
+remove_legacy_env_vars \
+  "${FEATURE_JOB}" \
+  HOPSWORKS_API_KEY \
+  HOPSWORKS_PROJECT \
+  HOPSWORKS_HOST \
+  HOPSWORKS_PORT \
+  HOPSWORKS_ENGINE \
+  HOPSWORKS_HOSTNAME_VERIFICATION \
+  MODEL_REGISTRY_BACKEND
+
+remove_legacy_secrets \
+  "${FEATURE_JOB}" \
+  hopsworks-api-key
+
+patch_schedule \
+  "${FEATURE_JOB}" \
+  "${FEATURE_CRON}" \
+  "${FEATURE_TIMEOUT}"
+
+# -----------------------------------------------------------------------------
+# 2. Forecast publication job
+# -----------------------------------------------------------------------------
 
 echo
-echo "Creating production forecast job..."
-delete_existing_job "${FORECAST_JOB}"
-deploy_job_from_yaml "${FORECAST_JOB}" "${FORECAST_YAML}"
+echo "Deploying production forecast job: ${FORECAST_JOB}"
 
+FORECAST_ENV_VARS=(
+  "APP_ENV=production"
+  "SERVICE_ROLE=forecast"
+
+  "AZURE_CLIENT_ID=${IDENTITY_CLIENT_ID}"
+
+  "ARTIFACT_BACKEND=azure_blob"
+
+  "AZURE_STORAGE_ACCOUNT=${STORAGE_ACCOUNT}"
+  "AZURE_STORAGE_CONTAINER=${STORAGE_CONTAINER}"
+
+  "FEATURE_STORE_BACKEND=azure_blob"
+  "MODEL_REGISTRY_BACKEND=azure_blob"
+  "MODEL_LOADING_MODE=AZURE_BLOB_REGISTRY"
+
+  "AZURE_FEATURE_STORE_PREFIX=${FEATURE_STORE_PREFIX}"
+  "AZURE_MODEL_REGISTRY_PREFIX=${MODEL_REGISTRY_PREFIX}"
+
+  "MLOPS_DRY_RUN=false"
+
+  "OPENAQ_API_KEY=secretref:openaq-api-key"
+)
+
+if job_exists "${FORECAST_JOB}"; then
+  az containerapp job identity assign \
+    --resource-group "${PRODUCTION_RESOURCE_GROUP}" \
+    --name "${FORECAST_JOB}" \
+    --user-assigned "${IDENTITY_RESOURCE_ID}" \
+    --output none
+
+  az containerapp job secret set \
+    --resource-group "${PRODUCTION_RESOURCE_GROUP}" \
+    --name "${FORECAST_JOB}" \
+    --secrets \
+      "openaq-api-key=${OPENAQ_API_KEY}" \
+    --output none
+
+  az containerapp job update \
+    --resource-group "${PRODUCTION_RESOURCE_GROUP}" \
+    --name "${FORECAST_JOB}" \
+    --image "${PIPELINE_IMAGE}" \
+    --container-name forecast-publication \
+    --cpu "${FORECAST_CPU}" \
+    --memory "${FORECAST_MEMORY}" \
+    --set-env-vars "${FORECAST_ENV_VARS[@]}" \
+    --tags \
+      "project=pearls-aqi" \
+      "environment=production" \
+      "workload=forecast-publication" \
+      "release=${IMAGE_TAG}" \
+    --output none
+else
+  az containerapp job create \
+    --resource-group "${PRODUCTION_RESOURCE_GROUP}" \
+    --name "${FORECAST_JOB}" \
+    --environment "${ENVIRONMENT_RESOURCE_ID}" \
+    --trigger-type Schedule \
+    --cron-expression "${FORECAST_CRON}" \
+    --replica-timeout "${FORECAST_TIMEOUT}" \
+    --replica-retry-limit "${REPLICA_RETRY_LIMIT}" \
+    --replica-completion-count 1 \
+    --parallelism 1 \
+    --cpu "${FORECAST_CPU}" \
+    --memory "${FORECAST_MEMORY}" \
+    --image "${PIPELINE_IMAGE}" \
+    --container-name forecast-publication \
+    --mi-user-assigned "${IDENTITY_RESOURCE_ID}" \
+    --registry-server "${ACR_SERVER}" \
+    --registry-identity "${IDENTITY_RESOURCE_ID}" \
+    --secrets \
+      "openaq-api-key=${OPENAQ_API_KEY}" \
+    --env-vars "${FORECAST_ENV_VARS[@]}" \
+    --tags \
+      "project=pearls-aqi" \
+      "environment=production" \
+      "workload=forecast-publication" \
+      "release=${IMAGE_TAG}" \
+    --output none
+fi
+
+az containerapp job registry set \
+  --resource-group "${PRODUCTION_RESOURCE_GROUP}" \
+  --name "${FORECAST_JOB}" \
+  --server "${ACR_SERVER}" \
+  --identity "${IDENTITY_RESOURCE_ID}" \
+  --output none
+
+remove_legacy_env_vars \
+  "${FORECAST_JOB}" \
+  HOPSWORKS_API_KEY \
+  HOPSWORKS_PROJECT \
+  HOPSWORKS_HOST \
+  HOPSWORKS_PORT \
+  HOPSWORKS_ENGINE \
+  HOPSWORKS_HOSTNAME_VERIFICATION \
+  ALLOW_CACHED_REGISTRY_FALLBACK \
+  ALLOW_LOCAL_MODEL_FALLBACK
+
+remove_legacy_secrets \
+  "${FORECAST_JOB}" \
+  hopsworks-api-key
+
+patch_schedule \
+  "${FORECAST_JOB}" \
+  "${FORECAST_CRON}" \
+  "${FORECAST_TIMEOUT}"
+
+# -----------------------------------------------------------------------------
+# 3. Daily retraining job
+# -----------------------------------------------------------------------------
 
 echo
-echo "Creating production daily retraining job..."
-delete_existing_job "${RETRAINING_JOB}"
-deploy_job_from_yaml "${RETRAINING_JOB}" "${RETRAINING_YAML}"
+echo "Deploying production retraining job: ${RETRAINING_JOB}"
 
+RETRAINING_ENV_VARS=(
+  "APP_ENV=production"
+  "SERVICE_ROLE=retraining"
+
+  "AZURE_CLIENT_ID=${IDENTITY_CLIENT_ID}"
+
+  "ARTIFACT_BACKEND=azure_blob"
+
+  "AZURE_STORAGE_ACCOUNT=${STORAGE_ACCOUNT}"
+  "AZURE_STORAGE_CONTAINER=${STORAGE_CONTAINER}"
+
+  "FEATURE_STORE_BACKEND=azure_blob"
+  "MODEL_REGISTRY_BACKEND=azure_blob"
+
+  "AZURE_FEATURE_STORE_PREFIX=${FEATURE_STORE_PREFIX}"
+  "AZURE_MODEL_REGISTRY_PREFIX=${MODEL_REGISTRY_PREFIX}"
+
+  "MLOPS_DRY_RUN=false"
+)
+
+if job_exists "${RETRAINING_JOB}"; then
+  az containerapp job identity assign \
+    --resource-group "${PRODUCTION_RESOURCE_GROUP}" \
+    --name "${RETRAINING_JOB}" \
+    --user-assigned "${IDENTITY_RESOURCE_ID}" \
+    --output none
+
+  az containerapp job update \
+    --resource-group "${PRODUCTION_RESOURCE_GROUP}" \
+    --name "${RETRAINING_JOB}" \
+    --image "${PIPELINE_IMAGE}" \
+    --container-name daily-retraining \
+    --cpu "${RETRAINING_CPU}" \
+    --memory "${RETRAINING_MEMORY}" \
+    --command "/app/bin/run_daily_retraining" \
+    --set-env-vars "${RETRAINING_ENV_VARS[@]}" \
+    --tags \
+      "project=pearls-aqi" \
+      "environment=production" \
+      "workload=daily-retraining" \
+      "release=${IMAGE_TAG}" \
+    --output none
+else
+  az containerapp job create \
+    --resource-group "${PRODUCTION_RESOURCE_GROUP}" \
+    --name "${RETRAINING_JOB}" \
+    --environment "${ENVIRONMENT_RESOURCE_ID}" \
+    --trigger-type Schedule \
+    --cron-expression "${RETRAINING_CRON}" \
+    --replica-timeout "${RETRAINING_TIMEOUT}" \
+    --replica-retry-limit "${REPLICA_RETRY_LIMIT}" \
+    --replica-completion-count 1 \
+    --parallelism 1 \
+    --cpu "${RETRAINING_CPU}" \
+    --memory "${RETRAINING_MEMORY}" \
+    --image "${PIPELINE_IMAGE}" \
+    --container-name daily-retraining \
+    --command "/app/bin/run_daily_retraining" \
+    --mi-user-assigned "${IDENTITY_RESOURCE_ID}" \
+    --registry-server "${ACR_SERVER}" \
+    --registry-identity "${IDENTITY_RESOURCE_ID}" \
+    --env-vars "${RETRAINING_ENV_VARS[@]}" \
+    --tags \
+      "project=pearls-aqi" \
+      "environment=production" \
+      "workload=daily-retraining" \
+      "release=${IMAGE_TAG}" \
+    --output none
+fi
+
+az containerapp job registry set \
+  --resource-group "${PRODUCTION_RESOURCE_GROUP}" \
+  --name "${RETRAINING_JOB}" \
+  --server "${ACR_SERVER}" \
+  --identity "${IDENTITY_RESOURCE_ID}" \
+  --output none
+
+remove_legacy_env_vars \
+  "${RETRAINING_JOB}" \
+  HOPSWORKS_API_KEY \
+  HOPSWORKS_PROJECT \
+  HOPSWORKS_HOST \
+  HOPSWORKS_PORT \
+  HOPSWORKS_ENGINE \
+  HOPSWORKS_HOSTNAME_VERIFICATION
+
+remove_legacy_secrets \
+  "${RETRAINING_JOB}" \
+  hopsworks-api-key
+
+patch_schedule \
+  "${RETRAINING_JOB}" \
+  "${RETRAINING_CRON}" \
+  "${RETRAINING_TIMEOUT}"
+
+# -----------------------------------------------------------------------------
+# 4. Production monitoring job
+# -----------------------------------------------------------------------------
 
 echo
-echo "Creating production monitoring job..."
-delete_existing_job "${MONITORING_JOB}"
-deploy_job_from_yaml "${MONITORING_JOB}" "${MONITORING_YAML}"
+echo "Deploying production monitoring job: ${MONITORING_JOB}"
 
+MONITORING_ENV_VARS=(
+  "APP_ENV=production"
+  "SERVICE_ROLE=monitoring"
 
-# ---------------------------------------------------------------------------
-# Validate
-# ---------------------------------------------------------------------------
+  "AZURE_CLIENT_ID=${IDENTITY_CLIENT_ID}"
+  "AZURE_SUBSCRIPTION_ID=${SUBSCRIPTION_ID}"
+  "AZURE_JOB_QUERY_BACKEND=arm"
+
+  "PRODUCTION_RESOURCE_GROUP=${PRODUCTION_RESOURCE_GROUP}"
+
+  "FEATURE_JOB_NAME=${FEATURE_JOB}"
+  "FORECAST_JOB_NAME=${FORECAST_JOB}"
+  "RETRAINING_JOB_NAME=${RETRAINING_JOB}"
+
+  "FEATURE_STORE_BACKEND=azure_blob"
+
+  "MLOPS_DRY_RUN=false"
+
+  "ARTIFACT_BACKEND=azure_blob"
+  "AZURE_STORAGE_ACCOUNT=${STORAGE_ACCOUNT}"
+  "AZURE_STORAGE_CONTAINER=${STORAGE_CONTAINER}"
+  "AZURE_FEATURE_STORE_PREFIX=${FEATURE_STORE_PREFIX}"
+
+  "PRODUCTION_HEALTH_NOTIFICATION_CHANNEL=email"
+  "PRODUCTION_HEALTH_EMAIL_ENDPOINT=${PRODUCTION_HEALTH_EMAIL_ENDPOINT}"
+  "PRODUCTION_HEALTH_EMAIL_SENDER=${PRODUCTION_HEALTH_EMAIL_SENDER}"
+  "PRODUCTION_HEALTH_EMAIL_RECIPIENT=secretref:production-health-email-recipient"
+)
+
+if job_exists "${MONITORING_JOB}"; then
+  az containerapp job identity assign \
+    --resource-group "${PRODUCTION_RESOURCE_GROUP}" \
+    --name "${MONITORING_JOB}" \
+    --user-assigned "${IDENTITY_RESOURCE_ID}" \
+    --output none
+
+  az containerapp job secret set \
+    --resource-group "${PRODUCTION_RESOURCE_GROUP}" \
+    --name "${MONITORING_JOB}" \
+    --secrets \
+      "production-health-email-recipient=${PRODUCTION_HEALTH_EMAIL_RECIPIENT}" \
+    --output none
+
+  az containerapp job update \
+    --resource-group "${PRODUCTION_RESOURCE_GROUP}" \
+    --name "${MONITORING_JOB}" \
+    --image "${PIPELINE_IMAGE}" \
+    --container-name production-monitor \
+    --cpu "${MONITORING_CPU}" \
+    --memory "${MONITORING_MEMORY}" \
+    --command "/app/bin/run_production_health" \
+    --set-env-vars "${MONITORING_ENV_VARS[@]}" \
+    --tags \
+      "project=pearls-aqi" \
+      "environment=production" \
+      "workload=production-monitoring" \
+      "release=${IMAGE_TAG}" \
+    --output none
+else
+  az containerapp job create \
+    --resource-group "${PRODUCTION_RESOURCE_GROUP}" \
+    --name "${MONITORING_JOB}" \
+    --environment "${ENVIRONMENT_RESOURCE_ID}" \
+    --trigger-type Schedule \
+    --cron-expression "${MONITORING_CRON}" \
+    --replica-timeout "${MONITORING_TIMEOUT}" \
+    --replica-retry-limit "${REPLICA_RETRY_LIMIT}" \
+    --replica-completion-count 1 \
+    --parallelism 1 \
+    --cpu "${MONITORING_CPU}" \
+    --memory "${MONITORING_MEMORY}" \
+    --image "${PIPELINE_IMAGE}" \
+    --container-name production-monitor \
+    --command "/app/bin/run_production_health" \
+    --mi-user-assigned "${IDENTITY_RESOURCE_ID}" \
+    --registry-server "${ACR_SERVER}" \
+    --registry-identity "${IDENTITY_RESOURCE_ID}" \
+    --secrets \
+      "production-health-email-recipient=${PRODUCTION_HEALTH_EMAIL_RECIPIENT}" \
+    --env-vars "${MONITORING_ENV_VARS[@]}" \
+    --tags \
+      "project=pearls-aqi" \
+      "environment=production" \
+      "workload=production-monitoring" \
+      "release=${IMAGE_TAG}" \
+    --output none
+fi
+
+az containerapp job registry set \
+  --resource-group "${PRODUCTION_RESOURCE_GROUP}" \
+  --name "${MONITORING_JOB}" \
+  --server "${ACR_SERVER}" \
+  --identity "${IDENTITY_RESOURCE_ID}" \
+  --output none
+
+remove_legacy_env_vars \
+  "${MONITORING_JOB}" \
+  HOPSWORKS_API_KEY \
+  HOPSWORKS_PROJECT \
+  HOPSWORKS_HOST \
+  HOPSWORKS_PORT \
+  HOPSWORKS_ENGINE \
+  HOPSWORKS_HOSTNAME_VERIFICATION \
+  MODEL_REGISTRY_BACKEND \
+  PRODUCTION_HEALTH_WEBHOOK_ENABLED \
+  PRODUCTION_HEALTH_WEBHOOK_URL \
+  PRODUCTION_HEALTH_WEBHOOK_TIMEOUT_SECONDS \
+  PRODUCTION_HEALTH_WEBHOOK_BEARER_TOKEN
+
+remove_legacy_secrets \
+  "${MONITORING_JOB}" \
+  hopsworks-api-key \
+  production-health-webhook-url \
+  production-health-webhook-token
+
+patch_schedule \
+  "${MONITORING_JOB}" \
+  "${MONITORING_CRON}" \
+  "${MONITORING_TIMEOUT}"
+
+# -----------------------------------------------------------------------------
+# Final validation
+# -----------------------------------------------------------------------------
 
 echo
-echo "Validating deployed production jobs..."
+echo "============================================================"
+echo "Final production job state"
+echo "============================================================"
 
-validate_deployed_job "${FEATURE_JOB}"
-validate_deployed_job "${FORECAST_JOB}"
-validate_deployed_job "${RETRAINING_JOB}"
-validate_deployed_job "${MONITORING_JOB}"
-
-
-# ---------------------------------------------------------------------------
-# Summary
-# ---------------------------------------------------------------------------
+verify_job "${FEATURE_JOB}"
+verify_job "${FORECAST_JOB}"
+verify_job "${RETRAINING_JOB}"
+verify_job "${MONITORING_JOB}"
 
 echo
-echo "Production scheduled jobs deployed."
+echo "Checking production jobs for legacy Hopsworks configuration..."
+
+for job_name in \
+  "${FEATURE_JOB}" \
+  "${FORECAST_JOB}" \
+  "${RETRAINING_JOB}" \
+  "${MONITORING_JOB}"
+do
+  legacy_env_count="$(
+    az containerapp job show \
+      --resource-group "${PRODUCTION_RESOURCE_GROUP}" \
+      --name "${job_name}" \
+      --query \
+        'length(properties.template.containers[0].env[?contains(name, `HOPSWORKS`)])' \
+      --output tsv
+  )"
+
+  if [[ "${legacy_env_count}" != "0" ]]; then
+    echo \
+      "Legacy Hopsworks environment variables remain on ${job_name}." \
+      >&2
+    exit 1
+  fi
+done
+
 echo
-echo "Image:"
-echo "  ${PIPELINE_IMAGE}"
+echo "Production scheduled jobs deployed successfully."
+echo "Image: ${PIPELINE_IMAGE}"
+
 echo
-echo "Shared Container Apps environment:"
-echo "  ${ENVIRONMENT_RESOURCE_ID}"
+echo "Schedules (UTC):"
+echo "  Features:   ${FEATURE_CRON}"
+echo "  Forecast:   ${FORECAST_CRON}"
+echo "  Retraining: ${RETRAINING_CRON}"
+echo "  Monitoring: ${MONITORING_CRON}"
+
 echo
-echo "Jobs:"
-echo "  ${FEATURE_JOB}"
-echo "  ${FORECAST_JOB}"
-echo "  ${RETRAINING_JOB}"
-echo "  ${MONITORING_JOB}"
+echo "Production backends:"
+echo "  Feature store:  azure_blob"
+echo "  Model registry: azure_blob"
+echo "  Artifacts:      azure_blob"
+echo "  Monitoring:     ARM + Azure Blob + ACS email"
+
 echo
-echo "Artifact container:"
-echo "  ${STORAGE_CONTAINER}"
-echo
-echo "Webhook enabled:"
-echo "  ${WEBHOOK_ENABLED}"
+echo "Hopsworks remains available only through non-production/demo configuration."

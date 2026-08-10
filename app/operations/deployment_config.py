@@ -64,11 +64,19 @@ ALLOWED_ARTIFACT_BACKENDS = {
 ALLOWED_MODEL_LOADING_MODES = {
     "LOCAL_ARTIFACT",
     "HOPSWORKS_REGISTRY",
+    "AZURE_BLOB_REGISTRY",
 }
 
 ALLOWED_FEATURE_STORE_BACKENDS = {
     "local",
     "hopsworks",
+    "azure_blob",
+}
+
+ALLOWED_MODEL_REGISTRY_BACKENDS = {
+    "local",
+    "hopsworks",
+    "azure_blob",
 }
 
 
@@ -476,7 +484,8 @@ def validate_common_settings(
                 field="MODEL_LOADING_MODE",
                 message=(
                     "MODEL_LOADING_MODE must be "
-                    "LOCAL_ARTIFACT or HOPSWORKS_REGISTRY."
+                    "LOCAL_ARTIFACT, HOPSWORKS_REGISTRY, "
+                    "or AZURE_BLOB_REGISTRY."
                 ),
             )
         )
@@ -491,12 +500,25 @@ def validate_common_settings(
                 field="FEATURE_STORE_BACKEND",
                 message=(
                     "FEATURE_STORE_BACKEND must be "
-                    "local or hopsworks."
+                    "local, hopsworks or azure_blob"
                 ),
             )
         )
 
-    if settings.artifact_backend == "azure_blob":
+    azure_blob_required = any(
+        [
+            settings.artifact_backend
+            == "azure_blob",
+            settings.feature_store_backend
+            == "azure_blob",
+            settings.model_registry_backend
+            == "azure_blob",
+            settings.model_loading_mode
+            == "AZURE_BLOB_REGISTRY",
+        ]
+    )
+
+    if azure_blob_required:
         if not settings.azure_storage_account:
             issues.append(
                 ValidationIssue(

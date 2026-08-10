@@ -24,11 +24,8 @@ from typing import Any
 import pandas as pd
 
 from app.core.config import PROJECT_ROOT
-from app.mlops.client import (
-    connect_to_hopsworks,
-)
+
 from app.mlops.config import (
-    FeatureStoreBackend,
     MLOpsSettings,
     get_mlops_settings,
 )
@@ -41,6 +38,11 @@ from app.pipelines.historical_backfill import (
 )
 from app.pipelines.publish_forecast import (
     create_configured_repository,
+)
+
+from app.mlops.feature_repository import (
+    FeatureRepositoryError,
+    create_feature_repository,
 )
 
 import os
@@ -731,109 +733,49 @@ def build_feature_contracts(
     )
 
 
-def read_latest_feature_timestamp(
-    *,
-    feature_group: Any,
-    contract: FeatureGroupContract,
-) -> datetime | None:
-    """Read the latest valid event timestamp from a feature group."""
-
-    try:
-        dataframe = feature_group.read(
-            dataframe_type="pandas"
-        )
-    except Exception as error:
-        raise ProductionHealthError(
-            "Could not read feature group: "
-            f"{contract.name}"
-        ) from error
-
-    if dataframe is None or dataframe.empty:
-        return None
-
-    dataframe.columns = [
-        str(column).lower()
-        for column in dataframe.columns
-    ]
-
-    event_time_column = (
-        contract.event_time.lower()
-    )
-
-    if (
-        event_time_column
-        not in dataframe.columns
-    ):
-        raise ProductionHealthError(
-            f"{contract.name} does not contain "
-            f"event-time column {contract.event_time!r}."
-        )
-
-    values = pd.to_datetime(
-        dataframe[event_time_column],
-        utc=True,
-        errors="coerce",
-    ).dropna()
-
-    if values.empty:
-        return None
-
-    return values.max().to_pydatetime()
-
-
-def inspect_hopsworks_freshness(
+def inspect_feature_repository_freshness(
     *,
     settings: MLOpsSettings,
     now: datetime,
 ) -> dict[str, Any]:
-    """Inspect latest event times in all production feature groups."""
+    """Inspect freshness through the configured feature repository."""
 
     contracts = build_feature_contracts(
         settings
     )
 
-    if (
-        settings.feature_store_backend
-        != FeatureStoreBackend.HOPSWORKS
-    ):
-        return {
-            "status": UNKNOWN,
-            "reason": (
-                "FEATURE_STORE_BACKEND is not configured "
-                "as hopsworks."
-            ),
-            "groups": {},
-        }
-
     try:
-        resources = connect_to_hopsworks(
-            settings
+        repository = (
+            create_feature_repository(
+                settings=settings,
+                contracts=contracts,
+                create_if_missing=False,
+            )
         )
 
-        if resources.feature_store is None:
-            raise ProductionHealthError(
-                "Hopsworks Feature Store was not resolved."
-            )
+        groups: dict[
+            str,
+            dict[str, Any],
+        ] = {}
 
-        groups: dict[str, Any] = {}
-
-        for logical_name, contract in (
-            contracts.items()
-        ):
+        for (
+            logical_name,
+            contract,
+        ) in contracts.items():
             try:
-                feature_group = (
-                    resources.feature_store
-                    .get_feature_group(
-                        name=contract.name,
-                        version=contract.version,
+                latest_timestamp_value = (
+                    repository
+                    .latest_event_time(
+                        contract=contract
                     )
                 )
 
                 latest_timestamp = (
-                    read_latest_feature_timestamp(
-                        feature_group=feature_group,
-                        contract=contract,
-                    )
+                    latest_timestamp_value
+                    .to_pydatetime()
+                    if latest_timestamp_value
+                    is not None
+                    else None
                 )
 
                 freshness = (
@@ -848,12 +790,20 @@ def inspect_hopsworks_freshness(
                     )
                 )
 
-                groups[logical_name] = {
+                groups[
+                    logical_name
+                ] = {
                     "status": (
-                        freshness["status"]
+                        freshness[
+                            "status"
+                        ]
                     ),
-                    "name": contract.name,
-                    "version": contract.version,
+                    "name": (
+                        contract.name
+                    ),
+                    "version": (
+                        contract.version
+                    ),
                     "event_time_column": (
                         contract.event_time
                     ),
@@ -878,10 +828,14 @@ def inspect_hopsworks_freshness(
                 }
 
             except Exception as error:
-                groups[logical_name] = {
+                groups[
+                    logical_name
+                ] = {
                     "status": UNKNOWN,
                     "name": contract.name,
-                    "version": contract.version,
+                    "version": (
+                        contract.version
+                    ),
                     "event_time_column": (
                         contract.event_time
                     ),
@@ -893,7 +847,9 @@ def inspect_hopsworks_freshness(
                     "error_type": (
                         type(error).__name__
                     ),
-                    "error_message": str(error),
+                    "error_message": str(
+                        error
+                    ),
                     "thresholds": {
                         "warning_after_hours": (
                             FEATURE_DATA_THRESHOLD
@@ -906,40 +862,53 @@ def inspect_hopsworks_freshness(
                     },
                 }
 
-        overall_status = worst_status(
-            [
-                value["status"]
-                for value in groups.values()
-            ]
+        overall_status = (
+            worst_status(
+                [
+                    value["status"]
+                    for value
+                    in groups.values()
+                ]
+            )
         )
 
         return {
-            "status": overall_status,
-            "project_name": (
-                resources.project_name
+            "status": (
+                overall_status
             ),
-            "feature_store_name": (
-                resources.feature_store_name
+            "backend": (
+                repository.backend_name
             ),
-            "sdk_version": (
-                resources.sdk_version
+            "source": (
+                repository.source_label
             ),
             "groups": groups,
         }
 
-    except Exception as error:
+    except (
+        FeatureRepositoryError,
+        Exception,
+    ) as error:
         return {
             "status": UNKNOWN,
+            "backend": (
+                settings
+                .feature_store_backend
+                .value
+            ),
+            "source": None,
             "reason": (
-                "Hopsworks freshness could not be inspected."
+                "Feature repository freshness "
+                "could not be inspected."
             ),
             "error_type": (
                 type(error).__name__
             ),
-            "error_message": str(error),
+            "error_message": str(
+                error
+            ),
             "groups": {},
         }
-
 
 def inspect_aqi_artifact(
     *,
@@ -1138,7 +1107,7 @@ def build_recommendations(
 
         if status == CRITICAL:
             recommendations.append(
-                "Investigate stale Hopsworks data for "
+                "Investigate stale feature data for "
                 f"{logical_name}."
             )
 
@@ -1150,7 +1119,7 @@ def build_recommendations(
 
         elif status == UNKNOWN:
             recommendations.append(
-                "Restore Hopsworks visibility for "
+                "Restore feature repository visibility for "
                 f"{logical_name}."
             )
 
@@ -1249,7 +1218,7 @@ def run_production_health(
     settings = get_mlops_settings()
 
     feature_store = (
-        inspect_hopsworks_freshness(
+        inspect_feature_repository_freshness(
             settings=settings,
             now=started_at,
         )

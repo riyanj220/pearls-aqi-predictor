@@ -1,0 +1,406 @@
+{
+  "phase": "10P",
+  "subphase": "10P-H",
+  "status": "BLOB_BACKED_RETRAINING_VALIDATED",
+  "started_at_utc": "2026-08-09T15:28:27.655959+00:00",
+  "completed_at_utc": "2026-08-09T15:30:19.118903+00:00",
+  "duration_seconds": 111.463,
+  "configuration_checks": {
+    "feature_backend_is_blob": true,
+    "model_registry_is_blob": true
+  },
+  "hopsworks_checks": {
+    "api_key_absent": true,
+    "project_absent": true,
+    "host_absent": true
+  },
+  "runtime_checks": {
+    "training_refresh_completed": true,
+    "training_source_is_blob": true,
+    "training_rows_exist": true,
+    "forced_retraining_completed": true,
+    "candidate_created": true,
+    "candidate_directory_exists": true,
+    "candidate_model_exists": true,
+    "candidate_checksum_exists": true,
+    "comparison_completed": true,
+    "candidate_not_registered": true,
+    "production_not_changed": true,
+    "candidate_evidence_published": true
+  },
+  "training_refresh": {
+    "phase": "10K",
+    "subphase": "10K-C1",
+    "pipeline_name": "training_dataset_refresh",
+    "pipeline_run_id": "20260809T152827Z_training_refresh_3be22cd9",
+    "status": "TRAINING_DATASET_REFRESH_COMPLETED",
+    "source": "Azure Blob Feature Repository",
+    "feature_repository_backend": "azure_blob",
+    "started_at_utc": "2026-08-09T15:28:27.679231+00:00",
+    "completed_at_utc": "2026-08-09T15:29:33.111658+00:00",
+    "duration_seconds": 65.432427,
+    "source_rows": {
+      "pm25": 9330,
+      "weather": 9330,
+      "engineered": 7457
+    },
+    "candidate_rows": 531864,
+    "final_rows": 349704,
+    "fully_labeled_reference_count": 4857,
+    "latest_eligible_reference": "2026-08-06T03:00:00+00:00",
+    "latest_fully_labeled_reference": "2026-08-06T03:00:00+00:00",
+    "feature_count": 56,
+    "invalid_reasons": {
+      "missing_feature_rows": 2556,
+      "missing_target_rows": 14245,
+      "partial_reference_rows_removed": 159635
+    },
+    "splits": {
+      "train": {
+        "rows": 245376,
+        "reference_count": 3408,
+        "reference_start": "2025-07-09T00:00:00+00:00",
+        "reference_end": "2026-03-09T10:00:00+00:00",
+        "target_start": "2025-07-09T01:00:00+00:00",
+        "target_end": "2026-03-12T10:00:00+00:00"
+      },
+      "validation": {
+        "rows": 50544,
+        "reference_count": 702,
+        "reference_start": "2026-03-12T11:00:00+00:00",
+        "reference_end": "2026-05-27T21:00:00+00:00",
+        "target_start": "2026-03-12T12:00:00+00:00",
+        "target_end": "2026-05-30T21:00:00+00:00"
+      },
+      "test": {
+        "rows": 53784,
+        "reference_count": 747,
+        "reference_start": "2026-06-14T01:00:00+00:00",
+        "reference_end": "2026-08-06T03:00:00+00:00",
+        "target_start": "2026-06-14T02:00:00+00:00",
+        "target_end": "2026-08-09T03:00:00+00:00"
+      }
+    },
+    "run_directory": "/home/riyan/Riyan/projects/pearls-aqi-predictor/.cache/phase_10p/retraining_validation/training/20260809T152827Z_training_refresh_3be22cd9",
+    "production_model_changed": false,
+    "candidate_model_created": false
+  },
+  "retraining": {
+    "phase": "10K",
+    "subphase": "10K-C2",
+    "generated_at_utc": "2026-08-09T15:29:49.884944+00:00",
+    "status": "RETRAINING_COMPLETED",
+    "eligibility": {
+      "eligible": true,
+      "forced": true,
+      "latest_reference_time": "2026-08-06T03:00:00+00:00",
+      "production_training_end": "2026-07-23T22:00:00+00:00",
+      "new_labeled_hours": 0,
+      "minimum_required_hours": 168,
+      "reason": "Retraining was explicitly forced."
+    },
+    "dataset_directory": "/home/riyan/Riyan/projects/pearls-aqi-predictor/.cache/phase_10p/retraining_validation/training/20260809T152827Z_training_refresh_3be22cd9",
+    "training": {
+      "train_rows": 245376,
+      "validation_rows": 50544,
+      "test_rows": 53784,
+      "feature_count": 56,
+      "target_column": "target_pm25_ug_m3",
+      "persistence_max_horizon": 12
+    },
+    "validation_metrics": {
+      "row_count": 50544,
+      "overall": {
+        "mae": 8.170080005696168,
+        "rmse": 11.39435189359989,
+        "r2": 0.09948106602539353
+      },
+      "horizon_groups": {
+        "1_6": {
+          "sample_count": 4212,
+          "metrics": {
+            "mae": 3.9540598290598292,
+            "rmse": 6.941578382928753,
+            "r2": 0.5639721407782607
+          }
+        },
+        "7_12": {
+          "sample_count": 4212,
+          "metrics": {
+            "mae": 6.069966761633428,
+            "rmse": 10.021965548099507,
+            "r2": 0.132655778601533
+          }
+        },
+        "13_24": {
+          "sample_count": 8424,
+          "metrics": {
+            "mae": 8.35036036510866,
+            "rmse": 11.159817939063176,
+            "r2": 0.010005278809000262
+          }
+        },
+        "25_48": {
+          "sample_count": 16848,
+          "metrics": {
+            "mae": 8.983454347358698,
+            "rmse": 11.938521588517274,
+            "r2": 0.03885711456599661
+          }
+        },
+        "49_72": {
+          "sample_count": 16848,
+          "metrics": {
+            "mae": 8.845598839502163,
+            "rmse": 12.14653750317883,
+            "r2": 0.10277420759036437
+          }
+        }
+      },
+      "severe_pm25": {
+        "threshold_ug_m3": 55.5,
+        "sample_count": 535,
+        "metrics": {
+          "mae": 30.441506391863957,
+          "rmse": 37.28449933313094,
+          "r2": -4.645853514048951
+        }
+      }
+    },
+    "test_metrics": {
+      "row_count": 53784,
+      "overall": {
+        "mae": 3.592882496158442,
+        "rmse": 4.678184355279125,
+        "r2": 0.07826075633906748
+      },
+      "horizon_groups": {
+        "1_6": {
+          "sample_count": 4482,
+          "metrics": {
+            "mae": 2.148995983935743,
+            "rmse": 2.9162166415105575,
+            "r2": 0.6336364471666076
+          }
+        },
+        "7_12": {
+          "sample_count": 4482,
+          "metrics": {
+            "mae": 2.7501561802766625,
+            "rmse": 3.666185315855144,
+            "r2": 0.4278872461545151
+          }
+        },
+        "13_24": {
+          "sample_count": 8964,
+          "metrics": {
+            "mae": 3.830009130940061,
+            "rmse": 4.891588343522761,
+            "r2": -0.014424735321787008
+          }
+        },
+        "25_48": {
+          "sample_count": 17928,
+          "metrics": {
+            "mae": 3.793700334026791,
+            "rmse": 4.8818955872971115,
+            "r2": -0.01536944244301619
+          }
+        },
+        "49_72": {
+          "sample_count": 17928,
+          "metrics": {
+            "mae": 3.8451545479254023,
+            "rmse": 4.936921635170691,
+            "r2": -0.0045964342605249175
+          }
+        }
+      },
+      "severe_pm25": {
+        "threshold_ug_m3": 55.5,
+        "sample_count": 0,
+        "metrics": null
+      }
+    },
+    "candidate": {
+      "directory": "models/candidates/pearls_aqi_pm25_challenger_20260809T152949Z_6fddbfa1",
+      "checksum_sha256": "009ea975ea5eecdac282e393bf8c3674154cb4f5ccf939bbf560de426351e70b",
+      "lifecycle_status": "CANDIDATE"
+    },
+    "candidate_created": true,
+    "candidate_registered": false,
+    "production_model_changed": false,
+    "promotion_deferred_to_phase_9j": true
+  },
+  "champion_challenger": {
+    "phase": "9J",
+    "generated_at_utc": "2026-08-09T15:29:50.503365+00:00",
+    "status": "CHALLENGER_REJECTED",
+    "candidate_directory": "models/candidates/pearls_aqi_pm25_challenger_20260809T152949Z_6fddbfa1",
+    "champion": {
+      "registry_name": "pearls_aqi_pm25_forecaster",
+      "production_version": 1,
+      "metrics": {
+        "row_count": 76813,
+        "overall": {
+          "mae": 3.7155069012711617,
+          "rmse": 4.975563144569727,
+          "r2": -0.003985667037644358
+        },
+        "horizon_groups": {
+          "1_6": {
+            "sample_count": 6632,
+            "metrics": {
+              "mae": 2.389882388419783,
+              "rmse": 3.3682288104673415,
+              "r2": 0.5183584182620867
+            }
+          },
+          "7_12": {
+            "sample_count": 6546,
+            "metrics": {
+              "mae": 3.170195539260617,
+              "rmse": 4.408932722127114,
+              "r2": 0.17650403123654623
+            }
+          },
+          "13_24": {
+            "sample_count": 12992,
+            "metrics": {
+              "mae": 3.846434324201692,
+              "rmse": 5.019546198773386,
+              "r2": -0.01565327678228612
+            }
+          },
+          "25_48": {
+            "sample_count": 25595,
+            "metrics": {
+              "mae": 3.8841357722415615,
+              "rmse": 5.143997338305892,
+              "r2": -0.06374382915025079
+            }
+          },
+          "49_72": {
+            "sample_count": 25048,
+            "metrics": {
+              "mae": 3.968784005780526,
+              "rmse": 5.265653175409639,
+              "r2": -0.11260875435687612
+            }
+          }
+        },
+        "severe_pm25": {
+          "threshold_ug_m3": 55.5,
+          "sample_count": 0,
+          "metrics": null
+        }
+      }
+    },
+    "challenger": {
+      "metrics": {
+        "row_count": 76813,
+        "overall": {
+          "mae": 3.9096879689590063,
+          "rmse": 5.095812016282212,
+          "r2": -0.05310051594346832
+        },
+        "horizon_groups": {
+          "1_6": {
+            "sample_count": 6632,
+            "metrics": {
+              "mae": 2.389882388419783,
+              "rmse": 3.3682288104673415,
+              "r2": 0.5183584182620867
+            }
+          },
+          "7_12": {
+            "sample_count": 6546,
+            "metrics": {
+              "mae": 3.170195539260617,
+              "rmse": 4.408932722127114,
+              "r2": 0.17650403123654623
+            }
+          },
+          "13_24": {
+            "sample_count": 12992,
+            "metrics": {
+              "mae": 4.1311019872356525,
+              "rmse": 5.239285913467126,
+              "r2": -0.10652380266672967
+            }
+          },
+          "25_48": {
+            "sample_count": 25595,
+            "metrics": {
+              "mae": 4.143955852153082,
+              "rmse": 5.328129494113184,
+              "r2": -0.1412613928331965
+            }
+          },
+          "49_72": {
+            "sample_count": 25048,
+            "metrics": {
+              "mae": 4.151119247270216,
+              "rmse": 5.319905436613008,
+              "r2": -0.13565337676946632
+            }
+          }
+        },
+        "severe_pm25": {
+          "threshold_ug_m3": 55.5,
+          "sample_count": 0,
+          "metrics": null
+        }
+      },
+      "registered": false,
+      "registered_model": null
+    },
+    "decision": {
+      "approved": false,
+      "checks": {
+        "overall_mae": false,
+        "overall_rmse": false,
+        "horizon_1_6_mae": true,
+        "horizon_7_12_mae": true,
+        "horizon_13_24_mae": false,
+        "horizon_25_48_mae": false,
+        "horizon_49_72_mae": true,
+        "severe_pm25_metrics": true
+      },
+      "reasons": [
+        "Overall MAE change: 5.2262%.",
+        "Overall RMSE change: 2.4168%.",
+        "1_6 MAE change: 0.0000%.",
+        "7_12 MAE change: 0.0000%.",
+        "13_24 MAE change: 7.4008%.",
+        "25_48 MAE change: 6.6893%.",
+        "49_72 MAE change: 4.5942%.",
+        "Severe PM2.5 gate was informational because only 0 shared samples exist."
+      ]
+    },
+    "production_changed": false,
+    "rollback_version": 1
+  },
+  "publication": {
+    "artifact_type": "model-candidates",
+    "run_id": "pearls_aqi_pm25_challenger_20260809T152949Z_6fddbfa1",
+    "artifact_prefix": "model-candidates/runs/pearls_aqi_pm25_challenger_20260809T152949Z_6fddbfa1",
+    "manifest_path": "model-candidates/runs/pearls_aqi_pm25_challenger_20260809T152949Z_6fddbfa1/manifest.json",
+    "published_at_utc": "2026-08-09T15:30:18.377888+00:00",
+    "file_count": 7,
+    "validation": {
+      "pointer_run_matches": true,
+      "manifest_run_matches": true,
+      "pointer_status_is_evaluated": true,
+      "manifest_status_is_evaluated": true,
+      "manifest_contains_files": true
+    }
+  },
+  "challenger_decision": "CHALLENGER_REJECTED",
+  "candidate_registered": false,
+  "automatic_promotion_attempted": false,
+  "production_model_changed": false,
+  "hopsworks_required_for_execution": false,
+  "production_runtime_configuration_changed": false,
+  "valid": true
+}

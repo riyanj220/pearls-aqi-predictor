@@ -16,25 +16,26 @@ from pydantic_settings import (
     SettingsConfigDict,
 )
 
-
 class FeatureStoreBackend(StrEnum):
     """Supported feature-store backends."""
 
     LOCAL = "local"
     HOPSWORKS = "hopsworks"
-
+    AZURE_BLOB = "azure_blob"
 
 class ModelRegistryBackend(StrEnum):
     """Supported model-registry backends."""
 
     LOCAL = "local"
     HOPSWORKS = "hopsworks"
+    AZURE_BLOB = "azure_blob"
 
 class ModelLoadingMode(StrEnum):
     """Supported inference model sources."""
 
     LOCAL_ARTIFACT = "LOCAL_ARTIFACT"
     HOPSWORKS_REGISTRY = "HOPSWORKS_REGISTRY"
+    AZURE_BLOB_REGISTRY = "AZURE_BLOB_REGISTRY"
 
 class MLOpsSettings(BaseSettings):
     """Environment-driven Phase 9 configuration."""
@@ -52,6 +53,20 @@ class MLOpsSettings(BaseSettings):
 
     model_registry_backend: ModelRegistryBackend = (
         ModelRegistryBackend.LOCAL
+    )
+
+    azure_storage_account: str | None = None
+
+    azure_storage_container: str = (
+        "artifacts-prod"
+    )
+
+    azure_feature_store_prefix: str = (
+        "feature-store"
+    )
+
+    azure_model_registry_prefix: str = (
+        "model-registry"
     )
 
     mlops_dry_run: bool = True
@@ -207,8 +222,12 @@ class MLOpsSettings(BaseSettings):
         "hopsworks_project",
         "hopsworks_host",
         "hopsworks_model_name",
+        "azure_storage_account",
+        "azure_storage_container",
+        "azure_feature_store_prefix",
         mode="before",
     )
+
     @classmethod
     def normalize_optional_strings(
         cls,
@@ -244,7 +263,7 @@ class MLOpsSettings(BaseSettings):
     def validate_backend_credentials(
         self,
     ) -> "MLOpsSettings":
-        """Require credentials only when Hopsworks is enabled."""
+        """Validate backend-specific configuration."""
 
         hopsworks_required = any(
             (
@@ -255,25 +274,45 @@ class MLOpsSettings(BaseSettings):
             )
         )
 
-        if not hopsworks_required:
-            return self
+        if hopsworks_required:
+            missing_fields: list[str] = []
 
-        missing_fields: list[str] = []
+            if self.hopsworks_api_key is None:
+                missing_fields.append(
+                    "HOPSWORKS_API_KEY"
+                )
 
-        if self.hopsworks_api_key is None:
-            missing_fields.append(
-                "HOPSWORKS_API_KEY"
+            if not self.hopsworks_project:
+                missing_fields.append(
+                    "HOPSWORKS_PROJECT"
+                )
+
+            if missing_fields:
+                raise ValueError(
+                    "Missing required Hopsworks configuration: "
+                    + ", ".join(missing_fields)
+                )
+
+        azure_blob_required = any(
+            (
+                self.feature_store_backend
+                == FeatureStoreBackend.AZURE_BLOB,
+
+                self.model_registry_backend
+                == ModelRegistryBackend.AZURE_BLOB,
+
+                self.model_loading_mode
+                == ModelLoadingMode.AZURE_BLOB_REGISTRY,
             )
+        )
 
-        if not self.hopsworks_project:
-            missing_fields.append(
-                "HOPSWORKS_PROJECT"
-            )
-
-        if missing_fields:
+        if (
+            azure_blob_required
+            and not self.azure_storage_account
+        ):
             raise ValueError(
-                "Missing required Hopsworks configuration: "
-                + ", ".join(missing_fields)
+                "AZURE_STORAGE_ACCOUNT is required "
+                "when an Azure Blob MLOps backend is enabled."
             )
 
         return self
@@ -418,6 +457,19 @@ class MLOpsSettings(BaseSettings):
             ),
             "candidate_minimum_severe_samples": (
                 self.candidate_minimum_severe_samples
+            ),
+
+            "azure_storage_account": (
+                self.azure_storage_account
+            ),
+            "azure_storage_container": (
+                self.azure_storage_container
+            ),
+            "azure_feature_store_prefix": (
+                self.azure_feature_store_prefix
+            ),
+            "azure_model_registry_prefix": (
+                self.azure_model_registry_prefix
             ),
         }
 
