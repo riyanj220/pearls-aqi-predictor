@@ -841,6 +841,385 @@ def apply_dashboard_theme() -> None:
         }
 
         /* ---------------------------------------------------------
+        System status hero
+        --------------------------------------------------------- */
+
+        .system-hero {
+            position: relative;
+            overflow: hidden;
+            padding: 1.55rem 1.65rem;
+            margin: 0.75rem 0 1.05rem 0;
+            border-radius: 18px;
+            border: 1px solid rgba(148, 163, 184, 0.14);
+            background:
+                linear-gradient(
+                    135deg,
+                    rgba(30, 41, 59, 0.82),
+                    rgba(13, 18, 27, 0.94)
+                );
+        }
+
+        .system-hero::after {
+            content: "";
+            position: absolute;
+            width: 280px;
+            height: 280px;
+            right: -110px;
+            top: -160px;
+            background: var(--system-accent, #4ade80);
+            filter: blur(95px);
+            opacity: 0.12;
+            border-radius: 999px;
+            pointer-events: none;
+        }
+
+        .system-hero-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 1rem;
+        }
+
+        .system-hero-title {
+            color: #f8fafc;
+            font-size: 1.4rem;
+            font-weight: 650;
+            letter-spacing: -0.025em;
+        }
+
+        .system-hero-message {
+            color: #c5ced9;
+            max-width: 700px;
+            margin-top: 0.9rem;
+            margin-bottom: 1.25rem;
+            font-size: 0.92rem;
+        }
+
+        .system-facts {
+            display: grid;
+            grid-template-columns:
+                repeat(4, minmax(0, 1fr));
+            gap: 0.7rem;
+        }
+
+        .system-fact {
+            padding: 0.7rem 0.8rem;
+            border-radius: 11px;
+            border: 1px solid rgba(148, 163, 184, 0.10);
+            background: rgba(255, 255, 255, 0.022);
+        }
+
+        .system-fact span {
+            display: block;
+            color: #7f8b9c;
+            font-size: 0.69rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .system-fact strong {
+            color: #e5e7eb;
+            font-size: 0.84rem;
+            font-weight: 600;
+        }
+
+
+        /* ---------------------------------------------------------
+        Model routing
+        --------------------------------------------------------- */
+
+        .model-route-card {
+            height: 100%;
+            min-height: 165px;
+            padding: 1.15rem 1.2rem;
+            border-radius: 15px;
+            border: 1px solid rgba(148, 163, 184, 0.12);
+            background:
+                linear-gradient(
+                    145deg,
+                    rgba(96, 165, 250, 0.035),
+                    rgba(255, 255, 255, 0.012)
+                );
+        }
+
+        .model-route-range {
+            color: #60a5fa;
+            font-size: 0.7rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .model-route-title {
+            color: #f8fafc;
+            font-size: 1.05rem;
+            font-weight: 650;
+            margin-top: 0.45rem;
+        }
+
+        .model-route-body {
+            color: #8d99aa;
+            font-size: 0.8rem;
+            line-height: 1.55;
+            margin-top: 0.55rem;
+        }
+
+
+        /* ---------------------------------------------------------
+        Model benchmark
+        --------------------------------------------------------- */
+
+        .benchmark-heading {
+            color: #f8fafc;
+            font-size: 1rem;
+            font-weight: 650;
+            margin-bottom: 0.6rem;
+        }
+
+        .benchmark-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+            padding: 0.8rem 0;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.08);
+        }
+
+        .benchmark-row:last-child {
+            border-bottom: none;
+        }
+
+        .benchmark-name {
+            color: #e5e7eb;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .benchmark-description {
+            color: #718096;
+            font-size: 0.73rem;
+            margin-top: 0.15rem;
+        }
+
+        .benchmark-value {
+            color: #f8fafc;
+            font-size: 1rem;
+            font-weight: 650;
+            white-space: nowrap;
+        }
+
+        .benchmark-value span {
+            color: #64748b;
+            font-size: 0.66rem;
+            font-weight: 500;
+            margin-left: 0.2rem;
+        }
+
+
+        /* ---------------------------------------------------------
+        Dataset split
+        --------------------------------------------------------- */
+
+        .dataset-card {
+            min-height: 185px;
+            padding: 1rem 1.05rem;
+            border-radius: 14px;
+            border: 1px solid rgba(148, 163, 184, 0.12);
+            background: rgba(255, 255, 255, 0.017);
+        }
+
+        .dataset-label {
+            color: #60a5fa;
+            font-size: 0.69rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .dataset-count {
+            color: #ffffff;
+            font-size: 1.75rem;
+            font-weight: 680;
+            letter-spacing: -0.035em;
+            margin-top: 0.45rem;
+        }
+
+        .dataset-caption {
+            color: #64748b;
+            font-size: 0.7rem;
+        }
+
+        .dataset-range {
+            color: #8d99aa;
+            font-size: 0.76rem;
+            line-height: 1.5;
+            margin-top: 0.8rem;
+        }
+
+
+        /* ---------------------------------------------------------
+        Pipeline cards
+        --------------------------------------------------------- */
+
+        .pipeline-card {
+            min-height: 165px;
+            padding: 1.05rem 1.1rem;
+            margin-bottom: 0.8rem;
+            border-radius: 14px;
+            border: 1px solid rgba(148, 163, 184, 0.12);
+            background: rgba(255, 255, 255, 0.017);
+        }
+
+        .pipeline-card-top {
+            display: flex;
+            justify-content: space-between;
+            gap: 0.8rem;
+            align-items: center;
+        }
+
+        .pipeline-title {
+            color: #f8fafc;
+            font-size: 0.93rem;
+            font-weight: 650;
+        }
+
+        .pipeline-status {
+            color: #86efac;
+            font-size: 0.66rem;
+            font-weight: 700;
+            padding: 0.28rem 0.48rem;
+            border-radius: 999px;
+            border: 1px solid rgba(74, 222, 128, 0.18);
+            background: rgba(22, 163, 74, 0.08);
+        }
+
+        .pipeline-schedule {
+            color: #60a5fa;
+            font-size: 0.72rem;
+            font-weight: 600;
+            margin-top: 0.55rem;
+        }
+
+        .pipeline-description {
+            color: #8d99aa;
+            font-size: 0.78rem;
+            line-height: 1.55;
+            margin-top: 0.55rem;
+        }
+
+
+        /* ---------------------------------------------------------
+        System architecture flow
+        --------------------------------------------------------- */
+
+        .system-flow-step {
+            display: grid;
+            grid-template-columns: 42px 1fr;
+            gap: 0.8rem;
+            align-items: center;
+            padding: 0.72rem 0;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.07);
+        }
+
+        .system-flow-step:last-child {
+            border-bottom: none;
+        }
+
+        .system-flow-number {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            border-radius: 9px;
+            color: #60a5fa;
+            background: rgba(96, 165, 250, 0.07);
+            border: 1px solid rgba(96, 165, 250, 0.14);
+            font-size: 0.67rem;
+            font-weight: 700;
+        }
+
+        .system-flow-title {
+            color: #e5e7eb;
+            font-size: 0.84rem;
+            font-weight: 600;
+        }
+
+        .system-flow-subtitle {
+            color: #718096;
+            font-size: 0.73rem;
+            margin-top: 0.12rem;
+        }
+
+
+        /* ---------------------------------------------------------
+        Metadata / infrastructure
+        --------------------------------------------------------- */
+
+        .metadata-card {
+            height: 100%;
+            padding: 1.1rem 1.15rem;
+            border-radius: 14px;
+            border: 1px solid rgba(148, 163, 184, 0.12);
+            background: rgba(255, 255, 255, 0.017);
+        }
+
+        .metadata-card-label {
+            color: #60a5fa;
+            font-size: 0.67rem;
+            font-weight: 700;
+            letter-spacing: 0.09em;
+            margin-bottom: 0.7rem;
+        }
+
+        .metadata-item {
+            display: flex;
+            justify-content: space-between;
+            gap: 1rem;
+            padding: 0.55rem 0;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.07);
+        }
+
+        .metadata-item:last-child {
+            border-bottom: none;
+        }
+
+        .metadata-item span {
+            color: #718096;
+            font-size: 0.76rem;
+        }
+
+        .metadata-item strong {
+            color: #e5e7eb;
+            font-size: 0.76rem;
+            font-weight: 600;
+            text-align: right;
+            max-width: 65%;
+        }
+
+        .infra-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+            padding: 0.72rem 0.8rem;
+            margin-bottom: 0.5rem;
+            border-radius: 10px;
+            border: 1px solid rgba(148, 163, 184, 0.09);
+            background: rgba(255, 255, 255, 0.012);
+        }
+
+        .infra-row span {
+            color: #7f8b9c;
+            font-size: 0.77rem;
+        }
+
+        .infra-row strong {
+            color: #e5e7eb;
+            font-size: 0.77rem;
+            font-weight: 600;
+        }
+
+        /* ---------------------------------------------------------
            Responsive hero
         --------------------------------------------------------- */
 
@@ -875,6 +1254,29 @@ def apply_dashboard_theme() -> None:
 
             .aqi-guide-card {
                 min-height: auto;
+            }
+
+            .system-hero {
+                padding: 1.2rem;
+            }
+
+            .system-hero-top {
+                flex-direction: column;
+            }
+
+            .system-facts {
+                grid-template-columns:
+                    repeat(2, minmax(0, 1fr));
+            }
+
+            .metadata-item {
+                flex-direction: column;
+                gap: 0.2rem;
+            }
+
+            .metadata-item strong {
+                text-align: left;
+                max-width: 100%;
             }
         }
         </style>
