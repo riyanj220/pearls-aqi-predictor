@@ -13,6 +13,9 @@ from dashboard.components.system_status import (
     render_pipeline_details,
     render_service_status_cards,
 )
+from dashboard.components.theme import (
+    apply_dashboard_theme,
+)
 from dashboard.services.api_client import (
     DashboardAPIError,
     cached_liveness,
@@ -29,18 +32,28 @@ from dashboard.utils.constants import (
 def render_system_status_page() -> None:
     """Render service, pipeline, and metadata status."""
 
-    st.title(
-        "System status"
-    )
+    apply_dashboard_theme()
 
-    st.caption(
-        "Operational view of the FastAPI service, "
-        "forecast pipeline, and data configuration."
+    st.markdown(
+        """
+        <div class="section-kicker">
+            Operations
+        </div>
+        <div class="section-title">
+            System status
+        </div>
+        <div class="section-description">
+            Operational health of the API,
+            forecast pipeline, artifacts, and
+            source configuration.
+        </div>
+        """,
+        unsafe_allow_html=True,
     )
 
     with st.sidebar:
-        st.header(
-            "System controls"
+        st.markdown(
+            "### System controls"
         )
 
         timezone_label = st.selectbox(
@@ -52,10 +65,11 @@ def render_system_status_page() -> None:
             key="system_timezone",
         )
 
+        st.divider()
+
         if st.button(
-            "Refresh status",
+            "↻ Refresh status",
             width="stretch",
-            type="primary",
         ):
             clear_dashboard_api_cache()
             st.rerun()
@@ -70,12 +84,21 @@ def render_system_status_page() -> None:
         with st.spinner(
             "Loading system status..."
         ):
-            liveness = cached_liveness()
-            readiness = cached_readiness()
+            liveness = (
+                cached_liveness()
+            )
+
+            readiness = (
+                cached_readiness()
+            )
+
             pipeline = (
                 cached_pipeline_status()
             )
-            metadata = cached_metadata()
+
+            metadata = (
+                cached_metadata()
+            )
 
     except DashboardAPIError as error:
         render_api_error(error)

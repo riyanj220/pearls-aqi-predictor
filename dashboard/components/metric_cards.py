@@ -1,4 +1,4 @@
-"""Top-level forecast metric cards."""
+"""Primary forecast metric cards."""
 
 from __future__ import annotations
 
@@ -20,18 +20,25 @@ def render_metric_cards(
     forecast_df: pd.DataFrame,
     timezone_name: str,
 ) -> None:
-    """Render the primary dashboard summary metrics."""
+    """Render the four most useful forecast summary metrics."""
 
     if forecast_df.empty:
         return
 
     first_row = forecast_df.iloc[0]
 
-    first_row_columns = st.columns(3)
+    active_alert_hours = int(
+        summary.get(
+            "active_alert_hours",
+            0,
+        )
+    )
 
-    with first_row_columns[0]:
+    metric_columns = st.columns(4)
+
+    with metric_columns[0]:
         st.metric(
-            "First forecast-hour PM2.5",
+            "Current forecast PM2.5",
             format_pm25(
                 first_row.get(
                     "predicted_pm25_ug_m3"
@@ -45,41 +52,16 @@ def render_metric_cards(
             ),
         )
 
-    with first_row_columns[1]:
-        st.metric(
-            "Indicative hourly AQI",
-            format_aqi(
-                first_row.get(
-                    "indicative_hourly_pm25_aqi"
-                )
-            ),
-            help=str(
+        st.caption(
+            str(
                 first_row.get(
                     "indicative_hourly_aqi_category",
                     "Not available",
                 )
-            ),
+            )
         )
 
-    with first_row_columns[2]:
-        st.metric(
-            "Rolling 24-hour AQI",
-            format_aqi(
-                first_row.get(
-                    "rolling_24h_pm25_aqi"
-                )
-            ),
-            help=str(
-                first_row.get(
-                    "rolling_24h_aqi_category",
-                    "Not available",
-                )
-            ),
-        )
-
-    summary_columns = st.columns(3)
-
-    with summary_columns[0]:
+    with metric_columns[1]:
         st.metric(
             "Peak forecast PM2.5",
             format_pm25(
@@ -95,38 +77,49 @@ def render_metric_cards(
             ),
         )
 
-    with summary_columns[1]:
-        st.metric(
-            "Worst forecast AQI",
-            format_aqi(
-                summary.get(
-                    "maximum_rolling_24h_aqi"
-                )
-                or summary.get(
-                    "maximum_indicative_hourly_aqi"
-                )
-            ),
-            help=str(
-                summary.get(
-                    "worst_aqi_category",
-                    "Not available",
-                )
-            ),
+        st.caption(
+            "Maximum in selected range"
         )
 
-    with summary_columns[2]:
-        active_alert_hours = int(
+    with metric_columns[2]:
+        worst_aqi = (
             summary.get(
-                "active_alert_hours",
-                0,
+                "maximum_rolling_24h_aqi"
+            )
+            or summary.get(
+                "maximum_indicative_hourly_aqi"
+            )
+        )
+
+        worst_category = str(
+            summary.get(
+                "worst_aqi_category",
+                "Not available",
             )
         )
 
         st.metric(
-            "Active alert hours",
+            "Worst forecast AQI",
+            format_aqi(worst_aqi),
+            help=worst_category,
+        )
+
+        st.caption(
+            worst_category
+        )
+
+    with metric_columns[3]:
+        st.metric(
+            "Alert hours",
             str(active_alert_hours),
             help=(
                 f"{summary.get('alert_episode_count', 0)} "
                 "grouped alert episode(s)"
             ),
+        )
+
+        st.caption(
+            "None expected"
+            if active_alert_hours == 0
+            else "Review alert timeline"
         )

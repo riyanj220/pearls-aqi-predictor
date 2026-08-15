@@ -15,7 +15,92 @@ PLOT_CONFIG = {
     "displaylogo": False,
     "scrollZoom": False,
     "responsive": True,
+    "modeBarButtonsToRemove": [
+        "lasso2d",
+        "select2d",
+    ],
 }
+
+
+PLOT_BACKGROUND = "rgba(0,0,0,0)"
+GRID_COLOR = "rgba(148,163,184,0.16)"
+TEXT_COLOR = "#CBD5E1"
+MUTED_TEXT_COLOR = "#94A3B8"
+PRIMARY_LINE = "#7DD3FC"
+
+
+def _apply_common_layout(
+    figure: go.Figure,
+    *,
+    title: str,
+    xaxis_title: str,
+    yaxis_title: str,
+    height: int = 400,
+) -> None:
+    """Apply the shared visual language to Plotly charts."""
+
+    figure.update_layout(
+        title={
+            "text": title,
+            "x": 0.01,
+            "xanchor": "left",
+            "font": {
+                "size": 16,
+                "color": "#F8FAFC",
+            },
+        },
+        xaxis_title=xaxis_title,
+        yaxis_title=yaxis_title,
+        hovermode="x unified",
+        height=height,
+        paper_bgcolor=PLOT_BACKGROUND,
+        plot_bgcolor=PLOT_BACKGROUND,
+        font={
+            "color": TEXT_COLOR,
+            "size": 12,
+        },
+        margin={
+            "l": 28,
+            "r": 24,
+            "t": 58,
+            "b": 24,
+        },
+        legend={
+            "title": None,
+            "bgcolor": "rgba(0,0,0,0)",
+        },
+        hoverlabel={
+            "bgcolor": "#111827",
+            "bordercolor": "rgba(148,163,184,0.20)",
+            "font": {
+                "color": "#F8FAFC",
+            },
+        },
+    )
+
+    figure.update_xaxes(
+        showgrid=False,
+        zeroline=False,
+        linecolor="rgba(148,163,184,0.10)",
+        tickfont={
+            "color": MUTED_TEXT_COLOR,
+        },
+        title_font={
+            "color": MUTED_TEXT_COLOR,
+        },
+    )
+
+    figure.update_yaxes(
+        gridcolor=GRID_COLOR,
+        zeroline=False,
+        linecolor="rgba(148,163,184,0.10)",
+        tickfont={
+            "color": MUTED_TEXT_COLOR,
+        },
+        title_font={
+            "color": MUTED_TEXT_COLOR,
+        },
+    )
 
 
 def build_pm25_chart(
@@ -37,9 +122,14 @@ def build_pm25_chart(
     figure.update_traces(
         line={
             "width": 3,
+            "color": PRIMARY_LINE,
         },
         marker={
             "size": 6,
+            "color": PRIMARY_LINE,
+            "line": {
+                "width": 0,
+            },
         },
         hovertemplate=(
             "<b>%{x}</b><br>"
@@ -71,21 +161,22 @@ def build_pm25_chart(
             ),
             showarrow=True,
             arrowhead=2,
+            arrowcolor="#64748B",
+            font={
+                "color": "#E2E8F0",
+                "size": 11,
+            },
+            bgcolor="rgba(15,23,42,0.85)",
+            borderpad=5,
             yshift=14,
         )
 
-    figure.update_layout(
+    _apply_common_layout(
+        figure,
         title="Hourly PM2.5 forecast",
         xaxis_title="Forecast time",
         yaxis_title="PM2.5 (µg/m³)",
-        hovermode="x unified",
-        margin={
-            "l": 20,
-            "r": 20,
-            "t": 60,
-            "b": 20,
-        },
-        height=430,
+        height=410,
     )
 
     return figure
@@ -118,7 +209,7 @@ def _add_aqi_bands(
                     category
                 ]
             ),
-            opacity=0.09,
+            opacity=0.075,
             line_width=0,
             layer="below",
         )
@@ -147,13 +238,15 @@ def build_indicative_aqi_chart(
             ],
             mode="lines+markers",
             line={
-                "width": 2,
+                "width": 2.3,
+                "color": PRIMARY_LINE,
             },
             marker={
                 "size": 7,
                 "color": marker_colors,
                 "line": {
                     "width": 1,
+                    "color": "#0B0F15",
                 },
             },
             customdata=forecast_df[
@@ -179,20 +272,12 @@ def build_indicative_aqi_chart(
 
     _add_aqi_bands(figure)
 
-    figure.update_layout(
-        title=(
-            "Indicative hourly PM2.5-based AQI"
-        ),
+    _apply_common_layout(
+        figure,
+        title="Indicative hourly PM2.5-based AQI",
         xaxis_title="Forecast time",
         yaxis_title="AQI",
-        hovermode="x unified",
-        height=430,
-        margin={
-            "l": 20,
-            "r": 20,
-            "t": 60,
-            "b": 20,
-        },
+        height=410,
     )
 
     return figure
@@ -225,13 +310,18 @@ def build_rolling_aqi_chart(
             ],
             mode="lines+markers",
             line={
-                "width": 3,
+                "width": 2.7,
+                "color": PRIMARY_LINE,
             },
             marker={
                 "size": 6,
                 "color": rolling_df[
                     "rolling_24h_aqi_color_hex"
                 ],
+                "line": {
+                    "width": 1,
+                    "color": "#0B0F15",
+                },
             },
             customdata=rolling_df[
                 [
@@ -256,18 +346,12 @@ def build_rolling_aqi_chart(
 
     _add_aqi_bands(figure)
 
-    figure.update_layout(
+    _apply_common_layout(
+        figure,
         title="Rolling 24-hour PM2.5-based AQI",
         xaxis_title="Forecast time",
         yaxis_title="AQI",
-        hovermode="x unified",
-        height=430,
-        margin={
-            "l": 20,
-            "r": 20,
-            "t": 60,
-            "b": 20,
-        },
+        height=410,
     )
 
     return figure
@@ -322,6 +406,8 @@ def build_category_timeline(
     )
 
     figure.update_traces(
+        marker_line_width=0,
+        opacity=0.84,
         hovertemplate=(
             "<b>%{x}</b><br>"
             "Category: %{fullData.name}<br>"
@@ -329,21 +415,32 @@ def build_category_timeline(
             "Alert level: %{customdata[1]}<br>"
             "AQI: %{customdata[2]}"
             "<extra></extra>"
-        )
+        ),
+    )
+
+    _apply_common_layout(
+        figure,
+        title="AQI category timeline",
+        xaxis_title="Forecast time",
+        yaxis_title="",
+        height=230,
+    )
+
+    figure.update_yaxes(
+        visible=False,
     )
 
     figure.update_layout(
-        title="AQI category timeline",
-        xaxis_title="Forecast time",
-        yaxis_visible=False,
-        barmode="stack",
-        height=240,
-        legend_title="AQI category",
-        margin={
-            "l": 20,
-            "r": 20,
-            "t": 60,
-            "b": 20,
+        bargap=0.14,
+        legend={
+            "title": {
+                "text": "AQI category",
+            },
+            "orientation": "h",
+            "yanchor": "bottom",
+            "y": 1.01,
+            "xanchor": "right",
+            "x": 1,
         },
     )
 
