@@ -1,12 +1,18 @@
-"""Dashboard header and status presentation."""
+"""Dashboard hero and status presentation."""
 
 from __future__ import annotations
 
+from html import escape
 from typing import Any
 
+import pandas as pd
 import streamlit as st
 
+from dashboard.utils.constants import (
+    AQI_COLOR_FALLBACKS,
+)
 from dashboard.utils.formatting import (
+    format_aqi,
     format_timestamp,
 )
 
@@ -58,9 +64,26 @@ def _display_freshness(
     age = float(age_hours)
 
     if age < 1:
-        return status, f"{round(age * 60)} minutes old"
+        return (
+            status,
+            f"{round(age * 60)} min ago",
+        )
 
-    return status, f"{age:.1f} hours old"
+    return (
+        status,
+        f"{age:.1f}h ago",
+    )
+
+
+def _safe_category_color(
+    category: str,
+) -> str:
+    """Resolve the AQI category accent color."""
+
+    return AQI_COLOR_FALLBACKS.get(
+        category,
+        "#60A5FA",
+    )
 
 
 def render_dashboard_header(
@@ -68,25 +91,30 @@ def render_dashboard_header(
     title: str,
     forecast_payload: dict[str, Any],
     readiness_payload: dict[str, Any],
+    forecast_df: pd.DataFrame,
     timezone_name: str,
 ) -> None:
-    """Render the main forecast page header."""
+    """Render a concise product-style forecast header."""
 
     location = forecast_payload.get(
         "location",
         {},
     )
 
-    location_name = location.get(
-        "name",
-        "Zafar Memon DHA",
+    location_name = str(
+        location.get(
+            "name",
+            "Zafar Memon DHA",
+        )
     )
 
-    readiness_status = _display_readiness_status(
-        str(
-            readiness_payload.get(
-                "status",
-                "UNKNOWN",
+    readiness_status = (
+        _display_readiness_status(
+            str(
+                readiness_payload.get(
+                    "status",
+                    "UNKNOWN",
+                )
             )
         )
     )
@@ -108,54 +136,146 @@ def render_dashboard_header(
         include_timezone=False,
     )
 
-    st.title(title)
+    if forecast_df.empty:
+        current_aqi = "—"
+        category = "Not available"
+        health_message = (
+            "Forecast information is currently unavailable."
+        )
+    else:
+        first_row = forecast_df.iloc[0]
 
-    st.markdown(
-        "### 72-hour PM2.5-based AQI forecast"
+        current_aqi = format_aqi(
+            first_row.get(
+                "indicative_hourly_pm25_aqi"
+            )
+        )
+
+        category = str(
+            first_row.get(
+                "indicative_hourly_aqi_category",
+                "Not available",
+            )
+        )
+
+        health_message = str(
+            first_row.get(
+                "health_message",
+                "Air-quality outlook available.",
+            )
+        )
+
+    category_color = (
+        _safe_category_color(category)
     )
 
-    st.caption(
-        f"Reference location: **{location_name}**"
+    live_status = (
+        readiness_status == "Ready"
+        and freshness_value.lower() == "fresh"
     )
 
-    status_columns = st.columns(4)
+    live_label = (
+        "LIVE"
+        if live_status
+        else readiness_status.upper()
+    )
 
-    with status_columns[0]:
-        st.metric(
-            "Service status",
-            readiness_status,
-        )
+    st.html(
+        f"""
+        <div>
+            <div class="section-kicker">
+                Environmental forecast
+            </div>
+            <div style="
+                display:flex;
+                justify-content:space-between;
+                gap:1rem;
+                align-items:flex-end;
+                flex-wrap:wrap;
+            ">
+                <div>
+                    <h1 style="
+                        margin:0;
+                        font-size:2.15rem;
+                    ">
+                        {escape(title)}
+                    </h1>
+                    <div style="
+                        color:#8d99aa;
+                        margin-top:0.35rem;
+                        font-size:0.92rem;
+                    ">
+                        72-hour PM2.5-based air-quality outlook
+                    </div>
+                </div>
+            </div>
+        </div>
 
-        st.caption(
-            "Forecast API available"
-        )
+        <div
+            class="aqi-hero"
+            style="
+                --hero-accent:{category_color};
+                --category-color:{category_color};
+            "
+        >
+            <div class="aqi-hero-top">
+                <div>
+                    <div class="aqi-hero-eyebrow">
+                        Current forecast outlook
+                    </div>
+                    <div class="aqi-hero-title">
+                        {escape(location_name)} · Karachi
+                    </div>
+                </div>
 
-    with status_columns[1]:
-        st.metric(
-            "Forecast horizon",
-            "72 hours",
-        )
+                <div class="aqi-live-pill">
+                    <span class="aqi-live-dot"></span>
+                    {escape(live_label)}
+                </div>
+            </div>
 
-        st.caption(
-            "Hourly predictions"
-        )
+            <div class="aqi-hero-main">
+                <div>
+                    <div class="aqi-value">
+                        {escape(current_aqi)}
+                    </div>
+                    <div class="aqi-value-label">
+                        Indicative AQI
+                    </div>
+                </div>
 
-    with status_columns[2]:
-        st.metric(
-            "Freshness",
-            freshness_value,
-        )
+                <div class="aqi-category">
+                    {escape(category)}
+                </div>
+            </div>
 
-        st.caption(
-            freshness_caption
-        )
+            <p class="aqi-hero-message">
+                {escape(health_message)}
+            </p>
+        </div>
 
-    with status_columns[3]:
-        st.metric(
-            "Generated",
-            generated_time,
-        )
+        <div class="status-strip">
+            <div class="status-chip">
+                <span class="status-dot success"></span>
+                API {escape(readiness_status)}
+            </div>
 
-        st.caption(
-            timezone_name
-        )
+            <div class="status-chip">
+                <span class="status-dot success"></span>
+                Forecast {escape(freshness_value)}
+            </div>
+
+            <div class="status-chip">
+                72-hour horizon
+            </div>
+
+            <div class="status-chip">
+                Updated {escape(freshness_caption)}
+            </div>
+
+            <div class="status-chip">
+                Generated {escape(generated_time)}
+            </div>
+        </div>
+        """
+    )

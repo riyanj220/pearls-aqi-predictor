@@ -30,7 +30,6 @@ from dashboard.components.alert_cards import (
 from dashboard.components.system_status import (
     render_location_map,
     render_metadata,
-    render_pipeline_details,
     render_service_status_cards,
 )
 
@@ -53,6 +52,5 @@ __all__ = [
     "render_location_map",
     "render_metadata",
     "render_no_alert_state",
-    "render_pipeline_details",
     "render_service_status_cards",
 ]
