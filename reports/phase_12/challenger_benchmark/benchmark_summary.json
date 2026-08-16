@@ -1,0 +1,47 @@
+{
+  "benchmark": {
+    "final_test_policy": "single_selected_challenger",
+    "name": "controlled_model_challenger_benchmark",
+    "selection_basis": "validation_only",
+    "status": "COMPLETED"
+  },
+  "final_decision": {
+    "additional_model_training": false,
+    "additional_test_evaluation": false,
+    "decision": "KEEP_PRODUCTION_CHAMPION",
+    "production_change_required": false,
+    "production_pointer_change_required": false,
+    "registry_update_required": false
+  },
+  "production_champion": {
+    "model": "production_champion_v1",
+    "model_family": "XGBRegressor",
+    "retained": true,
+    "strategy": "hybrid_persistence_1_12_xgboost_shallower_13_72"
+  },
+  "runner_up": {
+    "model": "lightgbm_l1",
+    "status": "FINALIST_NOT_SELECTED"
+  },
+  "selected_challenger": {
+    "historical_test": {
+      "mae": 3.6284461530820336,
+      "mae_improvement_vs_production_pct": 2.343172829509282,
+      "r2": -0.008741501324130097,
+      "rmse": 4.987333729631562,
+      "rmse_improvement_vs_production_pct": -0.23656789633312356,
+      "severe_pm25_samples": 0
+    },
+    "model": "focused_histgb_h2_absolute",
+    "model_family": "HistGradientBoostingRegressor",
+    "status": "NOT_PROMOTED",
+    "training_scope": "13-72h",
+    "validation": {
+      "mae": 6.584560874456369,
+      "mae_improvement_vs_production_pct": 1.6590108188290158,
+      "r2": 0.08886807523786111,
+      "rmse": 9.306568893101748,
+      "rmse_improvement_vs_production_pct": 1.1994599592936923
+    }
+  }
+}
