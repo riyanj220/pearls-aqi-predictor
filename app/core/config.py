@@ -53,6 +53,14 @@ class Settings:
     # Request more than the strict minimum to handle missing recent hours.
     pm25_history_safety_buffer_hours: int = 48
 
+    # Operational PM2.5 short-gap recovery.
+    #
+    # This affects live inference only. Historical source data remains
+    # unchanged and long/unbounded gaps are never fabricated.
+    pm25_short_gap_imputation_enabled: bool = True
+
+    pm25_max_imputation_gap_hours: int = 3
+
     # The newest usable PM2.5 observation should not exceed this age.
     pm25_freshness_threshold_hours: int = 6
 

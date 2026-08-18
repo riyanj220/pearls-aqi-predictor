@@ -26,6 +26,7 @@ class ReadinessResponse(PublicSchema):
     """Response for artifact and forecast readiness."""
 
     status: ReadinessStatus
+
     service: str
     version: str
     timestamp_utc: datetime
@@ -34,12 +35,17 @@ class ReadinessResponse(PublicSchema):
     artifacts_valid: bool
 
     pipeline_run_id: str | None = None
+
     forecast_rows: int | None = Field(
         default=None,
         ge=0,
     )
 
     freshness: FreshnessResponse | None = None
+
+    data_quality_status: str | None = None
+
+    source_degraded: bool = False
 
     limitations: list[str] = Field(
         default_factory=list

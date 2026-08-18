@@ -76,7 +76,9 @@ def select_latest_safe_reference_time(
     - weather for all 72 target hours
     - PM2.5 freshness within the configured threshold
 
-    Missing pollution or weather values are never interpolated.
+    The function itself never interpolates pollution or weather values.
+    Callers may supply PM2.5 data that has already passed the project's
+    controlled short-gap recovery policy.
     """
 
     required_pm25_columns = {

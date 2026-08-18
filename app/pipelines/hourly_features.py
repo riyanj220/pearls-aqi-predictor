@@ -60,6 +60,9 @@ from app.pipelines.incremental_features import (
     synchronize_group,
 )
 
+from app.data.pm25_gap_policy import (
+    recover_short_pm25_gaps,
+)
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
@@ -324,46 +327,6 @@ def build_live_engineered_features(
         .reset_index(drop=True)
     )
 
-     ## temporary
-    missing_counts = (
-        engineered_df[
-            required_feature_columns
-        ]
-        .isna()
-        .sum()
-        .sort_values(
-            ascending=False
-        )
-    )
-
-    print(
-        "Engineered rows:",
-        len(engineered_df),
-    )
-
-    print(
-        "Reference range:",
-        engineered_df[
-            "reference_time"
-        ].min(),
-        "to",
-        engineered_df[
-            "reference_time"
-        ].max(),
-    )
-
-    print(
-        "Columns with missing values:"
-    )
-
-    print(
-        missing_counts[
-            missing_counts > 0
-        ].to_string()
-    )
-
-    ## end
-
     if complete_engineered_df.empty:
         raise HourlyFeaturePipelineError(
             "No complete engineered reference rows are available. "
@@ -538,9 +501,20 @@ def run_hourly_feature_pipeline(
         .fetch_hourly_weather()
     )
 
+    pm25_recovery = (
+        recover_short_pm25_gaps(
+            recent_pm25_df,
+            app_settings=app_settings,
+        )
+    )
+
+    recovered_pm25_df = (
+        pm25_recovery.dataframe
+    )
+
     reference_selection = (
         select_latest_safe_reference_time(
-            pm25_df=recent_pm25_df,
+            pm25_df=recovered_pm25_df,
             weather_df=recent_weather_df,
             app_settings=app_settings,
         )
@@ -584,11 +558,49 @@ def run_hourly_feature_pipeline(
         reference_time.floor("h")
     )
 
+    # Assess PM2.5 input quality across the required
+    # historical feature window.
+    history_start = (
+        reference_time
+        - pd.Timedelta(
+            hours=(
+                app_settings
+                .minimum_pm25_history_hours
+            )
+        )
+    )
+
+    pm25_input_quality = (
+        pm25_recovery.quality_for_window(
+            start_time=history_start,
+            end_time=reference_time,
+        )
+    )
+
+
     (
         observed_pm25_df,
         observed_weather_df,
     ) = select_observed_source_window(
         pm25_df=recent_pm25_df,
+        weather_df=recent_weather_df,
+        reference_time=reference_time,
+    )
+
+    (
+        observed_pm25_df,
+        observed_weather_df,
+    ) = select_observed_source_window(
+        pm25_df=recent_pm25_df,
+        weather_df=recent_weather_df,
+        reference_time=reference_time,
+    )
+
+    (
+        recovered_observed_pm25_df,
+        _,
+    ) = select_observed_source_window(
+        pm25_df=recovered_pm25_df,
         weather_df=recent_weather_df,
         reference_time=reference_time,
     )
@@ -602,7 +614,7 @@ def run_hourly_feature_pipeline(
 
     engineered_df = (
         build_live_engineered_features(
-            pm25_df=observed_pm25_df,
+            pm25_df=recovered_observed_pm25_df,
             weather_df=observed_weather_df,
             reference_time=reference_time,
             contract=contracts[
@@ -751,6 +763,12 @@ def run_hourly_feature_pipeline(
             "observed_weather_rows": int(
                 len(observed_weather_df)
             ),
+             "pm25_recovered_rows": int(
+                len(recovered_pm25_df)
+            ),
+            "pm25_input_quality": (
+                pm25_input_quality
+            ),
             "canonical_rows": int(
                 len(canonical_df)
             ),
@@ -807,6 +825,7 @@ def run_hourly_feature_pipeline(
             "contract_ordering_applied": True,
             "incremental_overlap_applied": True,
             "only_changed_rows_writable": True,
+            "pm25_short_gap_policy_applied": True,
         },
     }
 

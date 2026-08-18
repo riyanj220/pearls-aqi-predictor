@@ -63,6 +63,10 @@ from app.observability.logging import (
     log_pipeline_started,
 )
 
+from app.data.pm25_gap_policy import (
+    recover_short_pm25_gaps,
+)
+
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
@@ -466,9 +470,20 @@ def run_live_inference(
         weather_client.fetch_hourly_weather()
     )
 
+    pm25_recovery = (
+        recover_short_pm25_gaps(
+            recent_pm25_df,
+            app_settings=settings,
+        )
+    )
+
+    recovered_pm25_df = (
+        pm25_recovery.dataframe
+    )
+
     reference_selection = (
         select_latest_safe_reference_time(
-            pm25_df=recent_pm25_df,
+            pm25_df=recovered_pm25_df,
             weather_df=live_weather_df,
             app_settings=settings,
         )
@@ -497,9 +512,16 @@ def run_live_inference(
         )
     )
 
+    pm25_input_quality = (
+        pm25_recovery.quality_for_window(
+            start_time=history_start,
+            end_time=reference_time,
+        )
+    )
+
     selected_pm25_history_df = (
-        recent_pm25_df.loc[
-            recent_pm25_df[
+        recovered_pm25_df.loc[
+            recovered_pm25_df[
                 "datetime_utc"
             ].between(
                 history_start,
@@ -664,6 +686,9 @@ def run_live_inference(
 
     validation_report = {
         "status": "PASSED",
+        "input_quality": (
+            pm25_input_quality
+        ),
         "pipeline_run_id": pipeline_run_id,
         "validated_at_utc": utc_now(),
         "reference_selection_status": (
@@ -682,6 +707,17 @@ def run_live_inference(
             "target_weather_rows_expected": 72,
             "target_weather_rows_actual": len(
                 selected_target_weather_df
+            ),
+
+            "pm25_imputation_used": bool(
+                pm25_input_quality[
+                    "pm25_imputation_used"
+                ]
+            ),
+            "pm25_imputed_hours": int(
+                pm25_input_quality[
+                    "imputed_hours"
+                ]
             ),
             "feature_rows_expected": 72,
             "feature_rows_actual": len(
@@ -743,6 +779,9 @@ def run_live_inference(
         ),
         "prediction_generated_at_utc": (
             prediction_generated_at_utc
+        ),
+        "input_quality": (
+            pm25_input_quality
         ),
         "location": {
             "name": settings.location_name,
@@ -853,6 +892,9 @@ def run_live_inference(
         "phase": "5",
         "pipeline_name": "live_inference",
         "pipeline_run_id": pipeline_run_id,
+        "input_quality": (
+            pm25_input_quality
+        ),
         "status": "LIVE_INFERENCE_COMPLETED",
         "started_at_utc": started_at.isoformat(),
         "completed_at_utc": completed_at.isoformat(),

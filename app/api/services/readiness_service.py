@@ -43,6 +43,7 @@ class ReadinessService:
             bundle = (
                 self._repository.load_latest()
             )
+
         except ArtifactRepositoryError:
             return ReadinessResponse(
                 status=(
@@ -60,11 +61,13 @@ class ReadinessService:
                 pipeline_run_id=None,
                 forecast_rows=None,
                 freshness=None,
+                data_quality_status=None,
+                source_degraded=False,
                 limitations=[],
                 message=(
-                    "The service is running, but the "
-                    "latest forecast artifacts are "
-                    "missing or invalid."
+                    "The forecast service is online, "
+                    "but no valid forecast is currently "
+                    "available."
                 ),
             )
 
@@ -80,6 +83,31 @@ class ReadinessService:
             )
         )
 
+        input_quality = (
+            bundle.metadata.get(
+                "input_quality",
+                {},
+            )
+        )
+
+        if not isinstance(
+            input_quality,
+            dict,
+        ):
+            input_quality = {}
+
+        data_quality_status = str(
+            input_quality.get(
+                "status",
+                "GOOD",
+            )
+        ).upper()
+
+        source_degraded = (
+            data_quality_status
+            == "DEGRADED"
+        )
+
         if (
             bundle.freshness.status
             == FreshnessStatus.STALE
@@ -89,7 +117,21 @@ class ReadinessService:
             )
 
             message = (
-                "The latest forecast is valid but stale."
+                "Fresh sensor data is temporarily delayed. "
+                "The most recent validated forecast remains "
+                "available but is now stale."
+            )
+
+        elif source_degraded:
+            readiness_status = (
+                ReadinessStatus
+                .READY_WITH_LIMITATIONS
+            )
+
+            message = (
+                "The forecast is available. A short gap in "
+                "recent PM2.5 observations was estimated to "
+                "maintain forecast continuity."
             )
 
         elif limitations:
@@ -99,8 +141,8 @@ class ReadinessService:
             )
 
             message = (
-                "The latest forecast is ready with "
-                "documented limitations."
+                "The latest validated forecast is ready "
+                "with documented methodological limitations."
             )
 
         else:
@@ -128,6 +170,12 @@ class ReadinessService:
                 bundle.forecast_df
             ),
             freshness=freshness,
+            data_quality_status=(
+                data_quality_status
+            ),
+            source_degraded=(
+                source_degraded
+            ),
             limitations=limitations,
             message=message,
         )

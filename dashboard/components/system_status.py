@@ -120,7 +120,7 @@ def _system_is_healthy(
     readiness: dict[str, Any],
     pipeline: dict[str, Any],
 ) -> bool:
-    """Return whether core serving conditions are healthy."""
+    """Return whether core serving conditions are fully healthy."""
 
     live_status = normalize_status(
         liveness.get(
@@ -143,6 +143,13 @@ def _system_is_healthy(
         )
     )
 
+    source_degraded = bool(
+        readiness.get(
+            "source_degraded",
+            False,
+        )
+    )
+
     artifact_ok = bool(
         pipeline.get(
             "artifact_consistency_passed",
@@ -153,10 +160,12 @@ def _system_is_healthy(
     return (
         live_status == "Online"
         and ready_status == "Ready"
-        and freshness_status in {
+        and freshness_status
+        in {
             "Fresh",
             "Aging",
         }
+        and not source_degraded
         and artifact_ok
     )
 
@@ -213,24 +222,80 @@ def render_system_hero(
         )
     )
 
+    source_degraded = bool(
+        readiness.get(
+            "source_degraded",
+            False,
+        )
+    )
+
+    freshness_status = str(
+        freshness.get(
+            "status",
+            "",
+        )
+    ).upper()
+
+    forecast_available = bool(
+        readiness.get(
+            "forecast_available",
+            False,
+        )
+    )
+
     if healthy:
         title = "System operational"
         state = "HEALTHY"
         state_class = "normal"
         accent = "#4ADE80"
+
         description = (
-            "The latest validated forecast is "
-            "available and the serving API is "
-            "operating normally."
+            "The latest validated forecast is available "
+            "and all production serving conditions are normal."
         )
+
+    elif not forecast_available:
+        title = "Forecast temporarily unavailable"
+        state = "UNAVAILABLE"
+        state_class = "warning"
+        accent = "#F87171"
+
+        description = (
+            "The application is online, but a validated "
+            "forecast cannot currently be served."
+        )
+
+    elif freshness_status == "STALE":
+        title = "Forecast data delayed"
+        state = "STALE"
+        state_class = "warning"
+        accent = "#FACC15"
+
+        description = (
+            "Fresh source observations are temporarily delayed. "
+            "The most recent validated forecast is still available."
+        )
+
+    elif source_degraded:
+        title = "System operational with degraded input"
+        state = "DEGRADED"
+        state_class = "warning"
+        accent = "#FACC15"
+
+        description = (
+            "A short PM2.5 sensor gap was automatically "
+            "recovered. Forecast serving remains operational."
+        )
+
     else:
         title = "System requires attention"
         state = "CHECK"
         state_class = "warning"
         accent = "#FACC15"
+
         description = (
-            "One or more production readiness "
-            "conditions require review."
+            "One or more production readiness conditions "
+            "require review."
         )
 
     st.html(
