@@ -20,6 +20,7 @@ from dashboard.components.states import (
     render_no_rolling_aqi,
     render_ready_with_limitations,
     render_stale_warning,
+    render_forecast_status_notice,
 )
 
 from dashboard.components.alert_cards import (
@@ -53,4 +54,5 @@ __all__ = [
     "render_metadata",
     "render_no_alert_state",
     "render_service_status_cards",
+    "render_forecast_status_notice",
 ]
