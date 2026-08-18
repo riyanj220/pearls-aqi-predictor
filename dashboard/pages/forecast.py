@@ -19,7 +19,7 @@ from dashboard.components import (
     render_empty_forecast,
     render_metric_cards,
     render_no_rolling_aqi,
-    render_stale_warning,
+    render_forecast_status_notice,
 )
 from dashboard.components.theme import (
     apply_dashboard_theme,
@@ -578,14 +578,9 @@ def render_forecast_page() -> None:
         ),
     )
 
-    if freshness.get(
-        "status"
-    ) == "STALE":
-        render_stale_warning(
-            age_hours=freshness.get(
-                "age_hours"
-            )
-        )
+    render_forecast_status_notice(
+        readiness_payload
+    )
 
     if filtered_df.empty:
         render_empty_forecast()

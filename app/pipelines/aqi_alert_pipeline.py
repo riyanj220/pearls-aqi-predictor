@@ -381,7 +381,7 @@ def validate_phase_5_forecast(
 
     if len(pm25_history_df) < 24:
         raise AQIAlertPipelineError(
-            "At least 24 observed PM2.5 hours are required."
+            "At least 24 PM2.5 history hours are required."
         )
 
     if (
@@ -389,7 +389,7 @@ def validate_phase_5_forecast(
         != reference_time
     ):
         raise AQIAlertPipelineError(
-            "Observed PM2.5 history does not end "
+            "PM2.5 history does not end "
             "at the forecast reference time."
         )
 
@@ -408,7 +408,7 @@ def validate_phase_5_forecast(
         pm25_history_df["datetime_utc"]
     ).equals(expected_history_timeline):
         raise AQIAlertPipelineError(
-            "Observed PM2.5 history contains missing hours."
+            "PM2.5 history contains missing hours."
         )
 
     history_values = pd.to_numeric(
@@ -418,12 +418,12 @@ def validate_phase_5_forecast(
 
     if history_values.isna().any():
         raise AQIAlertPipelineError(
-            "Observed PM2.5 history contains missing values."
+            "PM2.5 history contains missing hours."
         )
 
     if not history_values.gt(0).all():
         raise AQIAlertPipelineError(
-            "Observed PM2.5 history contains "
+            "PM2.5 history contains "
             "non-positive values."
         )
 
@@ -576,6 +576,29 @@ def run_aqi_alert_pipeline(
         phase_5_metadata=phase_5_metadata,
     )
 
+    phase_5_input_quality = (
+        phase_5_metadata.get(
+            "input_quality",
+            {},
+        )
+    )
+
+    if not isinstance(
+        phase_5_input_quality,
+        dict,
+    ):
+        phase_5_input_quality = {}
+
+    pm25_source_degraded = (
+        str(
+            phase_5_input_quality.get(
+                "status",
+                "GOOD",
+            )
+        ).upper()
+        == "DEGRADED"
+    )
+
     enriched_forecast_df = (
         enrich_forecast_with_aqi(
             forecast_df=forecast_df,
@@ -633,6 +656,12 @@ def run_aqi_alert_pipeline(
             resolved_source_run_id
         ),
         "generated_at_utc": generated_at_utc,
+        "input_quality_status": (
+            phase_5_input_quality.get(
+                "status",
+                "GOOD",
+            )
+        ),
         "status": "COMPLETED",
         "forecast_rows": len(
             alerted_forecast_df
@@ -700,6 +729,9 @@ def run_aqi_alert_pipeline(
             resolved_source_run_id
         ),
         "generated_at_utc": generated_at_utc,
+        "input_quality": (
+            phase_5_input_quality
+        ),
         "project": {
             "name": phase_5_metadata.get(
                 "project_name"
@@ -772,8 +804,47 @@ def run_aqi_alert_pipeline(
         ],
     }
 
+    limitations = [
+        (
+            "Indicative hourly AQI is not an "
+            "official regulatory daily AQI."
+        ),
+        (
+            "Rolling 24-hour AQI combines observed "
+            "and forecast PM2.5 values."
+        ),
+        (
+            "Alert accuracy depends on the underlying "
+            "PM2.5 forecast accuracy."
+        ),
+    ]
+
+    if pm25_source_degraded:
+        imputed_hours = int(
+            phase_5_input_quality.get(
+                "imputed_hours",
+                0,
+            )
+            or 0
+        )
+
+        limitations.append(
+            (
+                "Recent PM2.5 observations contained "
+                "a short sensor-data gap. "
+                f"{imputed_hours} hourly value"
+                f"{'s were' if imputed_hours != 1 else ' was'} "
+                "estimated using bounded linear interpolation "
+                "to maintain forecast continuity."
+            )
+        )
+
     validation_report = {
-        "status": "AQI_ALERT_PIPELINE_APPROVED",
+        "status": (
+            "AQI_ALERT_PIPELINE_APPROVED_WITH_LIMITATIONS"
+            if pm25_source_degraded
+            else "AQI_ALERT_PIPELINE_APPROVED"
+        ),
         "phase_6_run_id": phase_6_run_id,
         "source_phase_5_run_id": (
             resolved_source_run_id
@@ -782,20 +853,7 @@ def run_aqi_alert_pipeline(
             pd.Timestamp.now(tz="UTC")
         ),
         "checks": validation_checks,
-        "limitations": [
-            (
-                "Indicative hourly AQI is not an "
-                "official regulatory daily AQI."
-            ),
-            (
-                "Rolling 24-hour AQI combines observed "
-                "and forecast PM2.5 values."
-            ),
-            (
-                "Alert accuracy depends on the underlying "
-                "PM2.5 forecast accuracy."
-            ),
-        ],
+        "limitations":limitations
     }
 
     saved_run = save_aqi_run(
