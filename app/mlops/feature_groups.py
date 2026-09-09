@@ -16,15 +16,11 @@ from app.mlops.contracts import (
 )
 
 
-class FeatureGroupConfigurationError(
-    ValueError
-):
+class FeatureGroupConfigurationError(ValueError):
     """Raised when a feature-group contract is invalid."""
 
 
-class FeatureGroupCreationError(
-    RuntimeError
-):
+class FeatureGroupCreationError(RuntimeError):
     """Raised when feature-group metadata cannot be created."""
 
 
@@ -44,15 +40,9 @@ class ResolvedFeatureGroups:
 
         return {
             "dry_run": self.dry_run,
-            "pm25_resolved": (
-                self.pm25 is not None
-            ),
-            "weather_resolved": (
-                self.weather is not None
-            ),
-            "engineered_resolved": (
-                self.engineered is not None
-            ),
+            "pm25_resolved": (self.pm25 is not None),
+            "weather_resolved": (self.weather is not None),
+            "engineered_resolved": (self.engineered is not None),
         }
 
 
@@ -63,30 +53,23 @@ def validate_contract(
 
     feature_names = contract.feature_names
 
-    if len(feature_names) != len(
-        set(feature_names)
-    ):
+    if len(feature_names) != len(set(feature_names)):
         raise FeatureGroupConfigurationError(
-            f"{contract.name} contains duplicate "
-            "feature names."
+            f"{contract.name} contains duplicate feature names."
         )
 
     missing_primary_keys = [
-        column
-        for column in contract.primary_key
-        if column not in feature_names
+        column for column in contract.primary_key if column not in feature_names
     ]
 
     if missing_primary_keys:
         raise FeatureGroupConfigurationError(
-            f"{contract.name} is missing primary-key "
-            f"features: {missing_primary_keys}"
+            f"{contract.name} is missing primary-key features: {missing_primary_keys}"
         )
 
     if contract.event_time not in feature_names:
         raise FeatureGroupConfigurationError(
-            f"{contract.name} is missing event-time "
-            f"feature {contract.event_time!r}."
+            f"{contract.name} is missing event-time feature {contract.event_time!r}."
         )
 
     forbidden_engineered_features = sorted(
@@ -132,15 +115,10 @@ def validate_contracts(
             "engineered feature-group contracts."
         )
 
-    names = [
-        contract.name
-        for contract in contracts.values()
-    ]
+    names = [contract.name for contract in contracts.values()]
 
     if len(names) != len(set(names)):
-        raise FeatureGroupConfigurationError(
-            "Feature-group names must be unique."
-        )
+        raise FeatureGroupConfigurationError("Feature-group names must be unique.")
 
     for contract in contracts.values():
         validate_contract(contract)
@@ -179,14 +157,10 @@ def _resolve_feature_group(
         name=contract.name,
         version=contract.version,
         description=contract.description,
-        primary_key=list(
-            contract.primary_key
-        ),
+        primary_key=list(contract.primary_key),
         event_time=contract.event_time,
         online_enabled=contract.online_enabled,
-        features=_to_hopsworks_features(
-            contract
-        ),
+        features=_to_hopsworks_features(contract),
     )
 
 
@@ -212,9 +186,7 @@ def create_or_get_feature_groups(
         )
 
     if resources.feature_store is None:
-        raise FeatureGroupCreationError(
-            "The Hopsworks Feature Store was not resolved."
-        )
+        raise FeatureGroupCreationError("The Hopsworks Feature Store was not resolved.")
 
     try:
         return ResolvedFeatureGroups(
@@ -235,6 +207,5 @@ def create_or_get_feature_groups(
 
     except Exception as error:
         raise FeatureGroupCreationError(
-            "Could not resolve the required Hopsworks "
-            "feature groups."
+            "Could not resolve the required Hopsworks feature groups."
         ) from error

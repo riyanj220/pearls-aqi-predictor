@@ -7,10 +7,9 @@ import json
 import subprocess
 import urllib.error
 import urllib.request
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
-
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
@@ -30,9 +29,7 @@ EXPECTED_JOBS = [
 ]
 
 
-class InitialProductionValidationError(
-    RuntimeError
-):
+class InitialProductionValidationError(RuntimeError):
     """Raised when initial production publication is invalid."""
 
 
@@ -121,11 +118,7 @@ def latest_execution(
         reverse=True,
     )
 
-    return (
-        valid[0]
-        if valid
-        else None
-    )
+    return valid[0] if valid else None
 
 
 def download_json_blob(
@@ -157,19 +150,13 @@ def download_json_blob(
         ]
     )
 
-    payload = json.loads(
-        destination.read_text(
-            encoding="utf-8"
-        )
-    )
+    payload = json.loads(destination.read_text(encoding="utf-8"))
 
     if not isinstance(
         payload,
         dict,
     ):
-        raise InitialProductionValidationError(
-            f"Blob is not a JSON object: {name}"
-        )
+        raise InitialProductionValidationError(f"Blob is not a JSON object: {name}")
 
     return payload
 
@@ -190,34 +177,22 @@ def request_json(
             request,
             timeout=30,
         ) as response:
-
-            status = int(
-                response.status
-            )
+            status = int(response.status)
 
             body = response.read()
 
     except urllib.error.HTTPError as error:
-
-        status = int(
-            error.code
-        )
+        status = int(error.code)
 
         body = error.read()
 
-    payload = json.loads(
-        body.decode(
-            "utf-8"
-        )
-    )
+    payload = json.loads(body.decode("utf-8"))
 
     if not isinstance(
         payload,
         dict,
     ):
-        raise InitialProductionValidationError(
-            f"Response is not JSON object: {url}"
-        )
+        raise InitialProductionValidationError(f"Response is not JSON object: {url}")
 
     return status, payload
 
@@ -241,118 +216,56 @@ def validate_initial_production(
     ] = {}
 
     for job_name in EXPECTED_JOBS:
-
-        execution = (
-            latest_execution(
-                resource_group=(
-                    resource_group
-                ),
-                job_name=job_name,
-            )
+        execution = latest_execution(
+            resource_group=(resource_group),
+            job_name=job_name,
         )
 
         status = (
             execution.get(
                 "properties",
                 {},
-            ).get(
-                "status"
-            )
+            ).get("status")
             if execution
             else None
         )
 
-        checks[
-            f"{job_name}_executed"
-        ] = (
-            execution is not None
-        )
+        checks[f"{job_name}_executed"] = execution is not None
 
-        checks[
-            f"{job_name}_succeeded"
-        ] = (
-            status == "Succeeded"
-        )
+        checks[f"{job_name}_succeeded"] = status == "Succeeded"
 
-        job_results[
-            job_name
-        ] = {
-            "execution_name": (
-                execution.get(
-                    "name"
-                )
-                if execution
-                else None
-            ),
+        job_results[job_name] = {
+            "execution_name": (execution.get("name") if execution else None),
             "status": status,
         }
 
-    aqi_pointer = (
-        download_json_blob(
-            account=storage_account,
-            container=storage_container,
-            name=(
-                "aqi/latest/"
-                "pointer.json"
-            ),
-            destination=Path(
-                "/tmp/"
-                "production-initial-aqi-pointer.json"
-            ),
-        )
+    aqi_pointer = download_json_blob(
+        account=storage_account,
+        container=storage_container,
+        name=("aqi/latest/pointer.json"),
+        destination=Path("/tmp/production-initial-aqi-pointer.json"),
     )
 
-    health_pointer = (
-        download_json_blob(
-            account=storage_account,
-            container=storage_container,
-            name=(
-                "production-health/"
-                "latest/pointer.json"
-            ),
-            destination=Path(
-                "/tmp/"
-                "production-initial-health-pointer.json"
-            ),
-        )
+    health_pointer = download_json_blob(
+        account=storage_account,
+        container=storage_container,
+        name=("production-health/latest/pointer.json"),
+        destination=Path("/tmp/production-initial-health-pointer.json"),
     )
 
-    checks[
-        "aqi_pointer_created"
-    ] = (
-        aqi_pointer.get(
-            "artifact_type"
-        )
-        == "aqi"
+    checks["aqi_pointer_created"] = aqi_pointer.get("artifact_type") == "aqi"
+
+    checks["aqi_pointer_approved"] = (
+        aqi_pointer.get("validation_status") == "AQI_ALERT_PIPELINE_APPROVED"
     )
 
-    checks[
-        "aqi_pointer_approved"
-    ] = (
-        aqi_pointer.get(
-            "validation_status"
-        )
-        == "AQI_ALERT_PIPELINE_APPROVED"
+    checks["health_pointer_created"] = (
+        health_pointer.get("artifact_type") == "production-health"
     )
 
-    checks[
-        "health_pointer_created"
-    ] = (
-        health_pointer.get(
-            "artifact_type"
-        )
-        == "production-health"
+    checks["health_pointer_recorded"] = (
+        health_pointer.get("validation_status") == "PRODUCTION_HEALTH_RECORDED"
     )
-
-    checks[
-        "health_pointer_recorded"
-    ] = (
-        health_pointer.get(
-            "validation_status"
-        )
-        == "PRODUCTION_HEALTH_RECORDED"
-    )
-
 
     api = run_json(
         [
@@ -379,108 +292,44 @@ def validate_initial_production(
             "ingress",
             {},
         )
-        .get(
-            "fqdn"
-        )
+        .get("fqdn")
     )
 
     if not fqdn:
-        raise InitialProductionValidationError(
-            "Production API has no FQDN."
-        )
+        raise InitialProductionValidationError("Production API has no FQDN.")
 
-    base_url = (
-        f"https://{fqdn}"
-    )
+    base_url = f"https://{fqdn}"
 
-    ready_status, ready_payload = (
-        request_json(
-            f"{base_url}"
-            "/api/v1/health/ready"
-        )
-    )
+    ready_status, ready_payload = request_json(f"{base_url}/api/v1/health/ready")
 
-    forecast_status, forecast_payload = (
-        request_json(
-            f"{base_url}"
-            "/api/v1/forecast"
-        )
-    )
+    forecast_status, forecast_payload = request_json(f"{base_url}/api/v1/forecast")
 
-    checks[
-        "api_is_ready"
-    ] = (
-        ready_status == 200
-    )
+    checks["api_is_ready"] = ready_status == 200
 
-    checks[
-        "forecast_endpoint_succeeds"
-    ] = (
-        forecast_status == 200
-    )
+    checks["forecast_endpoint_succeeds"] = forecast_status == 200
 
-    checks[
-        "readiness_reports_forecast"
-    ] = bool(
-        ready_payload.get(
-            "forecast_available"
-        )
-    )
+    checks["readiness_reports_forecast"] = bool(ready_payload.get("forecast_available"))
 
     return {
-        "valid": all(
-            checks.values()
-        ),
+        "valid": all(checks.values()),
         "checks": checks,
         "jobs": job_results,
         "aqi_pointer": {
-            "run_id": (
-                aqi_pointer.get(
-                    "run_id"
-                )
-            ),
-            "validation_status": (
-                aqi_pointer.get(
-                    "validation_status"
-                )
-            ),
-            "published_at_utc": (
-                aqi_pointer.get(
-                    "published_at_utc"
-                )
-            ),
+            "run_id": (aqi_pointer.get("run_id")),
+            "validation_status": (aqi_pointer.get("validation_status")),
+            "published_at_utc": (aqi_pointer.get("published_at_utc")),
         },
         "health_pointer": {
-            "run_id": (
-                health_pointer.get(
-                    "run_id"
-                )
-            ),
-            "validation_status": (
-                health_pointer.get(
-                    "validation_status"
-                )
-            ),
-            "published_at_utc": (
-                health_pointer.get(
-                    "published_at_utc"
-                )
-            ),
+            "run_id": (health_pointer.get("run_id")),
+            "validation_status": (health_pointer.get("validation_status")),
+            "published_at_utc": (health_pointer.get("published_at_utc")),
         },
         "api": {
             "url": base_url,
-            "readiness_status": (
-                ready_status
-            ),
-            "forecast_status": (
-                forecast_status
-            ),
+            "readiness_status": (ready_status),
+            "forecast_status": (forecast_status),
         },
-        "forecast_response_keys": (
-            sorted(
-                forecast_payload.keys()
-            )
-        ),
+        "forecast_response_keys": (sorted(forecast_payload.keys())),
     }
 
 
@@ -493,11 +342,7 @@ def save_report(
         exist_ok=True,
     )
 
-    temporary = (
-        REPORT_PATH.with_suffix(
-            ".json.tmp"
-        )
-    )
+    temporary = REPORT_PATH.with_suffix(".json.tmp")
 
     temporary.write_text(
         json.dumps(
@@ -508,9 +353,7 @@ def save_report(
         encoding="utf-8",
     )
 
-    temporary.replace(
-        REPORT_PATH
-    )
+    temporary.replace(REPORT_PATH)
 
     return REPORT_PATH
 
@@ -521,16 +364,12 @@ def main() -> int:
 
     parser.add_argument(
         "--resource-group",
-        default=(
-            "rg-pearls-aqi-prod"
-        ),
+        default=("rg-pearls-aqi-prod"),
     )
 
     parser.add_argument(
         "--storage-account",
-        default=(
-            "stpearlsaqiriyan"
-        ),
+        default=("stpearlsaqiriyan"),
     )
 
     parser.add_argument(
@@ -540,91 +379,49 @@ def main() -> int:
 
     parser.add_argument(
         "--api-name",
-        default=(
-            "ca-pearls-aqi-api-prod"
-        ),
+        default=("ca-pearls-aqi-api-prod"),
     )
 
     arguments = parser.parse_args()
 
     try:
-
-        validation = (
-            validate_initial_production(
-                resource_group=(
-                    arguments.resource_group
-                ),
-                storage_account=(
-                    arguments.storage_account
-                ),
-                storage_container=(
-                    arguments.storage_container
-                ),
-                api_name=(
-                    arguments.api_name
-                ),
-            )
+        validation = validate_initial_production(
+            resource_group=(arguments.resource_group),
+            storage_account=(arguments.storage_account),
+            storage_container=(arguments.storage_container),
+            api_name=(arguments.api_name),
         )
 
         report = {
             "phase": "10M",
             "subphase": "10M-H",
-            "generated_at_utc": (
-                datetime.now(
-                    timezone.utc
-                ).isoformat()
-            ),
+            "generated_at_utc": (datetime.now(UTC).isoformat()),
             "status": (
                 "INITIAL_PRODUCTION_PUBLICATION_VALIDATED"
-                if validation[
-                    "valid"
-                ]
-                else (
-                    "INITIAL_PRODUCTION_PUBLICATION_INVALID"
-                )
+                if validation["valid"]
+                else ("INITIAL_PRODUCTION_PUBLICATION_INVALID")
             ),
-            "production_live": (
-                validation[
-                    "valid"
-                ]
-            ),
+            "production_live": (validation["valid"]),
             **validation,
         }
 
-        exit_code = (
-            0
-            if validation["valid"]
-            else 1
-        )
+        exit_code = 0 if validation["valid"] else 1
 
     except Exception as error:
-
         report = {
             "phase": "10M",
             "subphase": "10M-H",
-            "generated_at_utc": (
-                datetime.now(
-                    timezone.utc
-                ).isoformat()
-            ),
-            "status": (
-                "INITIAL_PRODUCTION_PUBLICATION_VALIDATION_FAILED"
-            ),
+            "generated_at_utc": (datetime.now(UTC).isoformat()),
+            "status": ("INITIAL_PRODUCTION_PUBLICATION_VALIDATION_FAILED"),
             "production_live": False,
             "valid": False,
-            "error_type": (
-                type(error).__name__
-            ),
-            "error_message": str(
-                error
-            ),
+            "error_type": (type(error).__name__),
+            "error_message": str(error),
         }
 
         exit_code = 1
 
-    path = save_report(
-        report
-    )
+    path = save_report(report)
 
     print(
         json.dumps(

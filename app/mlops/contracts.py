@@ -7,11 +7,10 @@ from typing import Any
 
 import pandas as pd
 
-
 LOCATION_KEY = "zafar_memon_dha_karachi"
 
 OPENAQ_LOCATION_ID = 4814327
-OPENAQ_SENSOR_ID = 13387396
+OPENAQ_SENSOR_ID = 13533643
 
 REFERENCE_LATITUDE = 24.814741
 REFERENCE_LONGITUDE = 67.067062
@@ -43,10 +42,7 @@ class FeatureGroupContract:
     def feature_names(self) -> list[str]:
         """Return feature names in contract order."""
 
-        return [
-            feature.name
-            for feature in self.features
-        ]
+        return [feature.name for feature in self.features]
 
     def validate_dataframe(
         self,
@@ -57,20 +53,15 @@ class FeatureGroupContract:
         """Validate a DataFrame before Feature Store insertion."""
 
         if not isinstance(dataframe, pd.DataFrame):
-            raise TypeError(
-                f"{self.name} input must be a pandas DataFrame."
-            )
+            raise TypeError(f"{self.name} input must be a pandas DataFrame.")
 
         missing_columns = [
-            column
-            for column in self.feature_names
-            if column not in dataframe.columns
+            column for column in self.feature_names if column not in dataframe.columns
         ]
 
         if missing_columns:
             raise ValueError(
-                f"{self.name} is missing required columns: "
-                f"{missing_columns}"
+                f"{self.name} is missing required columns: {missing_columns}"
             )
 
         if not allow_additional_columns:
@@ -82,8 +73,7 @@ class FeatureGroupContract:
 
             if additional_columns:
                 raise ValueError(
-                    f"{self.name} contains unexpected columns: "
-                    f"{additional_columns}"
+                    f"{self.name} contains unexpected columns: {additional_columns}"
                 )
 
         null_key_columns = [
@@ -118,8 +108,7 @@ class FeatureGroupContract:
 
         if duplicate_count:
             raise ValueError(
-                f"{self.name} contains {duplicate_count} "
-                "duplicate logical records."
+                f"{self.name} contains {duplicate_count} duplicate logical records."
             )
 
     def safe_summary(self) -> dict[str, Any]:
@@ -341,27 +330,23 @@ def build_engineered_feature_contract(
     """Build the reusable reference-time feature contract."""
 
     excluded_columns = {
-    "forecast_horizon_hours",
-    "target_time",
-    "target_time_utc",
-    "target_pm25_ug_m3",
+        "forecast_horizon_hours",
+        "target_time",
+        "target_time_utc",
+        "target_pm25_ug_m3",
     }
-
 
     reference_feature_columns = [
         column
         for column in model_feature_columns
-        if column not in excluded_columns
-        and not column.startswith("target_")
+        if column not in excluded_columns and not column.startswith("target_")
     ]
 
     generated_features = tuple(
         FeatureDefinition(
             name=column,
             offline_type="double",
-            description=(
-                "Reusable Phase 2 reference-time model feature."
-            ),
+            description=("Reusable Phase 2 reference-time model feature."),
             nullable=True,
         )
         for column in reference_feature_columns

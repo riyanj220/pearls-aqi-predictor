@@ -19,21 +19,15 @@ class DashboardAPIError(RuntimeError):
     """Base exception for dashboard API failures."""
 
 
-class DashboardAPIConnectionError(
-    DashboardAPIError
-):
+class DashboardAPIConnectionError(DashboardAPIError):
     """Raised when FastAPI cannot be reached."""
 
 
-class DashboardAPITimeoutError(
-    DashboardAPIError
-):
+class DashboardAPITimeoutError(DashboardAPIError):
     """Raised when a FastAPI request times out."""
 
 
-class DashboardAPIResponseError(
-    DashboardAPIError
-):
+class DashboardAPIResponseError(DashboardAPIError):
     """Raised for a structured non-success API response."""
 
     def __init__(
@@ -54,9 +48,7 @@ class DashboardAPIResponseError(
         self.request_id = request_id
 
 
-class DashboardAPIContractError(
-    DashboardAPIError
-):
+class DashboardAPIContractError(DashboardAPIError):
     """Raised when an API response violates the expected shape."""
 
 
@@ -75,10 +67,7 @@ class FastAPIClient:
         self,
         settings: DashboardSettings | None = None,
     ) -> None:
-        self.settings = (
-            settings
-            or get_dashboard_settings()
-        )
+        self.settings = settings or get_dashboard_settings()
 
         self._session = requests.Session()
 
@@ -92,15 +81,11 @@ class FastAPIClient:
                 503,
                 504,
             ),
-            allowed_methods=frozenset(
-                {"GET"}
-            ),
+            allowed_methods=frozenset({"GET"}),
             raise_on_status=False,
         )
 
-        adapter = HTTPAdapter(
-            max_retries=retry_strategy
-        )
+        adapter = HTTPAdapter(max_retries=retry_strategy)
 
         self._session.mount(
             "http://",
@@ -115,14 +100,9 @@ class FastAPIClient:
     def _url(self, path: str) -> str:
         """Build a complete API URL."""
 
-        normalized_path = (
-            "/" + path.lstrip("/")
-        )
+        normalized_path = "/" + path.lstrip("/")
 
-        return (
-            f"{self.settings.fastapi_base_url}"
-            f"{normalized_path}"
-        )
+        return f"{self.settings.fastapi_base_url}{normalized_path}"
 
     def _get(
         self,
@@ -138,44 +118,29 @@ class FastAPIClient:
             response = self._session.get(
                 url,
                 params=params,
-                timeout=(
-                    self.settings
-                    .dashboard_request_timeout_seconds
-                ),
+                timeout=(self.settings.dashboard_request_timeout_seconds),
                 headers={
                     "Accept": "application/json",
                 },
             )
         except requests.Timeout as exc:
-            raise DashboardAPITimeoutError(
-                f"FastAPI request timed out: {url}"
-            ) from exc
+            raise DashboardAPITimeoutError(f"FastAPI request timed out: {url}") from exc
         except requests.ConnectionError as exc:
             raise DashboardAPIConnectionError(
                 f"Could not connect to FastAPI: {url}"
             ) from exc
         except requests.RequestException as exc:
-            raise DashboardAPIConnectionError(
-                f"FastAPI request failed: {url}"
-            ) from exc
+            raise DashboardAPIConnectionError(f"FastAPI request failed: {url}") from exc
 
         try:
             payload = response.json()
         except requests.JSONDecodeError as exc:
-            raise DashboardAPIContractError(
-                "FastAPI returned invalid JSON."
-            ) from exc
+            raise DashboardAPIContractError("FastAPI returned invalid JSON.") from exc
 
         if not isinstance(payload, dict):
-            raise DashboardAPIContractError(
-                "FastAPI response must be a JSON object."
-            )
+            raise DashboardAPIContractError("FastAPI response must be a JSON object.")
 
-        request_id = (
-            response.headers.get(
-                "X-Request-ID"
-            )
-        )
+        request_id = response.headers.get("X-Request-ID")
 
         if not response.ok:
             error = payload.get(
@@ -209,27 +174,18 @@ class FastAPIClient:
                 ):
                     details = {}
 
-                request_id = (
-                    error.get("request_id")
-                    or request_id
-                )
+                request_id = error.get("request_id") or request_id
             else:
                 code = "API_REQUEST_FAILED"
                 message = "The API request failed."
                 details = {}
 
             raise DashboardAPIResponseError(
-                status_code=(
-                    response.status_code
-                ),
+                status_code=(response.status_code),
                 code=code,
                 message=message,
                 details=details,
-                request_id=(
-                    str(request_id)
-                    if request_id
-                    else None
-                ),
+                request_id=(str(request_id) if request_id else None),
             )
 
         return APIResult(
@@ -238,19 +194,13 @@ class FastAPIClient:
         )
 
     def get_liveness(self) -> dict[str, Any]:
-        return self._get(
-            "/health/live"
-        ).payload
+        return self._get("/health/live").payload
 
     def get_readiness(self) -> dict[str, Any]:
-        return self._get(
-            "/health/ready"
-        ).payload
+        return self._get("/health/ready").payload
 
     def get_forecast(self) -> dict[str, Any]:
-        return self._get(
-            "/forecast"
-        ).payload
+        return self._get("/forecast").payload
 
     def get_hourly_forecast(
         self,
@@ -270,10 +220,7 @@ class FastAPIClient:
         }
 
         clean_params = {
-            key: value
-            for key, value
-            in params.items()
-            if value is not None
+            key: value for key, value in params.items() if value is not None
         }
 
         return self._get(
@@ -282,9 +229,7 @@ class FastAPIClient:
         ).payload
 
     def get_summary(self) -> dict[str, Any]:
-        return self._get(
-            "/forecast/summary"
-        ).payload
+        return self._get("/forecast/summary").payload
 
     def get_alerts(
         self,
@@ -298,10 +243,7 @@ class FastAPIClient:
         }
 
         clean_params = {
-            key: value
-            for key, value
-            in params.items()
-            if value is not None
+            key: value for key, value in params.items() if value is not None
         }
 
         return self._get(
@@ -316,24 +258,17 @@ class FastAPIClient:
     ) -> dict[str, Any]:
         return self._get(
             "/alerts/active",
-            params={
-                "include_upcoming": (
-                    include_upcoming
-                )
-            },
+            params={"include_upcoming": (include_upcoming)},
         ).payload
 
     def get_metadata(self) -> dict[str, Any]:
-        return self._get(
-            "/metadata"
-        ).payload
+        return self._get("/metadata").payload
 
     def get_pipeline_status(
         self,
     ) -> dict[str, Any]:
-        return self._get(
-            "/pipeline/status"
-        ).payload
+        return self._get("/pipeline/status").payload
+
 
 def clear_dashboard_api_cache() -> None:
     """Clear all Streamlit API response caches."""
@@ -369,9 +304,7 @@ def cached_forecast() -> dict[str, Any]:
         client = FastAPIClient(settings)
         return client.get_forecast()
 
-    return _load(
-        settings.fastapi_base_url
-    )
+    return _load(settings.fastapi_base_url)
 
 
 def cached_readiness() -> dict[str, Any]:
@@ -392,9 +325,8 @@ def cached_readiness() -> dict[str, Any]:
 
         return client.get_readiness()
 
-    return _load(
-        settings.fastapi_base_url
-    )
+    return _load(settings.fastapi_base_url)
+
 
 def cached_alerts() -> dict[str, Any]:
     """Load all alert episodes with a short Streamlit cache."""
@@ -414,9 +346,7 @@ def cached_alerts() -> dict[str, Any]:
 
         return client.get_alerts()
 
-    return _load(
-        settings.fastapi_base_url
-    )
+    return _load(settings.fastapi_base_url)
 
 
 def cached_active_alerts() -> dict[str, Any]:
@@ -435,13 +365,9 @@ def cached_active_alerts() -> dict[str, Any]:
     ) -> dict[str, Any]:
         client = FastAPIClient(settings)
 
-        return client.get_active_alerts(
-            include_upcoming=True
-        )
+        return client.get_active_alerts(include_upcoming=True)
 
-    return _load(
-        settings.fastapi_base_url
-    )
+    return _load(settings.fastapi_base_url)
 
 
 def cached_metadata() -> dict[str, Any]:
@@ -462,9 +388,7 @@ def cached_metadata() -> dict[str, Any]:
 
         return client.get_metadata()
 
-    return _load(
-        settings.fastapi_base_url
-    )
+    return _load(settings.fastapi_base_url)
 
 
 def cached_pipeline_status() -> dict[str, Any]:
@@ -485,9 +409,7 @@ def cached_pipeline_status() -> dict[str, Any]:
 
         return client.get_pipeline_status()
 
-    return _load(
-        settings.fastapi_base_url
-    )
+    return _load(settings.fastapi_base_url)
 
 
 def cached_liveness() -> dict[str, Any]:
@@ -508,6 +430,4 @@ def cached_liveness() -> dict[str, Any]:
 
         return client.get_liveness()
 
-    return _load(
-        settings.fastapi_base_url
-    )
+    return _load(settings.fastapi_base_url)

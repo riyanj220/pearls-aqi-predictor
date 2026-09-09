@@ -7,7 +7,6 @@ from pathlib import Path
 
 import streamlit as st
 
-
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 if str(PROJECT_ROOT) not in sys.path:
@@ -72,7 +71,6 @@ from dashboard.pages import (
     render_forecast_page,
     render_system_status_page,
 )
-
 
 forecast_page = st.Page(
     render_forecast_page,

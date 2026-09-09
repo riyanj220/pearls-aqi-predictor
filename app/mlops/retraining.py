@@ -7,7 +7,7 @@ import math
 import shutil
 import uuid
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -57,21 +57,14 @@ class RetrainingEligibility:
         return {
             "eligible": self.eligible,
             "forced": self.forced,
-            "latest_reference_time": (
-                self.latest_reference_time.isoformat()
-            ),
+            "latest_reference_time": (self.latest_reference_time.isoformat()),
             "production_training_end": (
                 self.production_training_end.isoformat()
-                if self.production_training_end
-                is not None
+                if self.production_training_end is not None
                 else None
             ),
-            "new_labeled_hours": (
-                self.new_labeled_hours
-            ),
-            "minimum_required_hours": (
-                self.minimum_required_hours
-            ),
+            "new_labeled_hours": (self.new_labeled_hours),
+            "minimum_required_hours": (self.minimum_required_hours),
             "reason": self.reason,
         }
 
@@ -81,16 +74,10 @@ def load_json_object(
 ) -> dict[str, Any]:
     """Load one JSON object."""
 
-    payload = json.loads(
-        path.read_text(
-            encoding="utf-8"
-        )
-    )
+    payload = json.loads(path.read_text(encoding="utf-8"))
 
     if not isinstance(payload, dict):
-        raise RetrainingError(
-            f"{path} must contain a JSON object."
-        )
+        raise RetrainingError(f"{path} must contain a JSON object.")
 
     return payload
 
@@ -102,23 +89,20 @@ def load_feature_columns(
 
     payload = load_json_object(path)
 
-    feature_columns = payload.get(
-        "feature_columns"
-    )
+    feature_columns = payload.get("feature_columns")
 
-    if not isinstance(
-        feature_columns,
-        list,
-    ) or not feature_columns:
+    if (
+        not isinstance(
+            feature_columns,
+            list,
+        )
+        or not feature_columns
+    ):
         raise RetrainingError(
-            "The model feature contract does not "
-            "contain feature_columns."
+            "The model feature contract does not contain feature_columns."
         )
 
-    return [
-        str(column)
-        for column in feature_columns
-    ]
+    return [str(column) for column in feature_columns]
 
 
 def normalize_reference_time(
@@ -127,9 +111,7 @@ def normalize_reference_time(
     """Normalize reference timestamps to UTC hours."""
 
     if "reference_time" not in dataframe.columns:
-        raise RetrainingError(
-            "Training data is missing reference_time."
-        )
+        raise RetrainingError("Training data is missing reference_time.")
 
     result = dataframe.copy()
 
@@ -154,80 +136,42 @@ def resolve_production_training_end(
 
     candidate_values: list[object] = []
 
-    data_ranges = metadata.get(
-        "data_ranges"
-    )
+    data_ranges = metadata.get("data_ranges")
 
     if isinstance(data_ranges, dict):
         candidate_values.extend(
             [
-                data_ranges.get(
-                    "production_data_end"
-                ),
-                data_ranges.get(
-                    "test_reference_end"
-                ),
-                data_ranges.get(
-                    "validation_reference_end"
-                ),
-                data_ranges.get(
-                    "train_reference_end"
-                ),
-                data_ranges.get(
-                    "training_reference_end"
-                ),
-                data_ranges.get(
-                    "reference_end"
-                ),
+                data_ranges.get("production_data_end"),
+                data_ranges.get("test_reference_end"),
+                data_ranges.get("validation_reference_end"),
+                data_ranges.get("train_reference_end"),
+                data_ranges.get("training_reference_end"),
+                data_ranges.get("reference_end"),
             ]
         )
 
-    training_range = metadata.get(
-        "training_data_range"
-    )
+    training_range = metadata.get("training_data_range")
 
     if isinstance(training_range, dict):
         candidate_values.extend(
             [
-                training_range.get(
-                    "production_data_end"
-                ),
-                training_range.get(
-                    "test_reference_end"
-                ),
+                training_range.get("production_data_end"),
+                training_range.get("test_reference_end"),
                 training_range.get("end"),
-                training_range.get(
-                    "end_utc"
-                ),
-                training_range.get(
-                    "reference_end"
-                ),
+                training_range.get("end_utc"),
+                training_range.get("reference_end"),
             ]
         )
 
     candidate_values.extend(
         [
-            metadata.get(
-                "production_data_end"
-            ),
-            metadata.get(
-                "test_reference_end"
-            ),
-            metadata.get(
-                "validation_reference_end"
-            ),
-            metadata.get(
-                "training_end"
-            ),
-            metadata.get(
-                "training_end_utc"
-            ),
-            metadata.get(
-                "training_data_end"
-            ),
-            metadata.get(
-                "training_reference_end"
-            ),
+            metadata.get("production_data_end"),
+            metadata.get("test_reference_end"),
+            metadata.get("validation_reference_end"),
+            metadata.get("training_end"),
+            metadata.get("training_end_utc"),
+            metadata.get("training_data_end"),
+            metadata.get("training_reference_end"),
         ]
     )
 
@@ -236,22 +180,12 @@ def resolve_production_training_end(
             continue
 
         try:
-            timestamp = pd.Timestamp(
-                value
-            )
+            timestamp = pd.Timestamp(value)
 
             if timestamp.tzinfo is None:
-                timestamp = (
-                    timestamp.tz_localize(
-                        "UTC"
-                    )
-                )
+                timestamp = timestamp.tz_localize("UTC")
             else:
-                timestamp = (
-                    timestamp.tz_convert(
-                        "UTC"
-                    )
-                )
+                timestamp = timestamp.tz_convert("UTC")
 
             return timestamp.floor("h")
 
@@ -273,90 +207,54 @@ def evaluate_retraining_eligibility(
 ) -> RetrainingEligibility:
     """Determine whether candidate training should run."""
 
-    normalized = normalize_reference_time(
-        training_df
-    )
+    normalized = normalize_reference_time(training_df)
 
-    latest_reference_time = normalized[
-        "reference_time"
-    ].max()
+    latest_reference_time = normalized["reference_time"].max()
 
-    production_training_end = (
-        resolve_production_training_end(
-            production_metadata
-        )
-    )
+    production_training_end = resolve_production_training_end(production_metadata)
 
     if force:
         return RetrainingEligibility(
             eligible=True,
             forced=True,
-            latest_reference_time=(
-                latest_reference_time
-            ),
-            production_training_end=(
-                production_training_end
-            ),
+            latest_reference_time=(latest_reference_time),
+            production_training_end=(production_training_end),
             new_labeled_hours=0,
-            minimum_required_hours=(
-                minimum_new_labeled_hours
-            ),
-            reason=(
-                "Retraining was explicitly forced."
-            ),
+            minimum_required_hours=(minimum_new_labeled_hours),
+            reason=("Retraining was explicitly forced."),
         )
 
     if production_training_end is None:
         return RetrainingEligibility(
             eligible=False,
             forced=False,
-            latest_reference_time=(
-                latest_reference_time
-            ),
+            latest_reference_time=(latest_reference_time),
             production_training_end=None,
             new_labeled_hours=0,
-            minimum_required_hours=(
-                minimum_new_labeled_hours
-            ),
+            minimum_required_hours=(minimum_new_labeled_hours),
             reason=(
-                "Production metadata does not contain "
-                "a usable training-end timestamp."
+                "Production metadata does not contain a usable training-end timestamp."
             ),
         )
 
     new_reference_times = normalized.loc[
-        normalized["reference_time"]
-        > production_training_end,
+        normalized["reference_time"] > production_training_end,
         "reference_time",
     ].nunique()
 
-    eligible = (
-        int(new_reference_times)
-        >= minimum_new_labeled_hours
-    )
+    eligible = int(new_reference_times) >= minimum_new_labeled_hours
 
     return RetrainingEligibility(
         eligible=eligible,
         forced=False,
-        latest_reference_time=(
-            latest_reference_time
-        ),
-        production_training_end=(
-            production_training_end
-        ),
-        new_labeled_hours=int(
-            new_reference_times
-        ),
-        minimum_required_hours=(
-            minimum_new_labeled_hours
-        ),
+        latest_reference_time=(latest_reference_time),
+        production_training_end=(production_training_end),
+        new_labeled_hours=int(new_reference_times),
+        minimum_required_hours=(minimum_new_labeled_hours),
         reason=(
             "Enough new labeled reference hours exist."
             if eligible
-            else (
-                "Not enough new labeled reference "
-                "hours are available."
-            )
+            else ("Not enough new labeled reference hours are available.")
         ),
     )
 
@@ -376,21 +274,12 @@ def validate_training_frame(
         "forecast_horizon_hours",
     }
 
-    missing_columns = sorted(
-        required_columns.difference(
-            dataframe.columns
-        )
-    )
+    missing_columns = sorted(required_columns.difference(dataframe.columns))
 
     if missing_columns:
-        raise RetrainingError(
-            "Training split is missing columns: "
-            f"{missing_columns}"
-        )
+        raise RetrainingError(f"Training split is missing columns: {missing_columns}")
 
-    result = normalize_reference_time(
-        dataframe
-    )
+    result = normalize_reference_time(dataframe)
 
     duplicate_count = int(
         result.duplicated(
@@ -407,23 +296,15 @@ def validate_training_frame(
             f"reference/horizon keys: {duplicate_count}"
         )
 
-    missing_feature_values = int(
-        result[feature_columns]
-        .isna()
-        .sum()
-        .sum()
-    )
+    missing_feature_values = int(result[feature_columns].isna().sum().sum())
 
     if missing_feature_values:
         raise RetrainingError(
-            "Training split contains missing feature "
-            f"values: {missing_feature_values}"
+            f"Training split contains missing feature values: {missing_feature_values}"
         )
 
     if result[target_column].isna().any():
-        raise RetrainingError(
-            "Training split contains missing targets."
-        )
+        raise RetrainingError("Training split contains missing targets.")
 
     return result
 
@@ -440,59 +321,38 @@ def train_candidate_model(
     """Train one controlled challenger configuration."""
 
     learned_train_rows = train_df.loc[
-        train_df[
-            "forecast_horizon_hours"
-        ].gt(persistence_max_horizon)
+        train_df["forecast_horizon_hours"].gt(persistence_max_horizon)
     ].copy()
 
-    learned_validation_rows = (
-        validation_df.loc[
-            validation_df[
-                "forecast_horizon_hours"
-            ].gt(persistence_max_horizon)
-        ].copy()
-    )
+    learned_validation_rows = validation_df.loc[
+        validation_df["forecast_horizon_hours"].gt(persistence_max_horizon)
+    ].copy()
 
     if learned_train_rows.empty:
-        raise RetrainingError(
-            "No learned-model training horizons are available."
-        )
+        raise RetrainingError("No learned-model training horizons are available.")
 
     if learned_validation_rows.empty:
-        raise RetrainingError(
-            "No learned-model validation horizons are available."
-        )
+        raise RetrainingError("No learned-model validation horizons are available.")
 
     try:
-        candidate_model = clone(
-            production_model
-        )
+        candidate_model = clone(production_model)
     except Exception as error:
-        raise RetrainingError(
-            "The approved estimator could not be cloned."
-        ) from error
+        raise RetrainingError("The approved estimator could not be cloned.") from error
 
     candidate_model.fit(
-        learned_train_rows[
-            feature_columns
-        ],
-        learned_train_rows[
-            target_column
-        ],
+        learned_train_rows[feature_columns],
+        learned_train_rows[target_column],
         eval_set=[
             (
-                learned_validation_rows[
-                    feature_columns
-                ],
-                learned_validation_rows[
-                    target_column
-                ],
+                learned_validation_rows[feature_columns],
+                learned_validation_rows[target_column],
             )
         ],
         verbose=False,
     )
 
     return candidate_model
+
 
 def generate_hybrid_predictions(
     *,
@@ -504,9 +364,7 @@ def generate_hybrid_predictions(
     """Generate hybrid persistence and model predictions."""
 
     horizons = pd.to_numeric(
-        dataframe[
-            "forecast_horizon_hours"
-        ],
+        dataframe["forecast_horizon_hours"],
         errors="raise",
     )
 
@@ -515,9 +373,7 @@ def generate_hybrid_predictions(
         dtype="float64",
     )
 
-    persistence_mask = horizons.le(
-        persistence_max_horizon
-    ).to_numpy()
+    persistence_mask = horizons.le(persistence_max_horizon).to_numpy()
 
     model_mask = ~persistence_mask
 
@@ -531,13 +387,11 @@ def generate_hybrid_predictions(
     )
 
     if model_mask.any():
-        predictions[model_mask] = (
-            model.predict(
-                dataframe.loc[
-                    model_mask,
-                    feature_columns,
-                ]
-            )
+        predictions[model_mask] = model.predict(
+            dataframe.loc[
+                model_mask,
+                feature_columns,
+            ]
         )
 
     return np.clip(
@@ -591,16 +445,10 @@ def evaluate_candidate(
         dataframe=dataframe,
         model=model,
         feature_columns=feature_columns,
-        persistence_max_horizon=(
-            persistence_max_horizon
-        ),
+        persistence_max_horizon=(persistence_max_horizon),
     )
 
-    actual = (
-        dataframe[target_column]
-        .astype(float)
-        .to_numpy()
-    )
+    actual = dataframe[target_column].astype(float).to_numpy()
 
     overall_metrics = calculate_metrics(
         actual,
@@ -617,9 +465,7 @@ def evaluate_candidate(
         maximum_horizon,
     ) in HORIZON_GROUPS.items():
         mask = (
-            dataframe[
-                "forecast_horizon_hours"
-            ]
+            dataframe["forecast_horizon_hours"]
             .between(
                 minimum_horizon,
                 maximum_horizon,
@@ -635,9 +481,7 @@ def evaluate_candidate(
             continue
 
         horizon_metrics[group_name] = {
-            "sample_count": int(
-                mask.sum()
-            ),
+            "sample_count": int(mask.sum()),
             "metrics": calculate_metrics(
                 actual[mask],
                 predictions[mask],
@@ -656,16 +500,12 @@ def evaluate_candidate(
     )
 
     return {
-        "row_count": int(
-            len(dataframe)
-        ),
+        "row_count": len(dataframe),
         "overall": overall_metrics,
         "horizon_groups": horizon_metrics,
         "severe_pm25": {
             "threshold_ug_m3": 55.5,
-            "sample_count": int(
-                severe_mask.sum()
-            ),
+            "sample_count": int(severe_mask.sum()),
             "metrics": severe_metrics,
         },
     }
@@ -687,27 +527,17 @@ def save_candidate_package(
     """Save one immutable local challenger package."""
 
     candidate_id = (
-        datetime.now(timezone.utc).strftime(
-            "%Y%m%dT%H%M%SZ"
-        )
-        + "_"
-        + uuid.uuid4().hex[:8]
+        datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ") + "_" + uuid.uuid4().hex[:8]
     )
 
-    candidate_directory = (
-        output_root
-        / f"{candidate_name}_{candidate_id}"
-    )
+    candidate_directory = output_root / f"{candidate_name}_{candidate_id}"
 
     candidate_directory.mkdir(
         parents=True,
         exist_ok=False,
     )
 
-    model_path = (
-        candidate_directory
-        / "best_model.joblib"
-    )
+    model_path = candidate_directory / "best_model.joblib"
 
     joblib.dump(
         candidate_model,
@@ -716,49 +546,25 @@ def save_candidate_package(
 
     shutil.copy2(
         feature_contract_path,
-        candidate_directory
-        / "model_feature_columns.json",
+        candidate_directory / "model_feature_columns.json",
     )
 
-    production_metadata = load_json_object(
-        production_metadata_path
-    )
+    production_metadata = load_json_object(production_metadata_path)
 
     candidate_metadata = {
         "candidate_id": candidate_id,
         "lifecycle_status": "CANDIDATE",
-        "created_at_utc": datetime.now(
-            timezone.utc
-        ).isoformat(),
-        "model_type": (
-            type(candidate_model).__name__
-        ),
-        "selected_strategy": (
-            production_metadata.get(
-                "selected_strategy"
-            )
-        ),
-        "routing": {
-            "persistence_max_horizon": (
-                persistence_max_horizon
-            )
-        },
-        "training_reference_start": (
-            training_reference_start.isoformat()
-        ),
-        "training_reference_end": (
-            training_reference_end.isoformat()
-        ),
-        "validation_metrics": (
-            validation_metrics
-        ),
+        "created_at_utc": datetime.now(UTC).isoformat(),
+        "model_type": (type(candidate_model).__name__),
+        "selected_strategy": (production_metadata.get("selected_strategy")),
+        "routing": {"persistence_max_horizon": (persistence_max_horizon)},
+        "training_reference_start": (training_reference_start.isoformat()),
+        "training_reference_end": (training_reference_end.isoformat()),
+        "validation_metrics": (validation_metrics),
         "test_metrics": test_metrics,
     }
 
-    (
-        candidate_directory
-        / "candidate_metadata.json"
-    ).write_text(
+    (candidate_directory / "candidate_metadata.json").write_text(
         json.dumps(
             candidate_metadata,
             indent=2,
@@ -766,14 +572,9 @@ def save_candidate_package(
         encoding="utf-8",
     )
 
-    checksum = calculate_sha256(
-        model_path
-    )
+    checksum = calculate_sha256(model_path)
 
-    (
-        candidate_directory
-        / "checksum.sha256"
-    ).write_text(
+    (candidate_directory / "checksum.sha256").write_text(
         checksum + "\n",
         encoding="utf-8",
     )

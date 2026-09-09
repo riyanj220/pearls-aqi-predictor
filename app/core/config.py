@@ -8,7 +8,6 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 ENV_FILE_PATH = PROJECT_ROOT / ".env"
 
@@ -17,6 +16,7 @@ load_dotenv(
     dotenv_path=ENV_FILE_PATH,
     override=False,
 )
+
 
 @dataclass(frozen=True)
 class Settings:
@@ -35,8 +35,20 @@ class Settings:
     longitude: float = 67.067062
 
     # OpenAQ identifiers
-    openaq_location_id: int = 4814327
-    openaq_sensor_id: int = 13387396
+    openaq_location_id: int = int(
+        os.getenv(
+            "OPENAQ_LOCATION_ID",
+            "4814327",
+        )
+    )
+
+    openaq_sensor_id: int = int(
+        os.getenv(
+            "OPENAQ_SENSOR_ID",
+            "13387396",
+        )
+    )
+
     pollutant: str = "pm25"
     pollution_unit: str = "µg/m³"
 
@@ -74,14 +86,10 @@ class Settings:
 
     # API endpoints
     openaq_base_url: str = "https://api.openaq.org/v3"
-    open_meteo_forecast_url: str = (
-        "https://api.open-meteo.com/v1/forecast"
-    )
+    open_meteo_forecast_url: str = "https://api.open-meteo.com/v1/forecast"
 
     # Directories
-    models_dir: Path = field(
-        default_factory=lambda: PROJECT_ROOT / "models"
-    )
+    models_dir: Path = field(default_factory=lambda: PROJECT_ROOT / "models")
     training_data_dir: Path = field(
         default_factory=lambda: PROJECT_ROOT / "data" / "training"
     )
@@ -91,9 +99,7 @@ class Settings:
     error_analysis_dir: Path = field(
         default_factory=lambda: PROJECT_ROOT / "error_analysis"
     )
-    inference_dir: Path = field(
-        default_factory=lambda: PROJECT_ROOT / "inference"
-    )
+    inference_dir: Path = field(default_factory=lambda: PROJECT_ROOT / "inference")
 
     @property
     def best_model_path(self) -> Path:
@@ -123,18 +129,12 @@ class Settings:
     @property
     def phase_4_explainability_report_path(self) -> Path:
         """Return the Phase 4 explainability report path."""
-        return (
-            self.explainability_dir
-            / "phase_4_explainability_report.json"
-        )
+        return self.explainability_dir / "phase_4_explainability_report.json"
 
     @property
     def phase_4_error_analysis_report_path(self) -> Path:
         """Return the Phase 4 error-analysis report path."""
-        return (
-            self.error_analysis_dir
-            / "phase_4_error_analysis_report.json"
-        )
+        return self.error_analysis_dir / "phase_4_error_analysis_report.json"
 
     @property
     def minimum_pm25_history_hours(self) -> int:
@@ -148,10 +148,7 @@ class Settings:
     @property
     def requested_pm25_lookback_hours(self) -> int:
         """Return the configured live PM2.5 request window."""
-        return (
-            self.minimum_pm25_history_hours
-            + self.pm25_history_safety_buffer_hours
-        )
+        return self.minimum_pm25_history_hours + self.pm25_history_safety_buffer_hours
 
     @property
     def openaq_api_key(self) -> str | None:
@@ -177,7 +174,6 @@ class Settings:
             )
 
         return api_key
-
 
 
 settings = Settings()

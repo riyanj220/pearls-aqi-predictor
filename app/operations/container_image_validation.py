@@ -5,18 +5,14 @@ from __future__ import annotations
 import argparse
 import json
 import subprocess
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
-
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 REPORT_PATH = (
-    PROJECT_ROOT
-    / "reports"
-    / "phase_10"
-    / "container_image_validation_report.json"
+    PROJECT_ROOT / "reports" / "phase_10" / "container_image_validation_report.json"
 )
 
 
@@ -77,24 +73,14 @@ def inspect_image(
         "size_bytes": image.get("Size"),
         "configured_user": user,
         "runs_as_root": user in {"", "0", "root"},
-        "healthcheck_configured": bool(
-            config.get("Healthcheck")
-        ),
+        "healthcheck_configured": bool(config.get("Healthcheck")),
         "entrypoint": config.get("Entrypoint"),
         "command": config.get("Cmd"),
         "labels": {
-            "title": labels.get(
-                "org.opencontainers.image.title"
-            ),
-            "version": labels.get(
-                "org.opencontainers.image.version"
-            ),
-            "revision": labels.get(
-                "org.opencontainers.image.revision"
-            ),
-            "created": labels.get(
-                "org.opencontainers.image.created"
-            ),
+            "title": labels.get("org.opencontainers.image.title"),
+            "version": labels.get("org.opencontainers.image.version"),
+            "revision": labels.get("org.opencontainers.image.revision"),
+            "created": labels.get("org.opencontainers.image.created"),
         },
     }
 
@@ -106,50 +92,32 @@ def build_validation_report(
     """Validate API, dashboard, and pipeline images."""
 
     images = {
-        "api": inspect_image(
-            f"pearls-aqi-api:{image_tag}"
-        ),
-        "dashboard": inspect_image(
-            f"pearls-aqi-dashboard:{image_tag}"
-        ),
-        "pipeline": inspect_image(
-            f"pearls-aqi-pipeline:{image_tag}"
-        ),
+        "api": inspect_image(f"pearls-aqi-api:{image_tag}"),
+        "dashboard": inspect_image(f"pearls-aqi-dashboard:{image_tag}"),
+        "pipeline": inspect_image(f"pearls-aqi-pipeline:{image_tag}"),
     }
 
     checks = {
-        "all_images_linux": all(
-            image["os"] == "linux"
-            for image in images.values()
-        ),
+        "all_images_linux": all(image["os"] == "linux" for image in images.values()),
         "all_images_amd64": all(
-            image["architecture"] == "amd64"
-            for image in images.values()
+            image["architecture"] == "amd64" for image in images.values()
         ),
         "all_images_non_root": all(
-            not image["runs_as_root"]
-            for image in images.values()
+            not image["runs_as_root"] for image in images.values()
         ),
-        "api_healthcheck_configured": images[
-            "api"
-        ]["healthcheck_configured"],
-        "dashboard_healthcheck_configured": images[
-            "dashboard"
-        ]["healthcheck_configured"],
-        "pipeline_has_no_healthcheck": not images[
-            "pipeline"
-        ]["healthcheck_configured"],
+        "api_healthcheck_configured": images["api"]["healthcheck_configured"],
+        "dashboard_healthcheck_configured": images["dashboard"][
+            "healthcheck_configured"
+        ],
+        "pipeline_has_no_healthcheck": not images["pipeline"]["healthcheck_configured"],
         "all_titles_present": all(
-            bool(image["labels"]["title"])
-            for image in images.values()
+            bool(image["labels"]["title"]) for image in images.values()
         ),
         "all_revisions_present": all(
-            bool(image["labels"]["revision"])
-            for image in images.values()
+            bool(image["labels"]["revision"]) for image in images.values()
         ),
         "all_commands_present": all(
-            bool(image["command"])
-            for image in images.values()
+            bool(image["command"]) for image in images.values()
         ),
     }
 
@@ -157,9 +125,7 @@ def build_validation_report(
 
     return {
         "phase": "10G",
-        "generated_at_utc": datetime.now(
-            timezone.utc
-        ).isoformat(),
+        "generated_at_utc": datetime.now(UTC).isoformat(),
         "status": (
             "PRODUCTION_CONTAINER_IMAGES_VALIDATED"
             if approved
@@ -184,9 +150,7 @@ def save_report(
         exist_ok=True,
     )
 
-    temporary_path = REPORT_PATH.with_suffix(
-        ".json.tmp"
-    )
+    temporary_path = REPORT_PATH.with_suffix(".json.tmp")
 
     temporary_path.write_text(
         json.dumps(
@@ -206,42 +170,27 @@ def main() -> int:
     """CLI entry point."""
 
     parser = argparse.ArgumentParser(
-        description=(
-            "Validate locally built production "
-            "container images."
-        )
+        description=("Validate locally built production container images.")
     )
 
     parser.add_argument(
         "--image-tag",
         required=True,
-        help=(
-            "Local image tag used for all three images."
-        ),
+        help=("Local image tag used for all three images."),
     )
 
     arguments = parser.parse_args()
 
     try:
-        report = build_validation_report(
-            image_tag=arguments.image_tag
-        )
+        report = build_validation_report(image_tag=arguments.image_tag)
 
-        exit_code = (
-            0
-            if report["approved"]
-            else 1
-        )
+        exit_code = 0 if report["approved"] else 1
 
     except Exception as error:
         report = {
             "phase": "10G",
-            "generated_at_utc": datetime.now(
-                timezone.utc
-            ).isoformat(),
-            "status": (
-                "PRODUCTION_CONTAINER_IMAGE_VALIDATION_FAILED"
-            ),
+            "generated_at_utc": datetime.now(UTC).isoformat(),
+            "status": ("PRODUCTION_CONTAINER_IMAGE_VALIDATION_FAILED"),
             "approved": False,
             "error_type": type(error).__name__,
             "error_message": str(error),

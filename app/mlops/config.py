@@ -16,12 +16,14 @@ from pydantic_settings import (
     SettingsConfigDict,
 )
 
+
 class FeatureStoreBackend(StrEnum):
     """Supported feature-store backends."""
 
     LOCAL = "local"
     HOPSWORKS = "hopsworks"
     AZURE_BLOB = "azure_blob"
+
 
 class ModelRegistryBackend(StrEnum):
     """Supported model-registry backends."""
@@ -30,12 +32,14 @@ class ModelRegistryBackend(StrEnum):
     HOPSWORKS = "hopsworks"
     AZURE_BLOB = "azure_blob"
 
+
 class ModelLoadingMode(StrEnum):
     """Supported inference model sources."""
 
     LOCAL_ARTIFACT = "LOCAL_ARTIFACT"
     HOPSWORKS_REGISTRY = "HOPSWORKS_REGISTRY"
     AZURE_BLOB_REGISTRY = "AZURE_BLOB_REGISTRY"
+
 
 class MLOpsSettings(BaseSettings):
     """Environment-driven Phase 9 configuration."""
@@ -47,27 +51,17 @@ class MLOpsSettings(BaseSettings):
         case_sensitive=False,
     )
 
-    feature_store_backend: FeatureStoreBackend = (
-        FeatureStoreBackend.LOCAL
-    )
+    feature_store_backend: FeatureStoreBackend = FeatureStoreBackend.LOCAL
 
-    model_registry_backend: ModelRegistryBackend = (
-        ModelRegistryBackend.LOCAL
-    )
+    model_registry_backend: ModelRegistryBackend = ModelRegistryBackend.LOCAL
 
     azure_storage_account: str | None = None
 
-    azure_storage_container: str = (
-        "artifacts-prod"
-    )
+    azure_storage_container: str = "artifacts-prod"
 
-    azure_feature_store_prefix: str = (
-        "feature-store"
-    )
+    azure_feature_store_prefix: str = "feature-store"
 
-    azure_model_registry_prefix: str = (
-        "model-registry"
-    )
+    azure_model_registry_prefix: str = "model-registry"
 
     mlops_dry_run: bool = True
 
@@ -93,40 +87,26 @@ class MLOpsSettings(BaseSettings):
         ge=1,
     )
 
-    hopsworks_model_name: str = (
-        "pearls_aqi_pm25_forecaster"
-    )
+    hopsworks_model_name: str = "pearls_aqi_pm25_forecaster"
 
-    hopsworks_pm25_feature_group_name: str = (
-    "pm25_hourly_observations"
-    )
+    hopsworks_pm25_feature_group_name: str = "pm25_hourly_observations"
 
-    hopsworks_weather_feature_group_name: str = (
-        "weather_hourly_observations"
-    )
+    hopsworks_weather_feature_group_name: str = "weather_hourly_observations"
 
-    hopsworks_engineered_feature_group_name: str = (
-        "pm25_hourly_features"
-    )
+    hopsworks_engineered_feature_group_name: str = "pm25_hourly_features"
 
     feature_pipeline_version: str = "phase_2_v1"
     source_data_version: str = "phase_1_v1"
 
     phase_1_canonical_dataset_path: str = (
-    "data/processed/canonical_hourly_dataset.parquet"
+        "data/processed/canonical_hourly_dataset.parquet"
     )
 
-    phase_2_training_dataset_path: str = (
-        "data/training/feature_dataset_full.parquet"
-    )
+    phase_2_training_dataset_path: str = "data/training/feature_dataset_full.parquet"
 
-    hopsworks_feature_view_name: str = (
-    "pm25_reference_features"
-    )
+    hopsworks_feature_view_name: str = "pm25_reference_features"
 
-    hopsworks_training_dataset_name: str = (
-        "pm25_72h_training_dataset"
-    )
+    hopsworks_training_dataset_name: str = "pm25_72h_training_dataset"
 
     hopsworks_training_dataset_version: int = Field(
         default=1,
@@ -139,8 +119,8 @@ class MLOpsSettings(BaseSettings):
     )
 
     hopsworks_pm25_feature_group_version: int = Field(
-    default=1,
-    ge=1,
+        default=1,
+        ge=1,
     )
 
     hopsworks_weather_feature_group_version: int = Field(
@@ -178,21 +158,14 @@ class MLOpsSettings(BaseSettings):
         ge=1,
     )
 
-    candidate_output_directory: str = (
-        "models/candidates"
-    )
+    candidate_output_directory: str = "models/candidates"
 
-    candidate_model_name: str = (
-        "pearls_aqi_pm25_challenger"
-    )
+    candidate_model_name: str = "pearls_aqi_pm25_challenger"
 
-    model_loading_mode: ModelLoadingMode = (
-        ModelLoadingMode.LOCAL_ARTIFACT
-    )
+    model_loading_mode: ModelLoadingMode = ModelLoadingMode.LOCAL_ARTIFACT
 
     allow_cached_registry_fallback: bool = True
     allow_local_model_fallback: bool = True
-
 
     candidate_max_overall_mae_regression_pct: float = Field(
         default=0.0,
@@ -214,9 +187,7 @@ class MLOpsSettings(BaseSettings):
         ge=1,
     )
 
-    model_cache_directory: str = (
-        "models/registry_cache"
-    )
+    model_cache_directory: str = "models/registry_cache"
 
     @field_validator(
         "hopsworks_project",
@@ -227,7 +198,6 @@ class MLOpsSettings(BaseSettings):
         "azure_feature_store_prefix",
         mode="before",
     )
-
     @classmethod
     def normalize_optional_strings(
         cls,
@@ -253,8 +223,7 @@ class MLOpsSettings(BaseSettings):
 
         if normalized != "python":
             raise ValueError(
-                "HOPSWORKS_ENGINE must be 'python' "
-                "for this local project."
+                "HOPSWORKS_ENGINE must be 'python' for this local project."
             )
 
         return normalized
@@ -262,15 +231,13 @@ class MLOpsSettings(BaseSettings):
     @model_validator(mode="after")
     def validate_backend_credentials(
         self,
-    ) -> "MLOpsSettings":
+    ) -> MLOpsSettings:
         """Validate backend-specific configuration."""
 
         hopsworks_required = any(
             (
-                self.feature_store_backend
-                == FeatureStoreBackend.HOPSWORKS,
-                self.model_registry_backend
-                == ModelRegistryBackend.HOPSWORKS,
+                self.feature_store_backend == FeatureStoreBackend.HOPSWORKS,
+                self.model_registry_backend == ModelRegistryBackend.HOPSWORKS,
             )
         )
 
@@ -278,14 +245,10 @@ class MLOpsSettings(BaseSettings):
             missing_fields: list[str] = []
 
             if self.hopsworks_api_key is None:
-                missing_fields.append(
-                    "HOPSWORKS_API_KEY"
-                )
+                missing_fields.append("HOPSWORKS_API_KEY")
 
             if not self.hopsworks_project:
-                missing_fields.append(
-                    "HOPSWORKS_PROJECT"
-                )
+                missing_fields.append("HOPSWORKS_PROJECT")
 
             if missing_fields:
                 raise ValueError(
@@ -295,21 +258,13 @@ class MLOpsSettings(BaseSettings):
 
         azure_blob_required = any(
             (
-                self.feature_store_backend
-                == FeatureStoreBackend.AZURE_BLOB,
-
-                self.model_registry_backend
-                == ModelRegistryBackend.AZURE_BLOB,
-
-                self.model_loading_mode
-                == ModelLoadingMode.AZURE_BLOB_REGISTRY,
+                self.feature_store_backend == FeatureStoreBackend.AZURE_BLOB,
+                self.model_registry_backend == ModelRegistryBackend.AZURE_BLOB,
+                self.model_loading_mode == ModelLoadingMode.AZURE_BLOB_REGISTRY,
             )
         )
 
-        if (
-            azure_blob_required
-            and not self.azure_storage_account
-        ):
+        if azure_blob_required and not self.azure_storage_account:
             raise ValueError(
                 "AZURE_STORAGE_ACCOUNT is required "
                 "when an Azure Blob MLOps backend is enabled."
@@ -323,10 +278,8 @@ class MLOpsSettings(BaseSettings):
 
         return any(
             (
-                self.feature_store_backend
-                == FeatureStoreBackend.HOPSWORKS,
-                self.model_registry_backend
-                == ModelRegistryBackend.HOPSWORKS,
+                self.feature_store_backend == FeatureStoreBackend.HOPSWORKS,
+                self.model_registry_backend == ModelRegistryBackend.HOPSWORKS,
             )
         )
 
@@ -334,118 +287,51 @@ class MLOpsSettings(BaseSettings):
         """Return configuration without exposing credentials."""
 
         return {
-            "feature_store_backend": (
-                self.feature_store_backend.value
-            ),
-            "model_registry_backend": (
-                self.model_registry_backend.value
-            ),
+            "feature_store_backend": (self.feature_store_backend.value),
+            "model_registry_backend": (self.model_registry_backend.value),
             "dry_run": self.mlops_dry_run,
             "hopsworks_project": self.hopsworks_project,
-            "hopsworks_host": (
-                self.hopsworks_host
-                or "Hopsworks Serverless/default"
-            ),
+            "hopsworks_host": (self.hopsworks_host or "Hopsworks Serverless/default"),
             "hopsworks_port": self.hopsworks_port,
             "hopsworks_engine": self.hopsworks_engine,
-            "hostname_verification": (
-                self.hopsworks_hostname_verification
-            ),
-            "feature_group_version": (
-                self.hopsworks_feature_group_version
-            ),
-            "feature_view_version": (
-                self.hopsworks_feature_view_version
-            ),
+            "hostname_verification": (self.hopsworks_hostname_verification),
+            "feature_group_version": (self.hopsworks_feature_group_version),
+            "feature_view_version": (self.hopsworks_feature_view_version),
             "model_name": self.hopsworks_model_name,
-            "api_key_configured": (
-                self.hopsworks_api_key is not None
-            ),
-            "pm25_feature_group_name": (
-                self.hopsworks_pm25_feature_group_name
-            ),
-            "weather_feature_group_name": (
-                self.hopsworks_weather_feature_group_name
-            ),
+            "api_key_configured": (self.hopsworks_api_key is not None),
+            "pm25_feature_group_name": (self.hopsworks_pm25_feature_group_name),
+            "weather_feature_group_name": (self.hopsworks_weather_feature_group_name),
             "engineered_feature_group_name": (
                 self.hopsworks_engineered_feature_group_name
             ),
-            "feature_pipeline_version": (
-                self.feature_pipeline_version
-            ),
-            "source_data_version": (
-                self.source_data_version
-            ),
-
-            "phase_1_canonical_dataset_path": (
-                self.phase_1_canonical_dataset_path
-            ),
-            "phase_2_training_dataset_path": (
-                self.phase_2_training_dataset_path
-            ),
-
-            "feature_view_name": (
-                self.hopsworks_feature_view_name
-            ),
-            "training_dataset_name": (
-                self.hopsworks_training_dataset_name
-            ),
-            "training_dataset_version": (
-                self.hopsworks_training_dataset_version
-            ),
-            "training_dataset_float_tolerance": (
-                self.training_dataset_float_tolerance
-            ),
-
-            "pm25_feature_group_version": (
-                self.hopsworks_pm25_feature_group_version
-            ),
+            "feature_pipeline_version": (self.feature_pipeline_version),
+            "source_data_version": (self.source_data_version),
+            "phase_1_canonical_dataset_path": (self.phase_1_canonical_dataset_path),
+            "phase_2_training_dataset_path": (self.phase_2_training_dataset_path),
+            "feature_view_name": (self.hopsworks_feature_view_name),
+            "training_dataset_name": (self.hopsworks_training_dataset_name),
+            "training_dataset_version": (self.hopsworks_training_dataset_version),
+            "training_dataset_float_tolerance": (self.training_dataset_float_tolerance),
+            "pm25_feature_group_version": (self.hopsworks_pm25_feature_group_version),
             "weather_feature_group_version": (
                 self.hopsworks_weather_feature_group_version
             ),
             "engineered_feature_group_version": (
                 self.hopsworks_engineered_feature_group_version
             ),
-
-            "initial_model_version": (
-                self.hopsworks_initial_model_version
-            ),
-            "production_model_version": (
-                self.hopsworks_production_model_version
-            ),
-            "model_cache_directory": (
-                self.model_cache_directory
-            ),
-
-            "model_loading_mode": (
-                self.model_loading_mode.value
-            ),
-            "allow_cached_registry_fallback": (
-                self.allow_cached_registry_fallback
-            ),
-            "allow_local_model_fallback": (
-                self.allow_local_model_fallback
-            ),
-
-            "incremental_overlap_hours": (
-                self.incremental_overlap_hours
-            ),
+            "initial_model_version": (self.hopsworks_initial_model_version),
+            "production_model_version": (self.hopsworks_production_model_version),
+            "model_cache_directory": (self.model_cache_directory),
+            "model_loading_mode": (self.model_loading_mode.value),
+            "allow_cached_registry_fallback": (self.allow_cached_registry_fallback),
+            "allow_local_model_fallback": (self.allow_local_model_fallback),
+            "incremental_overlap_hours": (self.incremental_overlap_hours),
             "incremental_initial_lookback_hours": (
                 self.incremental_initial_lookback_hours
             ),
-
-
-            "minimum_new_labeled_hours": (
-                self.minimum_new_labeled_hours
-            ),
-            "candidate_output_directory": (
-                self.candidate_output_directory
-            ),
-            "candidate_model_name": (
-                self.candidate_model_name
-            ),
-
-
+            "minimum_new_labeled_hours": (self.minimum_new_labeled_hours),
+            "candidate_output_directory": (self.candidate_output_directory),
+            "candidate_model_name": (self.candidate_model_name),
             "candidate_max_overall_mae_regression_pct": (
                 self.candidate_max_overall_mae_regression_pct
             ),
@@ -455,22 +341,11 @@ class MLOpsSettings(BaseSettings):
             "candidate_max_horizon_mae_regression_pct": (
                 self.candidate_max_horizon_mae_regression_pct
             ),
-            "candidate_minimum_severe_samples": (
-                self.candidate_minimum_severe_samples
-            ),
-
-            "azure_storage_account": (
-                self.azure_storage_account
-            ),
-            "azure_storage_container": (
-                self.azure_storage_container
-            ),
-            "azure_feature_store_prefix": (
-                self.azure_feature_store_prefix
-            ),
-            "azure_model_registry_prefix": (
-                self.azure_model_registry_prefix
-            ),
+            "candidate_minimum_severe_samples": (self.candidate_minimum_severe_samples),
+            "azure_storage_account": (self.azure_storage_account),
+            "azure_storage_container": (self.azure_storage_container),
+            "azure_feature_store_prefix": (self.azure_feature_store_prefix),
+            "azure_model_registry_prefix": (self.azure_model_registry_prefix),
         }
 
 

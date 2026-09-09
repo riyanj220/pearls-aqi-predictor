@@ -15,22 +15,12 @@ from app.data.pm25_gap_policy import (
 
 
 def _frame(
-    values: list[
-        tuple[str, float | None]
-    ],
+    values: list[tuple[str, float | None]],
 ) -> pd.DataFrame:
     return pd.DataFrame(
         {
-            "datetime_utc": [
-                timestamp
-                for timestamp, _
-                in values
-            ],
-            "pm25_ug_m3": [
-                value
-                for _, value
-                in values
-            ],
+            "datetime_utc": [timestamp for timestamp, _ in values],
+            "pm25_ug_m3": [value for _, value in values],
         }
     )
 
@@ -44,18 +34,11 @@ def test_continuous_data_is_unchanged() -> None:
         ]
     )
 
-    result = recover_short_pm25_gaps(
-        dataframe
-    )
+    result = recover_short_pm25_gaps(dataframe)
 
     assert not result.imputation_used
 
-    assert (
-        result.dataframe[
-            "pm25_is_imputed"
-        ].sum()
-        == 0
-    )
+    assert result.dataframe["pm25_is_imputed"].sum() == 0
 
 
 def test_three_hour_bounded_gap_is_interpolated() -> None:
@@ -66,39 +49,26 @@ def test_three_hour_bounded_gap_is_interpolated() -> None:
         ]
     )
 
-    result = recover_short_pm25_gaps(
-        dataframe
-    )
+    result = recover_short_pm25_gaps(dataframe)
 
     assert result.imputation_used
 
-    assert len(
-        result.imputed_timestamps
-    ) == 3
+    assert len(result.imputed_timestamps) == 3
 
-    recovered = (
-        result.dataframe
-        .set_index("datetime_utc")
-    )
+    recovered = result.dataframe.set_index("datetime_utc")
 
     assert recovered.loc[
-        pd.Timestamp(
-            "2026-08-17T03:00:00Z"
-        ),
+        pd.Timestamp("2026-08-17T03:00:00Z"),
         "pm25_is_imputed",
     ]
 
     assert recovered.loc[
-        pd.Timestamp(
-            "2026-08-17T04:00:00Z"
-        ),
+        pd.Timestamp("2026-08-17T04:00:00Z"),
         "pm25_is_imputed",
     ]
 
     assert recovered.loc[
-        pd.Timestamp(
-            "2026-08-17T05:00:00Z"
-        ),
+        pd.Timestamp("2026-08-17T05:00:00Z"),
         "pm25_is_imputed",
     ]
 
@@ -111,15 +81,11 @@ def test_four_hour_gap_is_not_interpolated() -> None:
         ]
     )
 
-    result = recover_short_pm25_gaps(
-        dataframe
-    )
+    result = recover_short_pm25_gaps(dataframe)
 
     assert not result.imputation_used
 
-    assert len(
-        result.unresolved_timestamps
-    ) == 4
+    assert len(result.unresolved_timestamps) == 4
 
 
 def test_disabled_policy_does_not_interpolate() -> None:
@@ -152,45 +118,20 @@ def test_quality_only_counts_values_used_by_model_window() -> None:
         ]
     )
 
-    result = recover_short_pm25_gaps(
-        dataframe
+    result = recover_short_pm25_gaps(dataframe)
+
+    degraded_quality = result.quality_for_window(
+        start_time=pd.Timestamp("2026-08-17T02:00:00Z"),
+        end_time=pd.Timestamp("2026-08-17T06:00:00Z"),
     )
 
-    degraded_quality = (
-        result.quality_for_window(
-            start_time=pd.Timestamp(
-                "2026-08-17T02:00:00Z"
-            ),
-            end_time=pd.Timestamp(
-                "2026-08-17T06:00:00Z"
-            ),
-        )
+    good_quality = result.quality_for_window(
+        start_time=pd.Timestamp("2026-08-17T07:00:00Z"),
+        end_time=pd.Timestamp("2026-08-18T06:00:00Z"),
     )
 
-    good_quality = (
-        result.quality_for_window(
-            start_time=pd.Timestamp(
-                "2026-08-17T07:00:00Z"
-            ),
-            end_time=pd.Timestamp(
-                "2026-08-18T06:00:00Z"
-            ),
-        )
-    )
+    assert degraded_quality["status"] == PM25_QUALITY_DEGRADED
 
-    assert (
-        degraded_quality["status"]
-        == PM25_QUALITY_DEGRADED
-    )
+    assert degraded_quality["imputed_hours"] == 3
 
-    assert (
-        degraded_quality[
-            "imputed_hours"
-        ]
-        == 3
-    )
-
-    assert (
-        good_quality["status"]
-        == PM25_QUALITY_GOOD
-    )
+    assert good_quality["status"] == PM25_QUALITY_GOOD

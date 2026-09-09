@@ -54,9 +54,7 @@ def _display_freshness(
         )
     ).title()
 
-    age_hours = freshness.get(
-        "age_hours"
-    )
+    age_hours = freshness.get("age_hours")
 
     if age_hours is None:
         return status, "Age unavailable"
@@ -108,30 +106,24 @@ def render_dashboard_header(
         )
     )
 
-    readiness_status = (
-        _display_readiness_status(
-            str(
-                readiness_payload.get(
-                    "status",
-                    "UNKNOWN",
-                )
+    readiness_status = _display_readiness_status(
+        str(
+            readiness_payload.get(
+                "status",
+                "UNKNOWN",
             )
         )
     )
 
-    freshness_value, freshness_caption = (
-        _display_freshness(
-            forecast_payload.get(
-                "freshness",
-                {},
-            )
+    freshness_value, freshness_caption = _display_freshness(
+        forecast_payload.get(
+            "freshness",
+            {},
         )
     )
 
     generated_time = format_timestamp(
-        forecast_payload.get(
-            "generated_at_utc"
-        ),
+        forecast_payload.get("generated_at_utc"),
         timezone_name=timezone_name,
         include_timezone=False,
     )
@@ -139,17 +131,11 @@ def render_dashboard_header(
     if forecast_df.empty:
         current_aqi = "—"
         category = "Not available"
-        health_message = (
-            "Forecast information is currently unavailable."
-        )
+        health_message = "Forecast information is currently unavailable."
     else:
         first_row = forecast_df.iloc[0]
 
-        current_aqi = format_aqi(
-            first_row.get(
-                "indicative_hourly_pm25_aqi"
-            )
-        )
+        current_aqi = format_aqi(first_row.get("indicative_hourly_pm25_aqi"))
 
         category = str(
             first_row.get(
@@ -165,20 +151,11 @@ def render_dashboard_header(
             )
         )
 
-    category_color = (
-        _safe_category_color(category)
-    )
+    category_color = _safe_category_color(category)
 
-    live_status = (
-        readiness_status == "Ready"
-        and freshness_value.lower() == "fresh"
-    )
+    live_status = readiness_status == "Ready" and freshness_value.lower() == "fresh"
 
-    live_label = (
-        "LIVE"
-        if live_status
-        else readiness_status.upper()
-    )
+    live_label = "LIVE" if live_status else readiness_status.upper()
 
     st.html(
         f"""

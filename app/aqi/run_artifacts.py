@@ -38,9 +38,7 @@ def _write_json(
 ) -> None:
     """Write JSON using a temporary file and atomic replacement."""
 
-    temporary_path = path.with_suffix(
-        path.suffix + ".tmp"
-    )
+    temporary_path = path.with_suffix(path.suffix + ".tmp")
 
     try:
         with temporary_path.open(
@@ -58,13 +56,9 @@ def _write_json(
         temporary_path.replace(path)
 
     except Exception as exc:
-        temporary_path.unlink(
-            missing_ok=True
-        )
+        temporary_path.unlink(missing_ok=True)
 
-        raise AQIRunSaveError(
-            f"Could not save JSON artifact: {path}"
-        ) from exc
+        raise AQIRunSaveError(f"Could not save JSON artifact: {path}") from exc
 
 
 def _refresh_latest_directory(
@@ -115,25 +109,15 @@ def save_aqi_run(
     cleaned_run_id = run_id.strip()
 
     if not cleaned_run_id:
-        raise AQIRunSaveError(
-            "run_id cannot be empty."
-        )
+        raise AQIRunSaveError("run_id cannot be empty.")
 
     if "/" in cleaned_run_id or "\\" in cleaned_run_id:
-        raise AQIRunSaveError(
-            "run_id cannot contain path separators."
-        )
+        raise AQIRunSaveError("run_id cannot contain path separators.")
 
     if forecast_df.empty:
-        raise AQIRunSaveError(
-            "AQI forecast cannot be empty."
-        )
+        raise AQIRunSaveError("AQI forecast cannot be empty.")
 
-    aqi_root = (
-        output_root
-        if output_root is not None
-        else PROJECT_ROOT / "aqi"
-    )
+    aqi_root = output_root if output_root is not None else PROJECT_ROOT / "aqi"
 
     runs_directory = aqi_root / "runs"
     latest_directory = aqi_root / "latest"
@@ -148,14 +132,11 @@ def save_aqi_run(
         exist_ok=True,
     )
 
-    run_directory = (
-        runs_directory / cleaned_run_id
-    )
+    run_directory = runs_directory / cleaned_run_id
 
     if run_directory.exists():
         raise AQIRunSaveError(
-            "AQI run already exists and will not be overwritten: "
-            f"{run_directory}"
+            f"AQI run already exists and will not be overwritten: {run_directory}"
         )
 
     run_directory.mkdir(
@@ -163,35 +144,17 @@ def save_aqi_run(
         exist_ok=False,
     )
 
-    forecast_path = (
-        run_directory
-        / "live_pm25_aqi_forecast.parquet"
-    )
+    forecast_path = run_directory / "live_pm25_aqi_forecast.parquet"
 
-    alert_episodes_path = (
-        run_directory
-        / "alert_episodes.json"
-    )
+    alert_episodes_path = run_directory / "alert_episodes.json"
 
-    summary_path = (
-        run_directory
-        / "aqi_forecast_summary.json"
-    )
+    summary_path = run_directory / "aqi_forecast_summary.json"
 
-    metadata_path = (
-        run_directory
-        / "aqi_metadata.json"
-    )
+    metadata_path = run_directory / "aqi_metadata.json"
 
-    validation_report_path = (
-        run_directory
-        / "phase_6_validation_report.json"
-    )
+    validation_report_path = run_directory / "phase_6_validation_report.json"
 
-    plot_path = (
-        run_directory
-        / "aqi_forecast_plot.png"
-    )
+    plot_path = run_directory / "aqi_forecast_plot.png"
 
     try:
         forecast_df.to_parquet(
@@ -200,9 +163,7 @@ def save_aqi_run(
         )
 
         _write_json(
-            alert_episodes_df.to_dict(
-                orient="records"
-            ),
+            alert_episodes_df.to_dict(orient="records"),
             alert_episodes_path,
         )
 
@@ -230,9 +191,7 @@ def save_aqi_run(
         if isinstance(exc, AQIRunSaveError):
             raise
 
-        raise AQIRunSaveError(
-            "Could not save Phase 6 AQI artifacts."
-        ) from exc
+        raise AQIRunSaveError("Could not save Phase 6 AQI artifacts.") from exc
 
     return SavedAQIRun(
         run_id=cleaned_run_id,
@@ -242,9 +201,7 @@ def save_aqi_run(
         alert_episodes_path=alert_episodes_path,
         summary_path=summary_path,
         metadata_path=metadata_path,
-        validation_report_path=(
-            validation_report_path
-        ),
+        validation_report_path=(validation_report_path),
         plot_path=plot_path,
     )
 
@@ -255,10 +212,6 @@ def publish_latest_aqi_run(
     """Publish a completed and validated run as the latest output."""
 
     _refresh_latest_directory(
-        source_directory=(
-            saved_run.run_directory
-        ),
-        latest_directory=(
-            saved_run.latest_directory
-        ),
+        source_directory=(saved_run.run_directory),
+        latest_directory=(saved_run.latest_directory),
     )

@@ -7,7 +7,7 @@ import io
 import json
 import logging
 import tempfile
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -19,14 +19,10 @@ from app.observability.reports import (
     save_operational_report,
 )
 
-
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 REPORT_PATH = (
-    PROJECT_ROOT
-    / "reports"
-    / "phase_10"
-    / "structured_logging_validation_report.json"
+    PROJECT_ROOT / "reports" / "phase_10" / "structured_logging_validation_report.json"
 )
 
 
@@ -35,17 +31,11 @@ def capture_sample_log() -> dict[str, Any]:
 
     stream = io.StringIO()
 
-    handler = logging.StreamHandler(
-        stream
-    )
+    handler = logging.StreamHandler(stream)
 
-    handler.setFormatter(
-        JsonLogFormatter()
-    )
+    handler.setFormatter(JsonLogFormatter())
 
-    logger = logging.getLogger(
-        "phase10e-validation"
-    )
+    logger = logging.getLogger("phase10e-validation")
 
     logger.handlers.clear()
     logger.propagate = False
@@ -58,18 +48,12 @@ def capture_sample_log() -> dict[str, Any]:
             "event": "pipeline_completed",
             "service_name": "pipeline",
             "environment": "development",
-            "pipeline_name": (
-                "phase10e_validation"
-            ),
-            "pipeline_run_id": (
-                "phase10e-test-run"
-            ),
+            "pipeline_name": ("phase10e_validation"),
+            "pipeline_run_id": ("phase10e-test-run"),
             "status": "COMPLETED",
             "duration_seconds": 1.25,
             "row_count": 72,
-            "api_key": (
-                "must-not-be-visible"
-            ),
+            "api_key": ("must-not-be-visible"),
         },
     )
 
@@ -92,19 +76,12 @@ def run_structured_logging_validation() -> dict[str, Any]:
 
     payload = sample_log["payload"]
 
-    with tempfile.TemporaryDirectory(
-        prefix="phase10e-report-"
-    ) as temporary_directory:
-        report_path = (
-            Path(temporary_directory)
-            / "report.json"
-        )
+    with tempfile.TemporaryDirectory(prefix="phase10e-report-") as temporary_directory:
+        report_path = Path(temporary_directory) / "report.json"
 
         source_report = build_base_report(
             phase="10E",
-            operation_name=(
-                "structured_logging_validation"
-            ),
+            operation_name=("structured_logging_validation"),
             status="COMPLETED",
             environment="development",
             service_name="validation",
@@ -116,9 +93,7 @@ def run_structured_logging_validation() -> dict[str, Any]:
                 "row_count": 72,
                 "api_key": "hidden-value",
                 "nested": {
-                    "password": (
-                        "hidden-password"
-                    ),
+                    "password": ("hidden-password"),
                     "safe_value": "visible",
                 },
             }
@@ -129,72 +104,28 @@ def run_structured_logging_validation() -> dict[str, Any]:
             path=report_path,
         )
 
-        saved_report = json.loads(
-            report_path.read_text(
-                encoding="utf-8"
-            )
-        )
+        saved_report = json.loads(report_path.read_text(encoding="utf-8"))
 
     checks = {
-        "log_is_valid_json": (
-            isinstance(payload, dict)
-        ),
-        "timestamp_present": bool(
-            payload.get("timestamp_utc")
-        ),
-        "level_present": (
-            payload.get("level")
-            == "INFO"
-        ),
-        "event_present": (
-            payload.get("event")
-            == "pipeline_completed"
-        ),
-        "run_id_present": (
-            payload.get(
-                "pipeline_run_id"
-            )
-            == "phase10e-test-run"
-        ),
-        "row_count_present": (
-            payload.get("row_count")
-            == 72
-        ),
-        "log_secret_redacted": (
-            payload.get("api_key")
-            == "[REDACTED]"
-        ),
-        "report_secret_redacted": (
-            saved_report.get("api_key")
-            == "[REDACTED]"
-        ),
-        "nested_secret_redacted": (
-            saved_report[
-                "nested"
-            ]["password"]
-            == "[REDACTED]"
-        ),
-        "safe_value_preserved": (
-            saved_report[
-                "nested"
-            ]["safe_value"]
-            == "visible"
-        ),
+        "log_is_valid_json": (isinstance(payload, dict)),
+        "timestamp_present": bool(payload.get("timestamp_utc")),
+        "level_present": (payload.get("level") == "INFO"),
+        "event_present": (payload.get("event") == "pipeline_completed"),
+        "run_id_present": (payload.get("pipeline_run_id") == "phase10e-test-run"),
+        "row_count_present": (payload.get("row_count") == 72),
+        "log_secret_redacted": (payload.get("api_key") == "[REDACTED]"),
+        "report_secret_redacted": (saved_report.get("api_key") == "[REDACTED]"),
+        "nested_secret_redacted": (saved_report["nested"]["password"] == "[REDACTED]"),
+        "safe_value_preserved": (saved_report["nested"]["safe_value"] == "visible"),
     }
 
-    approved = all(
-        checks.values()
-    )
+    approved = all(checks.values())
 
     return {
         "phase": "10E",
-        "generated_at_utc": datetime.now(
-            timezone.utc
-        ).isoformat(),
+        "generated_at_utc": datetime.now(UTC).isoformat(),
         "status": (
-            "STRUCTURED_LOGGING_VALIDATED"
-            if approved
-            else "STRUCTURED_LOGGING_INVALID"
+            "STRUCTURED_LOGGING_VALIDATED" if approved else "STRUCTURED_LOGGING_INVALID"
         ),
         "approved": approved,
         "checks": checks,
@@ -232,38 +163,23 @@ def main() -> int:
     """Run validation."""
 
     parser = argparse.ArgumentParser(
-        description=(
-            "Validate structured logging and "
-            "safe operational reports."
-        )
+        description=("Validate structured logging and safe operational reports.")
     )
 
     parser.parse_args()
 
     try:
-        report = (
-            run_structured_logging_validation()
-        )
+        report = run_structured_logging_validation()
 
-        exit_code = (
-            0
-            if report["approved"]
-            else 1
-        )
+        exit_code = 0 if report["approved"] else 1
 
     except Exception as error:
         report = {
             "phase": "10E",
-            "generated_at_utc": datetime.now(
-                timezone.utc
-            ).isoformat(),
-            "status": (
-                "STRUCTURED_LOGGING_VALIDATION_FAILED"
-            ),
+            "generated_at_utc": datetime.now(UTC).isoformat(),
+            "status": ("STRUCTURED_LOGGING_VALIDATION_FAILED"),
             "approved": False,
-            "error_type": (
-                type(error).__name__
-            ),
+            "error_type": (type(error).__name__),
             "error_message": str(error),
             "secret_values_included": False,
             "azure_resources_created": False,
@@ -271,9 +187,7 @@ def main() -> int:
 
         exit_code = 1
 
-    report_path = save_validation_report(
-        report
-    )
+    report_path = save_validation_report(report)
 
     print(
         json.dumps(

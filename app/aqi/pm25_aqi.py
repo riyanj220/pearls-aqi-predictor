@@ -53,14 +53,10 @@ def truncate_pm25(
     numeric_value = float(concentration)
 
     if not isfinite(numeric_value):
-        raise PM25AQIConversionError(
-            "PM2.5 concentration must be finite."
-        )
+        raise PM25AQIConversionError("PM2.5 concentration must be finite.")
 
     if numeric_value < 0:
-        raise PM25AQIConversionError(
-            "PM2.5 concentration cannot be negative."
-        )
+        raise PM25AQIConversionError("PM2.5 concentration cannot be negative.")
 
     return floor(numeric_value * 10) / 10
 
@@ -84,29 +80,16 @@ def _interpolate_aqi(
 ) -> int:
     """Calculate AQI through piecewise linear interpolation."""
 
-    concentration_range = (
-        breakpoint.concentration_high
-        - breakpoint.concentration_low
-    )
+    concentration_range = breakpoint.concentration_high - breakpoint.concentration_low
 
     if concentration_range <= 0:
-        raise PM25AQIConversionError(
-            "Invalid PM2.5 breakpoint configuration."
-        )
+        raise PM25AQIConversionError("Invalid PM2.5 breakpoint configuration.")
 
-    aqi_range = (
-        breakpoint.aqi_high
-        - breakpoint.aqi_low
-    )
+    aqi_range = breakpoint.aqi_high - breakpoint.aqi_low
 
-    interpolated_value = (
-        (aqi_range / concentration_range)
-        * (
-            concentration
-            - breakpoint.concentration_low
-        )
-        + breakpoint.aqi_low
-    )
+    interpolated_value = (aqi_range / concentration_range) * (
+        concentration - breakpoint.concentration_low
+    ) + breakpoint.aqi_low
 
     return _round_aqi(interpolated_value)
 
@@ -139,13 +122,9 @@ def calculate_pm25_aqi(
 
     original_concentration = float(concentration)
 
-    truncated_concentration = truncate_pm25(
-        original_concentration
-    )
+    truncated_concentration = truncate_pm25(original_concentration)
 
-    breakpoint = _find_breakpoint(
-        truncated_concentration
-    )
+    breakpoint = _find_breakpoint(truncated_concentration)
 
     is_beyond_aqi = breakpoint is None
 
@@ -182,9 +161,7 @@ def calculate_pm25_aqi(
         color_name=color_name,
         color_hex=color_hex,
         severity_rank=severity_rank,
-        is_beyond_aqi=(
-            aqi_value > AQI_MAX_STANDARD_VALUE
-        ),
+        is_beyond_aqi=(aqi_value > AQI_MAX_STANDARD_VALUE),
     )
 
 
@@ -204,25 +181,17 @@ def convert_pm25_series_to_aqi(
     )
 
     infinite_mask = pd.Series(
-        np.isinf(
-            numeric_concentrations.to_numpy(
-                dtype=float
-            )
-        ),
+        np.isinf(numeric_concentrations.to_numpy(dtype=float)),
         index=numeric_concentrations.index,
     )
 
     if infinite_mask.any():
-        raise PM25AQIConversionError(
-            "PM2.5 input contains infinite values."
-        )
+        raise PM25AQIConversionError("PM2.5 input contains infinite values.")
 
     negative_mask = numeric_concentrations.lt(0)
 
     if negative_mask.any():
-        raise PM25AQIConversionError(
-            "PM2.5 input contains negative values."
-        )
+        raise PM25AQIConversionError("PM2.5 input contains negative values.")
 
     result_records: list[dict[str, Any]] = []
 
@@ -242,30 +211,18 @@ def convert_pm25_series_to_aqi(
             )
             continue
 
-        conversion = calculate_pm25_aqi(
-            float(concentration)
-        )
+        conversion = calculate_pm25_aqi(float(concentration))
 
         result_records.append(
             {
-                "pm25_ug_m3_original": (
-                    conversion.original_pm25_ug_m3
-                ),
-                "pm25_ug_m3_truncated": (
-                    conversion.truncated_pm25_ug_m3
-                ),
+                "pm25_ug_m3_original": (conversion.original_pm25_ug_m3),
+                "pm25_ug_m3_truncated": (conversion.truncated_pm25_ug_m3),
                 "aqi": conversion.aqi,
                 "aqi_category": conversion.category,
-                "aqi_color_name": (
-                    conversion.color_name
-                ),
+                "aqi_color_name": (conversion.color_name),
                 "aqi_color_hex": conversion.color_hex,
-                "aqi_severity_rank": (
-                    conversion.severity_rank
-                ),
-                "is_beyond_aqi": (
-                    conversion.is_beyond_aqi
-                ),
+                "aqi_severity_rank": (conversion.severity_rank),
+                "is_beyond_aqi": (conversion.is_beyond_aqi),
             }
         )
 
@@ -274,20 +231,10 @@ def convert_pm25_series_to_aqi(
         index=concentrations.index,
     )
 
-    result_df["aqi"] = result_df["aqi"].astype(
-        "Int64"
-    )
+    result_df["aqi"] = result_df["aqi"].astype("Int64")
 
-    result_df["aqi_severity_rank"] = (
-        result_df["aqi_severity_rank"].astype(
-            "Int64"
-        )
-    )
+    result_df["aqi_severity_rank"] = result_df["aqi_severity_rank"].astype("Int64")
 
-    result_df["is_beyond_aqi"] = (
-        result_df["is_beyond_aqi"].astype(
-            "boolean"
-        )
-    )
+    result_df["is_beyond_aqi"] = result_df["is_beyond_aqi"].astype("boolean")
 
     return result_df

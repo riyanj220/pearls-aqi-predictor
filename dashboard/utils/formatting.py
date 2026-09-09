@@ -62,11 +62,7 @@ def format_duration_hours(
 
     hours = int(value)
 
-    return (
-        f"{hours} hour"
-        if hours == 1
-        else f"{hours} hours"
-    )
+    return f"{hours} hour" if hours == 1 else f"{hours} hours"
 
 
 def parse_utc_timestamp(
@@ -102,17 +98,11 @@ def convert_timestamp(
         return None
 
     try:
-        target_timezone = ZoneInfo(
-            timezone_name
-        )
+        target_timezone = ZoneInfo(timezone_name)
     except Exception as exc:
-        raise ValueError(
-            f"Unsupported timezone: {timezone_name}"
-        ) from exc
+        raise ValueError(f"Unsupported timezone: {timezone_name}") from exc
 
-    return timestamp.tz_convert(
-        target_timezone
-    )
+    return timestamp.tz_convert(target_timezone)
 
 
 def format_timestamp(
@@ -131,15 +121,10 @@ def format_timestamp(
     if timestamp is None:
         return NULL_DISPLAY_VALUE
 
-    formatted = timestamp.strftime(
-        "%d %b %Y, %I:%M %p"
-    )
+    formatted = timestamp.strftime("%d %b %Y, %I:%M %p")
 
     if include_timezone:
-        return (
-            f"{formatted} "
-            f"{timestamp.tzname() or timezone_name}"
-        )
+        return f"{formatted} {timestamp.tzname() or timezone_name}"
 
     return formatted
 
@@ -151,11 +136,7 @@ def format_freshness(
 ) -> str:
     """Format a freshness status with its age."""
 
-    normalized_status = (
-        str(status).upper()
-        if not is_missing(status)
-        else "UNKNOWN"
-    )
+    normalized_status = str(status).upper() if not is_missing(status) else "UNKNOWN"
 
     if is_missing(age_hours):
         return normalized_status
@@ -168,15 +149,9 @@ def format_freshness(
             round(age * 60),
         )
 
-        return (
-            f"{normalized_status} · "
-            f"{minutes} min old"
-        )
+        return f"{normalized_status} · {minutes} min old"
 
-    return (
-        f"{normalized_status} · "
-        f"{age:.1f} hours old"
-    )
+    return f"{normalized_status} · {age:.1f} hours old"
 
 
 def format_boolean_status(
@@ -190,16 +165,10 @@ def format_boolean_status(
     if is_missing(value):
         return NULL_DISPLAY_VALUE
 
-    return (
-        true_label
-        if bool(value)
-        else false_label
-    )
+    return true_label if bool(value) else false_label
 
 
 def utc_now() -> datetime:
     """Return a timezone-aware UTC datetime."""
 
-    return datetime.now(
-        tz=ZoneInfo("UTC")
-    )
+    return datetime.now(tz=ZoneInfo("UTC"))

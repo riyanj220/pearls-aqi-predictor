@@ -6,9 +6,9 @@ import json
 import logging
 import os
 import sys
-from datetime import datetime, timezone
-from typing import Any, Mapping
-
+from collections.abc import Mapping
+from datetime import UTC, datetime
+from typing import Any
 
 STANDARD_LOG_RECORD_FIELDS = {
     "args",
@@ -57,9 +57,7 @@ class StructuredLoggingError(RuntimeError):
 def utc_timestamp() -> str:
     """Return the current UTC timestamp."""
 
-    return datetime.now(
-        timezone.utc
-    ).isoformat()
+    return datetime.now(UTC).isoformat()
 
 
 def is_sensitive_field(
@@ -67,16 +65,9 @@ def is_sensitive_field(
 ) -> bool:
     """Return whether a field name appears sensitive."""
 
-    normalized = (
-        name.strip()
-        .lower()
-        .replace("-", "_")
-    )
+    normalized = name.strip().lower().replace("-", "_")
 
-    return any(
-        marker in normalized
-        for marker in SENSITIVE_FIELD_MARKERS
-    )
+    return any(marker in normalized for marker in SENSITIVE_FIELD_MARKERS)
 
 
 def sanitize_value(
@@ -94,8 +85,7 @@ def sanitize_value(
                 str(child_name),
                 child_value,
             )
-            for child_name, child_value
-            in value.items()
+            for child_name, child_value in value.items()
         }
 
     if isinstance(value, list):
@@ -116,15 +106,18 @@ def sanitize_value(
             for child_value in value
         ]
 
-    if isinstance(
-        value,
-        (
-            str,
-            int,
-            float,
-            bool,
-        ),
-    ) or value is None:
+    if (
+        isinstance(
+            value,
+            (
+                str,
+                int,
+                float,
+                bool,
+            ),
+        )
+        or value is None
+    ):
         return value
 
     return str(value)
@@ -159,11 +152,7 @@ class JsonLogFormatter(logging.Formatter):
             )
 
         if record.exc_info is not None:
-            payload["exception"] = (
-                self.formatException(
-                    record.exc_info
-                )
-            )
+            payload["exception"] = self.formatException(record.exc_info)
 
         return json.dumps(
             payload,
@@ -177,9 +166,7 @@ def resolve_log_level(
 ) -> int:
     """Resolve a configured logging level."""
 
-    normalized = (
-        value or "INFO"
-    ).strip().upper()
+    normalized = (value or "INFO").strip().upper()
 
     resolved = getattr(
         logging,
@@ -188,9 +175,7 @@ def resolve_log_level(
     )
 
     if not isinstance(resolved, int):
-        raise StructuredLoggingError(
-            f"Unsupported log level: {normalized}"
-        )
+        raise StructuredLoggingError(f"Unsupported log level: {normalized}")
 
     return resolved
 
@@ -204,57 +189,35 @@ def configure_structured_logging(
     """Configure and return the root application logger."""
 
     if not service_name.strip():
-        raise StructuredLoggingError(
-            "service_name cannot be empty."
-        )
+        raise StructuredLoggingError("service_name cannot be empty.")
 
-    resolved_environment = (
-        environment
-        or os.getenv(
-            "APP_ENV",
-            "development",
-        )
+    resolved_environment = environment or os.getenv(
+        "APP_ENV",
+        "development",
     )
 
-    resolved_log_level = (
-        log_level
-        or os.getenv(
-            "LOG_LEVEL",
-            "INFO",
-        )
+    resolved_log_level = log_level or os.getenv(
+        "LOG_LEVEL",
+        "INFO",
     )
 
-    handler = logging.StreamHandler(
-        sys.stdout
-    )
+    handler = logging.StreamHandler(sys.stdout)
 
-    handler.setFormatter(
-        JsonLogFormatter()
-    )
+    handler.setFormatter(JsonLogFormatter())
 
     root_logger = logging.getLogger()
     root_logger.handlers.clear()
     root_logger.addHandler(handler)
-    root_logger.setLevel(
-        resolve_log_level(
-            resolved_log_level
-        )
-    )
+    root_logger.setLevel(resolve_log_level(resolved_log_level))
 
-    logger = logging.getLogger(
-        service_name
-    )
+    logger = logging.getLogger(service_name)
 
     logger.info(
         "Structured logging configured.",
         extra={
-            "event": (
-                "logging_configured"
-            ),
+            "event": ("logging_configured"),
             "service_name": service_name,
-            "environment": (
-                resolved_environment
-            ),
+            "environment": (resolved_environment),
         },
     )
 
@@ -284,9 +247,7 @@ def log_pipeline_started(
             "event": "pipeline_started",
             "service_name": service_name,
             "pipeline_name": pipeline_name,
-            "pipeline_run_id": (
-                pipeline_run_id
-            ),
+            "pipeline_run_id": (pipeline_run_id),
             "status": "STARTED",
         },
     )
@@ -309,9 +270,7 @@ def log_pipeline_completed(
             "event": "pipeline_completed",
             "service_name": "pipeline",
             "pipeline_name": pipeline_name,
-            "pipeline_run_id": (
-                pipeline_run_id
-            ),
+            "pipeline_run_id": (pipeline_run_id),
             "status": "COMPLETED",
             "duration_seconds": round(
                 duration_seconds,
@@ -341,21 +300,16 @@ def log_pipeline_failed(
             "event": "pipeline_failed",
             "service_name": "pipeline",
             "pipeline_name": pipeline_name,
-            "pipeline_run_id": (
-                pipeline_run_id
-            ),
+            "pipeline_run_id": (pipeline_run_id),
             "status": "FAILED",
             "error_code": error_code,
-            "error_type": type(
-                error
-            ).__name__,
+            "error_type": type(error).__name__,
             "duration_seconds": (
                 round(
                     duration_seconds,
                     3,
                 )
-                if duration_seconds
-                is not None
+                if duration_seconds is not None
                 else None
             ),
         },

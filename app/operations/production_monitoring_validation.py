@@ -6,10 +6,9 @@ import argparse
 import hashlib
 import json
 import subprocess
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
-
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
@@ -20,26 +19,18 @@ REPORT_PATH = (
     / "production_monitoring_validation_report.json"
 )
 
-HEALTH_POINTER_PATH = (
-    "production-health/latest/pointer.json"
-)
+HEALTH_POINTER_PATH = "production-health/latest/pointer.json"
 
-NOTIFICATION_OUTBOX_PATH = (
-    "production-health/notifications/outbox.json"
-)
+NOTIFICATION_OUTBOX_PATH = "production-health/notifications/outbox.json"
 
-RECEIPT_PREFIX = (
-    "production-health/notifications/receipts/"
-)
+RECEIPT_PREFIX = "production-health/notifications/receipts/"
 
 EXPECTED_COMMAND = [
     "/app/bin/run_production_health",
 ]
 
 
-class ProductionMonitoringValidationError(
-    RuntimeError
-):
+class ProductionMonitoringValidationError(RuntimeError):
     """Raised when deployed monitoring validation fails."""
 
 
@@ -141,11 +132,7 @@ def load_executions(
             "Monitoring executions response is not a list."
         )
 
-    executions = [
-        item
-        for item in payload
-        if isinstance(item, dict)
-    ]
+    executions = [item for item in payload if isinstance(item, dict)]
 
     executions.sort(
         key=lambda item: str(
@@ -262,11 +249,7 @@ def list_receipts(
             "Webhook receipt response is not a list."
         )
 
-    return [
-        item
-        for item in payload
-        if isinstance(item, dict)
-    ]
+    return [item for item in payload if isinstance(item, dict)]
 
 
 def environment_mapping(
@@ -299,11 +282,7 @@ def environment_mapping(
         [],
     )
 
-    return {
-        str(item.get("name")): item
-        for item in environment
-        if item.get("name")
-    }
+    return {str(item.get("name")): item for item in environment if item.get("name")}
 
 
 def validate_monitoring(
@@ -348,48 +327,30 @@ def validate_monitoring(
         {},
     )
 
-    environment = environment_mapping(
-        job
-    )
+    environment = environment_mapping(job)
 
-    command = container.get(
-        "command"
-    ) or []
+    command = container.get("command") or []
 
-    arguments = container.get(
-        "args"
-    ) or []
+    arguments = container.get("args") or []
 
-    latest_execution = (
-        executions[0]
-        if executions
-        else None
-    )
+    latest_execution = executions[0] if executions else None
 
     latest_execution_status = None
 
     if latest_execution is not None:
-        latest_execution_status = (
-            latest_execution.get(
-                "properties",
-                {},
-            ).get(
-                "status"
-            )
-        )
+        latest_execution_status = latest_execution.get(
+            "properties",
+            {},
+        ).get("status")
 
     pointer_bytes = download_blob(
         storage_account=storage_account,
         storage_container=storage_container,
         blob_name=HEALTH_POINTER_PATH,
-        destination=Path(
-            "/tmp/production-health-pointer.json"
-        ),
+        destination=Path("/tmp/production-health-pointer.json"),
     )
 
-    pointer = json.loads(
-        pointer_bytes.decode("utf-8")
-    )
+    pointer = json.loads(pointer_bytes.decode("utf-8"))
 
     manifest_path = str(
         pointer.get(
@@ -414,32 +375,21 @@ def validate_monitoring(
         storage_account=storage_account,
         storage_container=storage_container,
         blob_name=manifest_path,
-        destination=Path(
-            "/tmp/production-health-manifest.json"
-        ),
+        destination=Path("/tmp/production-health-manifest.json"),
     )
 
-    manifest = json.loads(
-        manifest_bytes.decode("utf-8")
-    )
+    manifest = json.loads(manifest_bytes.decode("utf-8"))
 
-    report_blob_path = (
-        f"{artifact_prefix}/"
-        "production_health_report.json"
-    )
+    report_blob_path = f"{artifact_prefix}/production_health_report.json"
 
     report_bytes = download_blob(
         storage_account=storage_account,
         storage_container=storage_container,
         blob_name=report_blob_path,
-        destination=Path(
-            "/tmp/production-health-report.json"
-        ),
+        destination=Path("/tmp/production-health-report.json"),
     )
 
-    health_report = json.loads(
-        report_bytes.decode("utf-8")
-    )
+    health_report = json.loads(report_bytes.decode("utf-8"))
 
     manifest_files = manifest.get(
         "files",
@@ -450,10 +400,7 @@ def validate_monitoring(
         (
             record
             for record in manifest_files
-            if record.get(
-                "relative_path"
-            )
-            == "production_health_report.json"
+            if record.get("relative_path") == "production_health_report.json"
         ),
         None,
     )
@@ -465,12 +412,7 @@ def validate_monitoring(
         dict,
     ):
         checksum_matches = (
-            report_record.get(
-                "sha256"
-            )
-            == hashlib.sha256(
-                report_bytes
-            ).hexdigest()
+            report_record.get("sha256") == hashlib.sha256(report_bytes).hexdigest()
         )
 
     outbox_exists = blob_exists(
@@ -487,14 +429,10 @@ def validate_monitoring(
             storage_account=storage_account,
             storage_container=storage_container,
             blob_name=NOTIFICATION_OUTBOX_PATH,
-            destination=Path(
-                "/tmp/production-health-outbox.json"
-            ),
+            destination=Path("/tmp/production-health-outbox.json"),
         )
 
-        outbox = json.loads(
-            outbox_bytes.decode("utf-8")
-        )
+        outbox = json.loads(outbox_bytes.decode("utf-8"))
 
         pending = outbox.get(
             "pending",
@@ -516,166 +454,78 @@ def validate_monitoring(
         )
     )
 
-    effective_parallelism = (
-        schedule.get(
-            "parallelism"
-        )
-    )
+    effective_parallelism = schedule.get("parallelism")
 
     if effective_parallelism is None:
         effective_parallelism = 1
 
-    completion_count = (
-        schedule.get(
-            "replicaCompletionCount"
-        )
-    )
+    completion_count = schedule.get("replicaCompletionCount")
 
     if completion_count is None:
         completion_count = 1
 
     checks = {
         "job_provisioning_succeeded": (
-            properties.get(
-                "provisioningState"
-            )
-            == "Succeeded"
+            properties.get("provisioningState") == "Succeeded"
         ),
-        "trigger_is_schedule": (
-            configuration.get(
-                "triggerType"
-            )
-            == "Schedule"
-        ),
-        "cron_is_hourly": (
-            schedule.get(
-                "cronExpression"
-            )
-            == "45 * * * *"
-        ),
-        "parallelism_is_one": (
-            effective_parallelism == 1
-        ),
-        "completion_count_is_one": (
-            completion_count == 1
-        ),
-        "timeout_is_600": (
-            configuration.get(
-                "replicaTimeout"
-            )
-            == 600
-        ),
-        "retry_limit_is_one": (
-            configuration.get(
-                "replicaRetryLimit"
-            )
-            == 1
-        ),
-        "entrypoint_is_valid": (
-            command == EXPECTED_COMMAND
-            and not arguments
-        ),
-        "image_is_immutable": (
-            ":" in image
-            and not image.endswith(
-                ":latest"
-            )
-        ),
-        "expected_image_matches": (
-            expected_image is None
-            or image == expected_image
-        ),
-        "latest_execution_succeeded": (
-            latest_execution_status
-            == "Succeeded"
-        ),
+        "trigger_is_schedule": (configuration.get("triggerType") == "Schedule"),
+        "cron_is_hourly": (schedule.get("cronExpression") == "45 * * * *"),
+        "parallelism_is_one": (effective_parallelism == 1),
+        "completion_count_is_one": (completion_count == 1),
+        "timeout_is_600": (configuration.get("replicaTimeout") == 600),
+        "retry_limit_is_one": (configuration.get("replicaRetryLimit") == 1),
+        "entrypoint_is_valid": (command == EXPECTED_COMMAND and not arguments),
+        "image_is_immutable": (":" in image and not image.endswith(":latest")),
+        "expected_image_matches": (expected_image is None or image == expected_image),
+        "latest_execution_succeeded": (latest_execution_status == "Succeeded"),
         "artifact_backend_is_azure_blob": (
             environment.get(
                 "ARTIFACT_BACKEND",
                 {},
-            ).get(
-                "value"
-            )
+            ).get("value")
             == "azure_blob"
         ),
         "job_query_backend_is_arm": (
             environment.get(
                 "AZURE_JOB_QUERY_BACKEND",
                 {},
-            ).get(
-                "value"
-            )
+            ).get("value")
             == "arm"
         ),
-
         "notification_channel_is_email": (
             environment.get(
                 "PRODUCTION_HEALTH_NOTIFICATION_CHANNEL",
                 {},
-            ).get(
-                "value"
-            )
+            ).get("value")
             == "email"
         ),
-
         "email_endpoint_is_configured": bool(
             environment.get(
                 "PRODUCTION_HEALTH_EMAIL_ENDPOINT",
                 {},
-            ).get(
-                "value"
-            )
+            ).get("value")
         ),
-
         "email_sender_is_configured": bool(
             environment.get(
                 "PRODUCTION_HEALTH_EMAIL_SENDER",
                 {},
-            ).get(
-                "value"
-            )
+            ).get("value")
         ),
-
         "email_recipient_uses_secret": (
             environment.get(
                 "PRODUCTION_HEALTH_EMAIL_RECIPIENT",
                 {},
-            ).get(
-                "secretRef"
-            )
+            ).get("secretRef")
             == "production-health-email-recipient"
         ),
-
         "health_pointer_is_valid": (
-            pointer.get(
-                "artifact_type"
-            )
-            == "production-health"
-            and pointer.get(
-                "validation_status"
-            )
-            == "PRODUCTION_HEALTH_RECORDED"
+            pointer.get("artifact_type") == "production-health"
+            and pointer.get("validation_status") == "PRODUCTION_HEALTH_RECORDED"
         ),
-        "manifest_matches_pointer": (
-            manifest.get(
-                "run_id"
-            )
-            == pointer.get(
-                "run_id"
-            )
-        ),
-        "health_report_checksum_matches": (
-            checksum_matches
-        ),
-        "health_report_is_read_only": (
-            health_report.get(
-                "read_only"
-            )
-            is True
-        ),
-        "outbox_exists": (
-            outbox_exists
-        ),
+        "manifest_matches_pointer": (manifest.get("run_id") == pointer.get("run_id")),
+        "health_report_checksum_matches": (checksum_matches),
+        "health_report_is_read_only": (health_report.get("read_only") is True),
+        "outbox_exists": (outbox_exists),
         "outbox_has_valid_pending_count": (
             isinstance(
                 pending_count,
@@ -686,62 +536,27 @@ def validate_monitoring(
     }
 
     return {
-        "valid": all(
-            checks.values()
-        ),
+        "valid": all(checks.values()),
         "checks": checks,
         "job": {
             "image": image,
             "command": command,
             "args": arguments,
-            "cron_expression": (
-                schedule.get(
-                    "cronExpression"
-                )
-            ),
-            "latest_execution": (
-                latest_execution
-            ),
+            "cron_expression": (schedule.get("cronExpression")),
+            "latest_execution": (latest_execution),
         },
         "health_snapshot": {
-            "run_id": pointer.get(
-                "run_id"
-            ),
-            "published_at_utc": (
-                pointer.get(
-                    "published_at_utc"
-                )
-            ),
-            "health_status": (
-                health_report.get(
-                    "status"
-                )
-            ),
-            "overall_component_status": (
-                health_report.get(
-                    "overall_component_status"
-                )
-            ),
-            "checksum_matches": (
-                checksum_matches
-            ),
+            "run_id": pointer.get("run_id"),
+            "published_at_utc": (pointer.get("published_at_utc")),
+            "health_status": (health_report.get("status")),
+            "overall_component_status": (health_report.get("overall_component_status")),
+            "checksum_matches": (checksum_matches),
         },
         "notifications": {
-            "outbox_exists": (
-                outbox_exists
-            ),
-            "pending_count": (
-                pending_count
-            ),
-            "receipt_count": len(
-                receipts
-            ),
-            "receipt_names": [
-                item.get(
-                    "name"
-                )
-                for item in receipts
-            ],
+            "outbox_exists": (outbox_exists),
+            "pending_count": (pending_count),
+            "receipt_count": len(receipts),
+            "receipt_names": [item.get("name") for item in receipts],
         },
     }
 
@@ -756,11 +571,7 @@ def save_report(
         exist_ok=True,
     )
 
-    temporary_path = (
-        REPORT_PATH.with_suffix(
-            ".json.tmp"
-        )
-    )
+    temporary_path = REPORT_PATH.with_suffix(".json.tmp")
 
     temporary_path.write_text(
         json.dumps(
@@ -771,9 +582,7 @@ def save_report(
         encoding="utf-8",
     )
 
-    temporary_path.replace(
-        REPORT_PATH
-    )
+    temporary_path.replace(REPORT_PATH)
 
     return REPORT_PATH
 
@@ -783,30 +592,23 @@ def main() -> int:
 
     parser = argparse.ArgumentParser(
         description=(
-            "Validate deployed production health "
-            "monitoring and webhook delivery."
+            "Validate deployed production health monitoring and webhook delivery."
         )
     )
 
     parser.add_argument(
         "--resource-group",
-        default=(
-            "rg-pearls-aqi-staging"
-        ),
+        default=("rg-pearls-aqi-staging"),
     )
 
     parser.add_argument(
         "--job-name",
-        default=(
-            "job-pearls-aqi-monitoring"
-        ),
+        default=("job-pearls-aqi-monitoring"),
     )
 
     parser.add_argument(
         "--storage-account",
-        default=(
-            "stpearlsaqiriyan"
-        ),
+        default=("stpearlsaqiriyan"),
     )
 
     parser.add_argument(
@@ -823,89 +625,53 @@ def main() -> int:
 
     try:
         job = load_job(
-            resource_group=(
-                arguments.resource_group
-            ),
-            job_name=(
-                arguments.job_name
-            ),
+            resource_group=(arguments.resource_group),
+            job_name=(arguments.job_name),
         )
 
         executions = load_executions(
-            resource_group=(
-                arguments.resource_group
-            ),
-            job_name=(
-                arguments.job_name
-            ),
+            resource_group=(arguments.resource_group),
+            job_name=(arguments.job_name),
         )
 
         validation = validate_monitoring(
             job=job,
             executions=executions,
-            expected_image=(
-                arguments.expected_image
-            ),
-            storage_account=(
-                arguments.storage_account
-            ),
-            storage_container=(
-                arguments.storage_container
-            ),
+            expected_image=(arguments.expected_image),
+            storage_account=(arguments.storage_account),
+            storage_container=(arguments.storage_container),
         )
 
         report = {
             "phase": "10L",
             "subphase": "10L-E",
-            "generated_at_utc": (
-                datetime.now(
-                    timezone.utc
-                ).isoformat()
-            ),
+            "generated_at_utc": (datetime.now(UTC).isoformat()),
             "status": (
                 "PRODUCTION_MONITORING_VALIDATED"
                 if validation["valid"]
                 else "PRODUCTION_MONITORING_INVALID"
             ),
-            "resource_group": (
-                arguments.resource_group
-            ),
-            "job_name": (
-                arguments.job_name
-            ),
+            "resource_group": (arguments.resource_group),
+            "job_name": (arguments.job_name),
             **validation,
         }
 
-        exit_code = (
-            0
-            if validation["valid"]
-            else 1
-        )
+        exit_code = 0 if validation["valid"] else 1
 
     except Exception as error:
         report = {
             "phase": "10L",
             "subphase": "10L-E",
-            "generated_at_utc": (
-                datetime.now(
-                    timezone.utc
-                ).isoformat()
-            ),
-            "status": (
-                "PRODUCTION_MONITORING_VALIDATION_FAILED"
-            ),
-            "error_type": (
-                type(error).__name__
-            ),
+            "generated_at_utc": (datetime.now(UTC).isoformat()),
+            "status": ("PRODUCTION_MONITORING_VALIDATION_FAILED"),
+            "error_type": (type(error).__name__),
             "error_message": str(error),
             "valid": False,
         }
 
         exit_code = 1
 
-    report_path = save_report(
-        report
-    )
+    report_path = save_report(report)
 
     print(
         json.dumps(

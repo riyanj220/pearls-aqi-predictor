@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 from pathlib import Path
-from typing import Iterator
 
 import pytest
 from fastapi.testclient import TestClient
@@ -12,14 +12,7 @@ from app.api.config import get_api_settings
 from app.api.main import create_application
 from app.core.config import PROJECT_ROOT
 
-
-TEST_ARTIFACT_DIRECTORY = (
-    PROJECT_ROOT
-    / "tests"
-    / "fixtures"
-    / "aqi"
-    / "latest"
-)
+TEST_ARTIFACT_DIRECTORY = PROJECT_ROOT / "tests" / "fixtures" / "aqi" / "latest"
 
 
 @pytest.fixture
@@ -44,10 +37,7 @@ def client(
     missing_fixture_files = [
         filename
         for filename in required_fixture_files
-        if not (
-            TEST_ARTIFACT_DIRECTORY
-            / filename
-        ).exists()
+        if not (TEST_ARTIFACT_DIRECTORY / filename).exists()
     ]
 
     if missing_fixture_files:
@@ -91,17 +81,11 @@ def test_health_and_complete_forecast(
 ) -> None:
     """Liveness, readiness, and the complete forecast should work."""
 
-    live_response = client.get(
-        "/api/v1/health/live"
-    )
+    live_response = client.get("/api/v1/health/live")
 
-    ready_response = client.get(
-        "/api/v1/health/ready"
-    )
+    ready_response = client.get("/api/v1/health/ready")
 
-    forecast_response = client.get(
-        "/api/v1/forecast"
-    )
+    forecast_response = client.get("/api/v1/forecast")
 
     assert live_response.status_code == 200
     assert ready_response.status_code == 200
@@ -112,10 +96,9 @@ def test_health_and_complete_forecast(
 
     assert len(records) == 72
 
-    assert [
-        record["forecast_horizon_hours"]
-        for record in records
-    ] == list(range(1, 73))
+    assert [record["forecast_horizon_hours"] for record in records] == list(
+        range(1, 73)
+    )
 
     assert payload["pipeline_run_id"]
     assert "artifact_path" not in str(payload)
@@ -142,18 +125,13 @@ def test_hourly_filters_and_alerts(
         },
     )
 
-    alerts_response = client.get(
-        "/api/v1/alerts"
-    )
+    alerts_response = client.get("/api/v1/alerts")
 
     assert hourly_response.status_code == 200
     assert hourly_response.json()["result_count"] == 24
 
     assert alerts_only_response.status_code == 200
-    assert (
-        alerts_only_response.json()["result_count"]
-        == 0
-    )
+    assert alerts_only_response.json()["result_count"] == 0
 
     assert alerts_response.status_code == 200
     assert alerts_response.json()["episodes"] == []
@@ -170,9 +148,7 @@ def test_structured_errors(
             "minimum_horizon": 30,
             "maximum_horizon": 10,
         },
-        headers={
-            "X-Request-ID": "api-test-request"
-        },
+        headers={"X-Request-ID": "api-test-request"},
     )
 
     invalid_enum_response = client.get(
@@ -182,37 +158,19 @@ def test_structured_errors(
         },
     )
 
-    missing_route_response = client.get(
-        "/api/v1/not-found"
-    )
+    missing_route_response = client.get("/api/v1/not-found")
 
     assert invalid_range_response.status_code == 400
-    assert (
-        invalid_range_response.json()["error"]["code"]
-        == "INVALID_QUERY_PARAMETER"
-    )
-    assert (
-        invalid_range_response.json()["error"][
-            "request_id"
-        ]
-        == "api-test-request"
-    )
+    assert invalid_range_response.json()["error"]["code"] == "INVALID_QUERY_PARAMETER"
+    assert invalid_range_response.json()["error"]["request_id"] == "api-test-request"
 
     assert invalid_enum_response.status_code == 422
-    assert (
-        invalid_enum_response.json()["error"]["code"]
-        == "INVALID_QUERY_PARAMETER"
-    )
+    assert invalid_enum_response.json()["error"]["code"] == "INVALID_QUERY_PARAMETER"
 
     assert missing_route_response.status_code == 404
-    assert (
-        missing_route_response.json()["error"]["code"]
-        == "RESOURCE_NOT_FOUND"
-    )
+    assert missing_route_response.json()["error"]["code"] == "RESOURCE_NOT_FOUND"
 
-    assert "traceback" not in str(
-        missing_route_response.json()
-    ).lower()
+    assert "traceback" not in str(missing_route_response.json()).lower()
 
 
 def test_missing_artifacts_report_not_ready(
@@ -225,9 +183,7 @@ def test_missing_artifacts_report_not_ready(
     Readiness must return 503.
     """
 
-    empty_artifact_directory = (
-        tmp_path / "missing-artifacts"
-    )
+    empty_artifact_directory = tmp_path / "missing-artifacts"
 
     empty_artifact_directory.mkdir()
 
@@ -241,17 +197,11 @@ def test_missing_artifacts_report_not_ready(
     application = create_application()
 
     with TestClient(application) as test_client:
-        live_response = test_client.get(
-            "/api/v1/health/live"
-        )
+        live_response = test_client.get("/api/v1/health/live")
 
-        ready_response = test_client.get(
-            "/api/v1/health/ready"
-        )
+        ready_response = test_client.get("/api/v1/health/ready")
 
-        forecast_response = test_client.get(
-            "/api/v1/forecast"
-        )
+        forecast_response = test_client.get("/api/v1/forecast")
 
     get_api_settings.cache_clear()
 
@@ -264,7 +214,4 @@ def test_missing_artifacts_report_not_ready(
     }
 
     assert forecast_response.status_code == 503
-    assert (
-        forecast_response.json()["error"]["code"]
-        == "FORECAST_NOT_FOUND"
-    )
+    assert forecast_response.json()["error"]["code"] == "FORECAST_NOT_FOUND"

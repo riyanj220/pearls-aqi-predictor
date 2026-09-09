@@ -18,10 +18,11 @@ import json
 import mimetypes
 import shutil
 from abc import ABC, abstractmethod
+from collections.abc import Mapping
 from dataclasses import asdict, dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path, PurePosixPath
-from typing import Any, BinaryIO, Iterable, Mapping
+from typing import Any
 
 from azure.core.exceptions import (
     AzureError,
@@ -64,10 +65,7 @@ class RunManifest:
         """Return a JSON-safe manifest."""
 
         payload = asdict(self)
-        payload["files"] = [
-            asdict(record)
-            for record in self.files
-        ]
+        payload["files"] = [asdict(record) for record in self.files]
         return payload
 
 
@@ -106,21 +104,15 @@ def normalize_relative_path(
     path = PurePosixPath(raw_value)
 
     if path.is_absolute():
-        raise ArtifactRepositoryError(
-            f"Absolute artifact path is not allowed: {value}"
-        )
+        raise ArtifactRepositoryError(f"Absolute artifact path is not allowed: {value}")
 
     if ".." in path.parts:
-        raise ArtifactRepositoryError(
-            f"Parent traversal is not allowed: {value}"
-        )
+        raise ArtifactRepositoryError(f"Parent traversal is not allowed: {value}")
 
     normalized = path.as_posix().strip("/")
 
     if not normalized or normalized == ".":
-        raise ArtifactRepositoryError(
-            "Artifact path cannot be empty."
-        )
+        raise ArtifactRepositoryError("Artifact path cannot be empty.")
 
     return normalized
 
@@ -154,9 +146,7 @@ def infer_content_type(
 ) -> str:
     """Infer a safe content type."""
 
-    content_type, _ = mimetypes.guess_type(
-        str(path)
-    )
+    content_type, _ = mimetypes.guess_type(str(path))
 
     return content_type or "application/octet-stream"
 
@@ -181,37 +171,24 @@ def discover_source_files(
 
     if not source_directory.exists():
         raise ArtifactRepositoryError(
-            "Source artifact directory does not exist: "
-            f"{source_directory}"
+            f"Source artifact directory does not exist: {source_directory}"
         )
 
     if not source_directory.is_dir():
         raise ArtifactRepositoryError(
-            "Source artifact path is not a directory: "
-            f"{source_directory}"
+            f"Source artifact path is not a directory: {source_directory}"
         )
 
-    files = sorted(
-        path
-        for path in source_directory.rglob("*")
-        if path.is_file()
-    )
+    files = sorted(path for path in source_directory.rglob("*") if path.is_file())
 
     if not files:
-        raise ArtifactRepositoryError(
-            "Source artifact directory contains no files."
-        )
+        raise ArtifactRepositoryError("Source artifact directory contains no files.")
 
-    empty_files = [
-        path
-        for path in files
-        if path.stat().st_size == 0
-    ]
+    empty_files = [path for path in files if path.stat().st_size == 0]
 
     if empty_files:
         raise ArtifactRepositoryError(
-            "Source artifact directory contains empty files: "
-            f"{empty_files}"
+            f"Source artifact directory contains empty files: {empty_files}"
         )
 
     return files
@@ -278,11 +255,7 @@ class ArtifactRepository(ABC):
         """Download and parse one JSON object."""
 
         try:
-            payload = json.loads(
-                self.download_bytes(path).decode(
-                    "utf-8"
-                )
-            )
+            payload = json.loads(self.download_bytes(path).decode("utf-8"))
         except (
             UnicodeDecodeError,
             json.JSONDecodeError,
@@ -292,9 +265,7 @@ class ArtifactRepository(ABC):
             ) from error
 
         if not isinstance(payload, dict):
-            raise ArtifactRepositoryError(
-                f"Expected JSON object at: {path}"
-            )
+            raise ArtifactRepositoryError(f"Expected JSON object at: {path}")
 
         return payload
 
@@ -309,15 +280,9 @@ class ArtifactRepository(ABC):
     ) -> PublicationResult:
         """Publish an immutable run and update latest last."""
 
-        normalized_artifact_type = (
-            normalize_relative_path(
-                artifact_type
-            )
-        )
+        normalized_artifact_type = normalize_relative_path(artifact_type)
 
-        normalized_run_id = normalize_relative_path(
-            run_id
-        )
+        normalized_run_id = normalize_relative_path(run_id)
 
         if "/" in normalized_artifact_type:
             raise ArtifactRepositoryError(
@@ -325,9 +290,7 @@ class ArtifactRepository(ABC):
             )
 
         if "/" in normalized_run_id:
-            raise ArtifactRepositoryError(
-                "run_id must contain one path segment."
-            )
+            raise ArtifactRepositoryError("run_id must contain one path segment.")
 
         if validation_status not in {
             "PASSED",
@@ -336,44 +299,28 @@ class ArtifactRepository(ABC):
             "PRODUCTION_HEALTH_RECORDED",
         }:
             raise ArtifactRepositoryError(
-                "Only successfully validated runs may "
-                "update the latest pointer."
+                "Only successfully validated runs may update the latest pointer."
             )
 
-        source_files = discover_source_files(
-            source_directory
-        )
+        source_files = discover_source_files(source_directory)
 
-        run_prefix = (
-            f"{normalized_artifact_type}/runs/"
-            f"{normalized_run_id}"
-        )
+        run_prefix = f"{normalized_artifact_type}/runs/{normalized_run_id}"
 
-        manifest_path = (
-            f"{run_prefix}/manifest.json"
-        )
+        manifest_path = f"{run_prefix}/manifest.json"
 
-        latest_pointer_path = (
-            f"{normalized_artifact_type}/"
-            "latest/pointer.json"
-        )
+        latest_pointer_path = f"{normalized_artifact_type}/latest/pointer.json"
 
         if self.exists(manifest_path):
             raise ArtifactRepositoryError(
-                "An immutable run with this ID already exists: "
-                f"{normalized_run_id}"
+                f"An immutable run with this ID already exists: {normalized_run_id}"
             )
 
         records: list[ArtifactRecord] = []
 
         for source_path in source_files:
-            relative_path = source_path.relative_to(
-                source_directory
-            ).as_posix()
+            relative_path = source_path.relative_to(source_directory).as_posix()
 
-            destination_path = (
-                f"{run_prefix}/{relative_path}"
-            )
+            destination_path = f"{run_prefix}/{relative_path}"
 
             record = self.upload_file(
                 source_path=source_path,
@@ -381,16 +328,11 @@ class ArtifactRepository(ABC):
                 overwrite=False,
             )
 
-            expected_checksum = (
-                calculate_file_sha256(
-                    source_path
-                )
-            )
+            expected_checksum = calculate_file_sha256(source_path)
 
             if record.sha256 != expected_checksum:
                 raise ArtifactRepositoryError(
-                    "Uploaded artifact checksum mismatch: "
-                    f"{relative_path}"
+                    f"Uploaded artifact checksum mismatch: {relative_path}"
                 )
 
             records.append(
@@ -402,9 +344,7 @@ class ArtifactRepository(ABC):
                 )
             )
 
-        published_at_utc = datetime.now(
-            timezone.utc
-        ).isoformat()
+        published_at_utc = datetime.now(UTC).isoformat()
 
         manifest = RunManifest(
             artifact_type=normalized_artifact_type,
@@ -450,13 +390,9 @@ class ArtifactRepository(ABC):
     ) -> dict[str, Any]:
         """Read the latest successful run pointer."""
 
-        normalized = normalize_relative_path(
-            artifact_type
-        )
+        normalized = normalize_relative_path(artifact_type)
 
-        return self.download_json(
-            f"{normalized}/latest/pointer.json"
-        )
+        return self.download_json(f"{normalized}/latest/pointer.json")
 
     def get_latest_manifest(
         self,
@@ -464,40 +400,32 @@ class ArtifactRepository(ABC):
     ) -> dict[str, Any]:
         """Read the latest successful run manifest."""
 
-        pointer = self.get_latest_pointer(
-            artifact_type
-        )
+        pointer = self.get_latest_pointer(artifact_type)
 
-        manifest_path = pointer.get(
-            "manifest_path"
-        )
+        manifest_path = pointer.get("manifest_path")
 
-        if not isinstance(
-            manifest_path,
-            str,
-        ) or not manifest_path:
+        if (
+            not isinstance(
+                manifest_path,
+                str,
+            )
+            or not manifest_path
+        ):
             raise ArtifactRepositoryError(
-                "Latest pointer does not contain "
-                "a valid manifest path."
+                "Latest pointer does not contain a valid manifest path."
             )
 
-        return self.download_json(
-            manifest_path
-        )
+        return self.download_json(manifest_path)
 
 
-class LocalArtifactRepository(
-    ArtifactRepository
-):
+class LocalArtifactRepository(ArtifactRepository):
     """Filesystem artifact repository for local development."""
 
     def __init__(
         self,
         root_directory: Path,
     ) -> None:
-        self.root_directory = (
-            root_directory.resolve()
-        )
+        self.root_directory = root_directory.resolve()
 
         self.root_directory.mkdir(
             parents=True,
@@ -510,24 +438,15 @@ class LocalArtifactRepository(
     ) -> Path:
         """Resolve one safe path below the root."""
 
-        normalized = normalize_relative_path(
-            relative_path
-        )
+        normalized = normalize_relative_path(relative_path)
 
-        resolved = (
-            self.root_directory
-            / normalized
-        ).resolve()
+        resolved = (self.root_directory / normalized).resolve()
 
         if (
-            self.root_directory
-            not in resolved.parents
-            and resolved
-            != self.root_directory
+            self.root_directory not in resolved.parents
+            and resolved != self.root_directory
         ):
-            raise ArtifactRepositoryError(
-                "Resolved path escaped artifact root."
-            )
+            raise ArtifactRepositoryError("Resolved path escaped artifact root.")
 
         return resolved
 
@@ -540,9 +459,7 @@ class LocalArtifactRepository(
     ) -> ArtifactRecord:
         """Copy one file into local storage."""
 
-        destination = self.resolve_path(
-            destination_path
-        )
+        destination = self.resolve_path(destination_path)
 
         if destination.exists() and not overwrite:
             raise ArtifactRepositoryError(
@@ -560,16 +477,10 @@ class LocalArtifactRepository(
         )
 
         return ArtifactRecord(
-            relative_path=normalize_relative_path(
-                destination_path
-            ),
+            relative_path=normalize_relative_path(destination_path),
             size_bytes=destination.stat().st_size,
-            sha256=calculate_file_sha256(
-                destination
-            ),
-            content_type=infer_content_type(
-                destination
-            ),
+            sha256=calculate_file_sha256(destination),
+            content_type=infer_content_type(destination),
         )
 
     def upload_bytes(
@@ -582,9 +493,7 @@ class LocalArtifactRepository(
     ) -> ArtifactRecord:
         """Write bytes into local storage."""
 
-        destination = self.resolve_path(
-            destination_path
-        )
+        destination = self.resolve_path(destination_path)
 
         if destination.exists() and not overwrite:
             raise ArtifactRepositoryError(
@@ -599,9 +508,7 @@ class LocalArtifactRepository(
         destination.write_bytes(data)
 
         return ArtifactRecord(
-            relative_path=normalize_relative_path(
-                destination_path
-            ),
+            relative_path=normalize_relative_path(destination_path),
             size_bytes=len(data),
             sha256=calculate_bytes_sha256(data),
             content_type=content_type,
@@ -616,9 +523,7 @@ class LocalArtifactRepository(
         artifact_path = self.resolve_path(path)
 
         if not artifact_path.exists():
-            raise ArtifactRepositoryError(
-                f"Artifact does not exist: {path}"
-            )
+            raise ArtifactRepositoryError(f"Artifact does not exist: {path}")
 
         return artifact_path.read_bytes()
 
@@ -631,9 +536,7 @@ class LocalArtifactRepository(
         return self.resolve_path(path).exists()
 
 
-class AzureBlobArtifactRepository(
-    ArtifactRepository
-):
+class AzureBlobArtifactRepository(ArtifactRepository):
     """Azure Blob repository using passwordless authentication."""
 
     def __init__(
@@ -644,27 +547,18 @@ class AzureBlobArtifactRepository(
         credential: Any | None = None,
     ) -> None:
         if not account_name.strip():
-            raise ArtifactRepositoryError(
-                "Azure Storage account name is required."
-            )
+            raise ArtifactRepositoryError("Azure Storage account name is required.")
 
         if not container_name.strip():
-            raise ArtifactRepositoryError(
-                "Azure Storage container name is required."
-            )
+            raise ArtifactRepositoryError("Azure Storage container name is required.")
 
         self.account_name = account_name.strip()
         self.container_name = container_name.strip()
 
-        account_url = (
-            f"https://{self.account_name}"
-            ".blob.core.windows.net"
-        )
+        account_url = f"https://{self.account_name}.blob.core.windows.net"
 
         self.credential = (
-            credential
-            if credential is not None
-            else DefaultAzureCredential()
+            credential if credential is not None else DefaultAzureCredential()
         )
 
         self.service_client = BlobServiceClient(
@@ -672,11 +566,8 @@ class AzureBlobArtifactRepository(
             credential=self.credential,
         )
 
-        self.container_client = (
-            self.service_client
-            .get_container_client(
-                self.container_name
-            )
+        self.container_client = self.service_client.get_container_client(
+            self.container_name
         )
 
     def upload_file(
@@ -688,13 +579,9 @@ class AzureBlobArtifactRepository(
     ) -> ArtifactRecord:
         """Upload one file to Azure Blob Storage."""
 
-        normalized = normalize_relative_path(
-            destination_path
-        )
+        normalized = normalize_relative_path(destination_path)
 
-        content_type = infer_content_type(
-            source_path
-        )
+        content_type = infer_content_type(source_path)
 
         try:
             with source_path.open("rb") as file:
@@ -702,22 +589,17 @@ class AzureBlobArtifactRepository(
                     name=normalized,
                     data=file,
                     overwrite=overwrite,
-                    content_settings=ContentSettings(
-                        content_type=content_type
-                    ),
+                    content_settings=ContentSettings(content_type=content_type),
                 )
         except AzureError as error:
             raise ArtifactRepositoryError(
-                "Could not upload Azure Blob artifact: "
-                f"{normalized}"
+                f"Could not upload Azure Blob artifact: {normalized}"
             ) from error
 
         return ArtifactRecord(
             relative_path=normalized,
             size_bytes=source_path.stat().st_size,
-            sha256=calculate_file_sha256(
-                source_path
-            ),
+            sha256=calculate_file_sha256(source_path),
             content_type=content_type,
         )
 
@@ -731,23 +613,18 @@ class AzureBlobArtifactRepository(
     ) -> ArtifactRecord:
         """Upload bytes to Azure Blob Storage."""
 
-        normalized = normalize_relative_path(
-            destination_path
-        )
+        normalized = normalize_relative_path(destination_path)
 
         try:
             self.container_client.upload_blob(
                 name=normalized,
                 data=data,
                 overwrite=overwrite,
-                content_settings=ContentSettings(
-                    content_type=content_type
-                ),
+                content_settings=ContentSettings(content_type=content_type),
             )
         except AzureError as error:
             raise ArtifactRepositoryError(
-                "Could not upload Azure Blob artifact: "
-                f"{normalized}"
+                f"Could not upload Azure Blob artifact: {normalized}"
             ) from error
 
         return ArtifactRecord(
@@ -763,16 +640,10 @@ class AzureBlobArtifactRepository(
     ) -> bytes:
         """Download bytes from Azure Blob Storage."""
 
-        normalized = normalize_relative_path(
-            path
-        )
+        normalized = normalize_relative_path(path)
 
         try:
-            return (
-                self.container_client
-                .download_blob(normalized)
-                .readall()
-            )
+            return self.container_client.download_blob(normalized).readall()
         except ResourceNotFoundError as error:
             raise ArtifactRepositoryError(
                 f"Azure Blob artifact does not exist: {normalized}"
@@ -788,20 +659,13 @@ class AzureBlobArtifactRepository(
     ) -> bool:
         """Return whether an Azure Blob exists."""
 
-        normalized = normalize_relative_path(
-            path
-        )
+        normalized = normalize_relative_path(path)
 
         try:
-            return (
-                self.container_client
-                .get_blob_client(normalized)
-                .exists()
-            )
+            return self.container_client.get_blob_client(normalized).exists()
         except AzureError as error:
             raise ArtifactRepositoryError(
-                "Could not inspect Azure Blob artifact: "
-                f"{normalized}"
+                f"Could not inspect Azure Blob artifact: {normalized}"
             ) from error
 
 
@@ -818,30 +682,20 @@ def create_artifact_repository(
 
     if normalized_backend == "local":
         if local_root is None:
-            raise ArtifactRepositoryError(
-                "local_root is required for local storage."
-            )
+            raise ArtifactRepositoryError("local_root is required for local storage.")
 
-        return LocalArtifactRepository(
-            root_directory=local_root
-        )
+        return LocalArtifactRepository(root_directory=local_root)
 
     if normalized_backend == "azure_blob":
         if not azure_storage_account:
-            raise ArtifactRepositoryError(
-                "AZURE_STORAGE_ACCOUNT is required."
-            )
+            raise ArtifactRepositoryError("AZURE_STORAGE_ACCOUNT is required.")
 
         if not azure_storage_container:
-            raise ArtifactRepositoryError(
-                "AZURE_STORAGE_CONTAINER is required."
-            )
+            raise ArtifactRepositoryError("AZURE_STORAGE_CONTAINER is required.")
 
         return AzureBlobArtifactRepository(
             account_name=azure_storage_account,
             container_name=azure_storage_container,
         )
 
-    raise ArtifactRepositoryError(
-        "Artifact backend must be local or azure_blob."
-    )
+    raise ArtifactRepositoryError("Artifact backend must be local or azure_blob.")

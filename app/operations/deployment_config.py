@@ -14,20 +14,17 @@ from __future__ import annotations
 import argparse
 import json
 import os
+from collections.abc import Mapping
 from dataclasses import asdict, dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any
 from urllib.parse import urlparse
-
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 REPORT_PATH = (
-    PROJECT_ROOT
-    / "reports"
-    / "phase_10"
-    / "deployment_configuration_report.json"
+    PROJECT_ROOT / "reports" / "phase_10" / "deployment_configuration_report.json"
 )
 
 
@@ -197,9 +194,7 @@ def get_boolean(
     }:
         return False
 
-    raise DeploymentConfigurationError(
-        f"{name} must be a Boolean value."
-    )
+    raise DeploymentConfigurationError(f"{name} must be a Boolean value.")
 
 
 def get_positive_integer(
@@ -217,14 +212,10 @@ def get_positive_integer(
     try:
         value = int(raw_value)
     except ValueError as error:
-        raise DeploymentConfigurationError(
-            f"{name} must be an integer."
-        ) from error
+        raise DeploymentConfigurationError(f"{name} must be an integer.") from error
 
     if value <= 0:
-        raise DeploymentConfigurationError(
-            f"{name} must be greater than zero."
-        )
+        raise DeploymentConfigurationError(f"{name} must be greater than zero.")
 
     return value
 
@@ -234,11 +225,7 @@ def parse_cors_origins(
 ) -> list[str]:
     """Parse comma-separated CORS origins."""
 
-    return [
-        value.strip()
-        for value in raw_value.split(",")
-        if value.strip()
-    ]
+    return [value.strip() for value in raw_value.split(",") if value.strip()]
 
 
 def is_valid_http_url(
@@ -248,10 +235,7 @@ def is_valid_http_url(
 
     parsed = urlparse(value)
 
-    return (
-        parsed.scheme in {"http", "https"}
-        and bool(parsed.netloc)
-    )
+    return parsed.scheme in {"http", "https"} and bool(parsed.netloc)
 
 
 def load_deployment_settings(
@@ -364,12 +348,8 @@ def load_deployment_settings(
             )
         ),
         model_loading_mode=model_loading_mode,
-        feature_store_backend=(
-            feature_store_backend
-        ),
-        model_registry_backend=(
-            model_registry_backend
-        ),
+        feature_store_backend=(feature_store_backend),
+        model_registry_backend=(model_registry_backend),
         automatic_retraining_enabled=(
             get_boolean(
                 environment,
@@ -418,33 +398,21 @@ def validate_common_settings(
 
     issues: list[ValidationIssue] = []
 
-    if (
-        settings.app_environment
-        not in ALLOWED_ENVIRONMENTS
-    ):
+    if settings.app_environment not in ALLOWED_ENVIRONMENTS:
         issues.append(
             ValidationIssue(
                 code="INVALID_APP_ENV",
                 field="APP_ENV",
-                message=(
-                    "APP_ENV must be development, demo, "
-                    "staging, or production."
-                ),
+                message=("APP_ENV must be development, demo, staging, or production."),
             )
         )
 
-    if (
-        settings.service_role
-        not in ALLOWED_SERVICE_ROLES
-    ):
+    if settings.service_role not in ALLOWED_SERVICE_ROLES:
         issues.append(
             ValidationIssue(
                 code="INVALID_SERVICE_ROLE",
                 field="SERVICE_ROLE",
-                message=(
-                    "SERVICE_ROLE must be api, "
-                    "dashboard, or pipeline."
-                ),
+                message=("SERVICE_ROLE must be api, dashboard, or pipeline."),
             )
         )
 
@@ -453,31 +421,20 @@ def validate_common_settings(
             ValidationIssue(
                 code="INVALID_LOG_LEVEL",
                 field="LOG_LEVEL",
-                message=(
-                    "LOG_LEVEL contains an unsupported value."
-                ),
+                message=("LOG_LEVEL contains an unsupported value."),
             )
         )
 
-    if (
-        settings.artifact_backend
-        not in ALLOWED_ARTIFACT_BACKENDS
-    ):
+    if settings.artifact_backend not in ALLOWED_ARTIFACT_BACKENDS:
         issues.append(
             ValidationIssue(
                 code="INVALID_ARTIFACT_BACKEND",
                 field="ARTIFACT_BACKEND",
-                message=(
-                    "ARTIFACT_BACKEND must be local "
-                    "or azure_blob."
-                ),
+                message=("ARTIFACT_BACKEND must be local or azure_blob."),
             )
         )
 
-    if (
-        settings.model_loading_mode
-        not in ALLOWED_MODEL_LOADING_MODES
-    ):
+    if settings.model_loading_mode not in ALLOWED_MODEL_LOADING_MODES:
         issues.append(
             ValidationIssue(
                 code="INVALID_MODEL_LOADING_MODE",
@@ -490,31 +447,23 @@ def validate_common_settings(
             )
         )
 
-    if (
-        settings.feature_store_backend
-        not in ALLOWED_FEATURE_STORE_BACKENDS
-    ):
+    if settings.feature_store_backend not in ALLOWED_FEATURE_STORE_BACKENDS:
         issues.append(
             ValidationIssue(
                 code="INVALID_FEATURE_STORE_BACKEND",
                 field="FEATURE_STORE_BACKEND",
                 message=(
-                    "FEATURE_STORE_BACKEND must be "
-                    "local, hopsworks or azure_blob"
+                    "FEATURE_STORE_BACKEND must be local, hopsworks or azure_blob"
                 ),
             )
         )
 
     azure_blob_required = any(
         [
-            settings.artifact_backend
-            == "azure_blob",
-            settings.feature_store_backend
-            == "azure_blob",
-            settings.model_registry_backend
-            == "azure_blob",
-            settings.model_loading_mode
-            == "AZURE_BLOB_REGISTRY",
+            settings.artifact_backend == "azure_blob",
+            settings.feature_store_backend == "azure_blob",
+            settings.model_registry_backend == "azure_blob",
+            settings.model_loading_mode == "AZURE_BLOB_REGISTRY",
         ]
     )
 
@@ -525,8 +474,7 @@ def validate_common_settings(
                     code="STORAGE_ACCOUNT_REQUIRED",
                     field="AZURE_STORAGE_ACCOUNT",
                     message=(
-                        "Azure Storage account is required "
-                        "for the azure_blob backend."
+                        "Azure Storage account is required for the azure_blob backend."
                     ),
                 )
             )
@@ -554,8 +502,7 @@ def validate_common_settings(
                     code="AZURE_RESOURCE_GROUP_REQUIRED",
                     field="AZURE_RESOURCE_GROUP",
                     message=(
-                        "Azure resource group is required "
-                        "for cloud environments."
+                        "Azure resource group is required for cloud environments."
                     ),
                 )
             )
@@ -565,10 +512,7 @@ def validate_common_settings(
                 ValidationIssue(
                     code="CONTAINER_REGISTRY_REQUIRED",
                     field="AZURE_CONTAINER_REGISTRY",
-                    message=(
-                        "Azure Container Registry login "
-                        "server is required."
-                    ),
+                    message=("Azure Container Registry login server is required."),
                 )
             )
 
@@ -576,9 +520,7 @@ def validate_common_settings(
         issues.append(
             ValidationIssue(
                 code="AUTO_PROMOTION_FORBIDDEN",
-                field=(
-                    "AUTOMATIC_MODEL_PROMOTION_ENABLED"
-                ),
+                field=("AUTOMATIC_MODEL_PROMOTION_ENABLED"),
                 message=(
                     "Automatic model promotion must remain "
                     "disabled for this deployment."
@@ -600,8 +542,7 @@ def validate_api_settings(
         return issues
 
     if (
-        settings.app_environment
-        in {"demo", "staging", "production"}
+        settings.app_environment in {"demo", "staging", "production"}
         and not settings.allowed_cors_origins
     ):
         issues.append(
@@ -621,10 +562,7 @@ def validate_api_settings(
                 ValidationIssue(
                     code="WILDCARD_CORS_FORBIDDEN",
                     field="ALLOWED_CORS_ORIGINS",
-                    message=(
-                        "Wildcard CORS is not allowed "
-                        "for the cloud demo."
-                    ),
+                    message=("Wildcard CORS is not allowed for the cloud demo."),
                 )
             )
 
@@ -633,9 +571,7 @@ def validate_api_settings(
                 ValidationIssue(
                     code="INVALID_CORS_ORIGIN",
                     field="ALLOWED_CORS_ORIGINS",
-                    message=(
-                        f"Invalid CORS origin: {origin}"
-                    ),
+                    message=(f"Invalid CORS origin: {origin}"),
                 )
             )
 
@@ -657,23 +593,16 @@ def validate_dashboard_settings(
             ValidationIssue(
                 code="FASTAPI_BASE_URL_REQUIRED",
                 field="FASTAPI_BASE_URL",
-                message=(
-                    "Streamlit requires the FastAPI base URL."
-                ),
+                message=("Streamlit requires the FastAPI base URL."),
             )
         )
 
-    elif not is_valid_http_url(
-        settings.fastapi_base_url
-    ):
+    elif not is_valid_http_url(settings.fastapi_base_url):
         issues.append(
             ValidationIssue(
                 code="INVALID_FASTAPI_BASE_URL",
                 field="FASTAPI_BASE_URL",
-                message=(
-                    "FASTAPI_BASE_URL must be a valid "
-                    "HTTP or HTTPS URL."
-                ),
+                message=("FASTAPI_BASE_URL must be a valid HTTP or HTTPS URL."),
             )
         )
 
@@ -695,51 +624,32 @@ def validate_pipeline_settings(
             ValidationIssue(
                 code="OPENAQ_API_KEY_REQUIRED",
                 field="OPENAQ_API_KEY",
-                message=(
-                    "The live pipeline requires an "
-                    "OpenAQ API key."
-                ),
+                message=("The live pipeline requires an OpenAQ API key."),
             )
         )
 
     hopsworks_required = any(
         [
-            settings.model_loading_mode
-            == "HOPSWORKS_REGISTRY",
-            settings.feature_store_backend
-            == "hopsworks",
-            settings.model_registry_backend
-            == "hopsworks",
+            settings.model_loading_mode == "HOPSWORKS_REGISTRY",
+            settings.feature_store_backend == "hopsworks",
+            settings.model_registry_backend == "hopsworks",
         ]
     )
 
     if hopsworks_required:
         required_hopsworks_values = {
-            "HOPSWORKS_API_KEY": (
-                settings.hopsworks_api_key_configured
-            ),
-            "HOPSWORKS_PROJECT": (
-                settings.hopsworks_project_configured
-            ),
-            "HOPSWORKS_HOST": (
-                settings.hopsworks_host_configured
-            ),
+            "HOPSWORKS_API_KEY": (settings.hopsworks_api_key_configured),
+            "HOPSWORKS_PROJECT": (settings.hopsworks_project_configured),
+            "HOPSWORKS_HOST": (settings.hopsworks_host_configured),
         }
 
-        for field, configured in (
-            required_hopsworks_values.items()
-        ):
+        for field, configured in required_hopsworks_values.items():
             if not configured:
                 issues.append(
                     ValidationIssue(
-                        code=(
-                            "HOPSWORKS_CONFIGURATION_REQUIRED"
-                        ),
+                        code=("HOPSWORKS_CONFIGURATION_REQUIRED"),
                         field=field,
-                        message=(
-                            f"{field} is required when "
-                            "Hopsworks is enabled."
-                        ),
+                        message=(f"{field} is required when Hopsworks is enabled."),
                     )
                 )
 
@@ -766,20 +676,13 @@ def build_configuration_report(
 
     settings = load_deployment_settings(source)
 
-    issues = validate_deployment_settings(
-        settings
-    )
+    issues = validate_deployment_settings(settings)
 
-    approved = not any(
-        issue.severity == "ERROR"
-        for issue in issues
-    )
+    approved = not any(issue.severity == "ERROR" for issue in issues)
 
     return {
         "phase": "10C",
-        "generated_at_utc": datetime.now(
-            timezone.utc
-        ).isoformat(),
+        "generated_at_utc": datetime.now(UTC).isoformat(),
         "status": (
             "DEPLOYMENT_CONFIGURATION_VALIDATED"
             if approved
@@ -788,10 +691,7 @@ def build_configuration_report(
         "approved": approved,
         "configuration": settings.safe_summary(),
         "issue_count": len(issues),
-        "issues": [
-            asdict(issue)
-            for issue in issues
-        ],
+        "issues": [asdict(issue) for issue in issues],
         "secret_values_included": False,
         "azure_resources_created": False,
     }
@@ -823,31 +723,20 @@ def main() -> int:
     """CLI entry point."""
 
     parser = argparse.ArgumentParser(
-        description=(
-            "Validate deployment environment "
-            "configuration."
-        )
+        description=("Validate deployment environment configuration.")
     )
 
     parser.parse_args()
 
     try:
         report = build_configuration_report()
-        exit_code = (
-            0
-            if report["approved"]
-            else 1
-        )
+        exit_code = 0 if report["approved"] else 1
 
     except Exception as error:
         report = {
             "phase": "10C",
-            "generated_at_utc": datetime.now(
-                timezone.utc
-            ).isoformat(),
-            "status": (
-                "DEPLOYMENT_CONFIGURATION_FAILED"
-            ),
+            "generated_at_utc": datetime.now(UTC).isoformat(),
+            "status": ("DEPLOYMENT_CONFIGURATION_FAILED"),
             "approved": False,
             "error_type": type(error).__name__,
             "error_message": str(error),
@@ -857,9 +746,7 @@ def main() -> int:
 
         exit_code = 1
 
-    report_path = save_configuration_report(
-        report
-    )
+    report_path = save_configuration_report(report)
 
     print(
         json.dumps(

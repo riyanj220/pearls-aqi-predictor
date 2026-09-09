@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from app.artifacts.repository import (
@@ -15,14 +15,13 @@ from app.operations.persist_production_health import (
     extract_unhealthy_components,
 )
 
-
 NOW = datetime(
     2026,
     8,
     6,
     12,
     0,
-    tzinfo=timezone.utc,
+    tzinfo=UTC,
 )
 
 
@@ -36,14 +35,10 @@ def build_health_report(
         "jobs": {
             "hourly_feature_job": {
                 "status": job_status,
-                "job_name": (
-                    "job-pearls-aqi-features"
-                ),
+                "job_name": ("job-pearls-aqi-features"),
                 "reason": "Test condition.",
                 "latest_execution": {
-                    "end_time_utc": (
-                        "2026-08-06T11:00:00+00:00"
-                    ),
+                    "end_time_utc": ("2026-08-06T11:00:00+00:00"),
                     "age_hours": 1,
                 },
             },
@@ -72,34 +67,20 @@ def test_healthy_state_creates_no_incident(
 ) -> None:
     """Healthy production should not create an incident."""
 
-    repository = (
-        LocalArtifactRepository(
-            tmp_path
-        )
-    )
+    repository = LocalArtifactRepository(tmp_path)
 
     result = evaluate_incident_state(
         repository=repository,
-        health_report=(
-            build_health_report()
-        ),
+        health_report=(build_health_report()),
         health_run_id="health-run-1",
         now=NOW,
     )
 
-    assert (
-        result["action"]
-        == "NO_ACTIVE_INCIDENT"
-    )
+    assert result["action"] == "NO_ACTIVE_INCIDENT"
 
-    assert (
-        result["notification_required"]
-        is False
-    )
+    assert result["notification_required"] is False
 
-    assert not repository.exists(
-        ACTIVE_INCIDENT_PATH
-    )
+    assert not repository.exists(ACTIVE_INCIDENT_PATH)
 
 
 def test_first_failure_opens_incident(
@@ -107,11 +88,7 @@ def test_first_failure_opens_incident(
 ) -> None:
     """First unhealthy result should open and notify."""
 
-    repository = (
-        LocalArtifactRepository(
-            tmp_path
-        )
-    )
+    repository = LocalArtifactRepository(tmp_path)
 
     result = evaluate_incident_state(
         repository=repository,
@@ -124,19 +101,11 @@ def test_first_failure_opens_incident(
         now=NOW,
     )
 
-    assert (
-        result["action"]
-        == "INCIDENT_OPENED"
-    )
+    assert result["action"] == "INCIDENT_OPENED"
 
-    assert (
-        result["notification_required"]
-        is True
-    )
+    assert result["notification_required"] is True
 
-    assert repository.exists(
-        ACTIVE_INCIDENT_PATH
-    )
+    assert repository.exists(ACTIVE_INCIDENT_PATH)
 
 
 def test_repeated_failure_is_deduplicated(
@@ -144,11 +113,7 @@ def test_repeated_failure_is_deduplicated(
 ) -> None:
     """Identical consecutive failures should not re-notify."""
 
-    repository = (
-        LocalArtifactRepository(
-            tmp_path
-        )
-    )
+    repository = LocalArtifactRepository(tmp_path)
 
     report = build_health_report(
         job_status="CRITICAL",
@@ -168,22 +133,11 @@ def test_repeated_failure_is_deduplicated(
         now=NOW,
     )
 
-    assert (
-        result["action"]
-        == "INCIDENT_STILL_ACTIVE"
-    )
+    assert result["action"] == "INCIDENT_STILL_ACTIVE"
 
-    assert (
-        result["notification_required"]
-        is False
-    )
+    assert result["notification_required"] is False
 
-    assert (
-        result["incident"][
-            "occurrence_count"
-        ]
-        == 2
-    )
+    assert result["incident"]["occurrence_count"] == 2
 
 
 def test_recovery_resolves_and_notifies(
@@ -191,11 +145,7 @@ def test_recovery_resolves_and_notifies(
 ) -> None:
     """A healthy result after failure should resolve once."""
 
-    repository = (
-        LocalArtifactRepository(
-            tmp_path
-        )
-    )
+    repository = LocalArtifactRepository(tmp_path)
 
     evaluate_incident_state(
         repository=repository,
@@ -210,27 +160,16 @@ def test_recovery_resolves_and_notifies(
 
     result = evaluate_incident_state(
         repository=repository,
-        health_report=(
-            build_health_report()
-        ),
+        health_report=(build_health_report()),
         health_run_id="health-run-2",
         now=NOW,
     )
 
-    assert (
-        result["action"]
-        == "INCIDENT_RESOLVED"
-    )
+    assert result["action"] == "INCIDENT_RESOLVED"
 
-    assert (
-        result["notification_required"]
-        is True
-    )
+    assert result["notification_required"] is True
 
-    assert (
-        result["incident"]["status"]
-        == "RESOLVED"
-    )
+    assert result["incident"]["status"] == "RESOLVED"
 
 
 def test_fingerprint_is_stable() -> None:
@@ -240,19 +179,11 @@ def test_fingerprint_is_stable() -> None:
         job_status="WARNING",
     )
 
-    components = (
-        extract_unhealthy_components(
-            report
-        )
-    )
+    components = extract_unhealthy_components(report)
 
-    first = build_incident_fingerprint(
-        components
-    )
+    first = build_incident_fingerprint(components)
 
-    second = build_incident_fingerprint(
-        list(reversed(components))
-    )
+    second = build_incident_fingerprint(list(reversed(components)))
 
     assert first is not None
     assert first == second

@@ -35,9 +35,7 @@ def get_artifact_repository(
         repository,
         ArtifactRepository,
     ):
-        raise RuntimeError(
-            "Artifact repository is not initialized."
-        )
+        raise RuntimeError("Artifact repository is not initialized.")
 
     return repository
 
@@ -57,10 +55,7 @@ def get_latest_artifact_bundle(
 
     bundle = repository.load_latest()
 
-    if (
-        bundle.freshness.status
-        == FreshnessStatus.STALE
-    ):
+    if bundle.freshness.status == FreshnessStatus.STALE:
         raise APIServiceError(
             status_code=503,
             code="FORECAST_STALE",
@@ -69,12 +64,8 @@ def get_latest_artifact_bundle(
                 "and cannot be served as current data."
             ),
             details={
-                "generated_at_utc": (
-                    bundle.generated_at_utc.isoformat()
-                ),
-                "age_hours": (
-                    bundle.freshness.age_hours
-                ),
+                "generated_at_utc": (bundle.generated_at_utc.isoformat()),
+                "age_hours": (bundle.freshness.age_hours),
             },
         )
 

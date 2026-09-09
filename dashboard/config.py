@@ -21,9 +21,7 @@ class DashboardSettings(BaseSettings):
         extra="ignore",
     )
 
-    fastapi_base_url: str = (
-        "http://localhost:8000/api/v1"
-    )
+    fastapi_base_url: str = "http://localhost:8000/api/v1"
 
     dashboard_request_timeout_seconds: float = Field(
         default=10.0,
@@ -37,17 +35,11 @@ class DashboardSettings(BaseSettings):
         le=3_600,
     )
 
-    dashboard_title: str = (
-        "Pearls AQI Predictor"
-    )
+    dashboard_title: str = "Pearls AQI Predictor"
 
-    dashboard_default_timezone: str = (
-        "Asia/Karachi"
-    )
+    dashboard_default_timezone: str = "Asia/Karachi"
 
-    dashboard_environment: str = (
-        "development"
-    )
+    dashboard_environment: str = "development"
 
     @field_validator("fastapi_base_url")
     @classmethod
@@ -59,13 +51,8 @@ class DashboardSettings(BaseSettings):
 
         normalized = value.strip().rstrip("/")
 
-        if not normalized.startswith(
-            ("http://", "https://")
-        ):
-            raise ValueError(
-                "FASTAPI_BASE_URL must start with "
-                "http:// or https://"
-            )
+        if not normalized.startswith(("http://", "https://")):
+            raise ValueError("FASTAPI_BASE_URL must start with http:// or https://")
 
         return normalized
 

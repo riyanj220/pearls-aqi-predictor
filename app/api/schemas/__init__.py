@@ -7,8 +7,8 @@ from app.api.schemas.alerts import (
     AlertEpisodeResponse,
 )
 from app.api.schemas.common import (
-    AQICategory,
     AlertLevel,
+    AQICategory,
     FreshnessResponse,
     FreshnessStatus,
     LocationResponse,

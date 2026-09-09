@@ -13,20 +13,14 @@ from dashboard.utils.formatting import (
     format_timestamp,
 )
 
-
 PRODUCTION_MODEL = {
     "version": 1,
     "model_type": "XGBRegressor",
     "model_name": "xgboost_shallower",
-    "strategy": (
-        "hybrid_persistence_1_12_"
-        "xgboost_shallower_13_72"
-    ),
+    "strategy": ("hybrid_persistence_1_12_xgboost_shallower_13_72"),
     "feature_count": 56,
     "best_iteration": 323,
-    "training_date_utc": (
-        "2026-07-26T09:37:43.161320+00:00"
-    ),
+    "training_date_utc": ("2026-07-26T09:37:43.161320+00:00"),
     "routing": {
         "short_horizon": "Current PM2.5 persistence",
         "short_range": "1–12 hours",
@@ -55,9 +49,7 @@ PRODUCTION_MODEL = {
             "r2": -0.517729518158885,
         },
     },
-    "rmse_improvement_percent": (
-        5.821132786777854
-    ),
+    "rmse_improvement_percent": (5.821132786777854),
     "row_counts": {
         "train": 364_798,
         "validation": 71_256,
@@ -93,9 +85,7 @@ def normalize_status(
     replacements = {
         "READY_WITH_LIMITATIONS": "Ready",
         "AQI_ALERT_PIPELINE_APPROVED": "Approved",
-        "AQI_ALERT_PIPELINE_APPROVED_WITH_LIMITATIONS": (
-            "Approved"
-        ),
+        "AQI_ALERT_PIPELINE_APPROVED_WITH_LIMITATIONS": ("Approved"),
         "PASSED": "Passed",
         "ALIVE": "Online",
         "FRESH": "Fresh",
@@ -104,9 +94,7 @@ def normalize_status(
     }
 
     if normalized in replacements:
-        return replacements[
-            normalized
-        ]
+        return replacements[normalized]
 
     return normalized.replace(
         "_",
@@ -122,25 +110,15 @@ def _system_is_healthy(
 ) -> bool:
     """Return whether core serving conditions are fully healthy."""
 
-    live_status = normalize_status(
-        liveness.get(
-            "status"
-        )
-    )
+    live_status = normalize_status(liveness.get("status"))
 
-    ready_status = normalize_status(
-        readiness.get(
-            "status"
-        )
-    )
+    ready_status = normalize_status(readiness.get("status"))
 
     freshness_status = normalize_status(
         readiness.get(
             "freshness",
             {},
-        ).get(
-            "status"
-        )
+        ).get("status")
     )
 
     source_degraded = bool(
@@ -190,27 +168,17 @@ def render_system_hero(
         {},
     )
 
-    age_hours = freshness.get(
-        "age_hours"
-    )
+    age_hours = freshness.get("age_hours")
 
     if age_hours is None:
-        freshness_text = (
-            "Forecast age unavailable"
-        )
+        freshness_text = "Forecast age unavailable"
     elif float(age_hours) < 1:
-        freshness_text = (
-            f"{round(float(age_hours) * 60)} min old"
-        )
+        freshness_text = f"{round(float(age_hours) * 60)} min old"
     else:
-        freshness_text = (
-            f"{float(age_hours):.1f}h old"
-        )
+        freshness_text = f"{float(age_hours):.1f}h old"
 
     generated = format_timestamp(
-        pipeline.get(
-            "generated_at_utc"
-        ),
+        pipeline.get("generated_at_utc"),
         timezone_name=timezone_name,
         include_timezone=False,
     )
@@ -293,10 +261,7 @@ def render_system_hero(
         state_class = "warning"
         accent = "#FACC15"
 
-        description = (
-            "One or more production readiness conditions "
-            "require review."
-        )
+        description = "One or more production readiness conditions require review."
 
     st.html(
         f"""
@@ -369,61 +334,37 @@ def render_service_status_cards(
     with columns[0]:
         st.metric(
             "API",
-            normalize_status(
-                liveness.get(
-                    "status"
-                )
-            ),
+            normalize_status(liveness.get("status")),
         )
 
-        st.caption(
-            "Serving forecast requests"
-        )
+        st.caption("Serving forecast requests")
 
     with columns[1]:
         st.metric(
             "Forecast service",
-            normalize_status(
-                readiness.get(
-                    "status"
-                )
-            ),
+            normalize_status(readiness.get("status")),
         )
 
-        st.caption(
-            "Latest forecast available"
-        )
+        st.caption("Latest forecast available")
 
     with columns[2]:
         st.metric(
             "Freshness",
-            normalize_status(
-                freshness.get(
-                    "status"
-                )
-            ),
+            normalize_status(freshness.get("status")),
         )
 
         st.caption(
             format_freshness(
-                status=freshness.get(
-                    "status"
-                ),
-                age_hours=freshness.get(
-                    "age_hours"
-                ),
+                status=freshness.get("status"),
+                age_hours=freshness.get("age_hours"),
             )
         )
 
     with columns[3]:
-        artifact_status = (
-            format_boolean_status(
-                pipeline.get(
-                    "artifact_consistency_passed"
-                ),
-                true_label="Passed",
-                false_label="Failed",
-            )
+        artifact_status = format_boolean_status(
+            pipeline.get("artifact_consistency_passed"),
+            true_label="Passed",
+            false_label="Failed",
         )
 
         st.metric(
@@ -431,9 +372,7 @@ def render_service_status_cards(
             artifact_status,
         )
 
-        st.caption(
-            "Forecast artifact consistency"
-        )
+        st.caption("Forecast artifact consistency")
 
 
 def render_operational_overview(
@@ -473,9 +412,7 @@ def render_operational_overview(
             ),
         )
 
-        st.caption(
-            "Hourly predictions"
-        )
+        st.caption("Hourly predictions")
 
     with columns[1]:
         st.metric(
@@ -488,9 +425,7 @@ def render_operational_overview(
             ),
         )
 
-        st.caption(
-            "Triggered forecast hours"
-        )
+        st.caption("Triggered forecast hours")
 
     with columns[2]:
         st.metric(
@@ -503,33 +438,25 @@ def render_operational_overview(
             ),
         )
 
-        st.caption(
-            "Grouped alert events"
-        )
+        st.caption("Grouped alert events")
 
     with columns[3]:
         st.metric(
             "Generated",
             format_timestamp(
-                pipeline.get(
-                    "generated_at_utc"
-                ),
+                pipeline.get("generated_at_utc"),
                 timezone_name=timezone_name,
                 include_timezone=False,
             ),
         )
 
-        st.caption(
-            "Latest publication"
-        )
+        st.caption("Latest publication")
 
 
 def render_model_strategy() -> None:
     """Render the production forecasting strategy."""
 
-    routing = PRODUCTION_MODEL[
-        "routing"
-    ]
+    routing = PRODUCTION_MODEL["routing"]
 
     st.html(
         """
@@ -606,38 +533,26 @@ def render_model_strategy() -> None:
     with details[0]:
         st.metric(
             "Model version",
-            PRODUCTION_MODEL[
-                "version"
-            ],
+            PRODUCTION_MODEL["version"],
         )
 
-        st.caption(
-            "Production registry version"
-        )
+        st.caption("Production registry version")
 
     with details[1]:
         st.metric(
             "Input features",
-            PRODUCTION_MODEL[
-                "feature_count"
-            ],
+            PRODUCTION_MODEL["feature_count"],
         )
 
-        st.caption(
-            "Ordered feature contract"
-        )
+        st.caption("Ordered feature contract")
 
     with details[2]:
         st.metric(
             "Boosting iteration",
-            PRODUCTION_MODEL[
-                "best_iteration"
-            ],
+            PRODUCTION_MODEL["best_iteration"],
         )
 
-        st.caption(
-            "Best validation iteration"
-        )
+        st.caption("Best validation iteration")
 
     with details[3]:
         st.metric(
@@ -645,21 +560,15 @@ def render_model_strategy() -> None:
             "XGBoost",
         )
 
-        st.caption(
-            "xgboost_shallower"
-        )
+        st.caption("xgboost_shallower")
 
 
 def render_model_evaluation() -> None:
     """Render final untouched test performance."""
 
-    test = PRODUCTION_MODEL[
-        "test_metrics"
-    ]
+    test = PRODUCTION_MODEL["test_metrics"]
 
-    improvement = PRODUCTION_MODEL[
-        "rmse_improvement_percent"
-    ]
+    improvement = PRODUCTION_MODEL["rmse_improvement_percent"]
 
     st.html(
         """
@@ -687,9 +596,7 @@ def render_model_evaluation() -> None:
             f"{test['mae']:.2f} µg/m³",
         )
 
-        st.caption(
-            "Mean absolute error"
-        )
+        st.caption("Mean absolute error")
 
     with columns[1]:
         st.metric(
@@ -697,9 +604,7 @@ def render_model_evaluation() -> None:
             f"{test['rmse']:.2f} µg/m³",
         )
 
-        st.caption(
-            "Root mean squared error"
-        )
+        st.caption("Root mean squared error")
 
     with columns[2]:
         st.metric(
@@ -707,9 +612,7 @@ def render_model_evaluation() -> None:
             f"{improvement:.2f}% lower",
         )
 
-        st.caption(
-            "Compared with current-value persistence"
-        )
+        st.caption("Compared with current-value persistence")
 
     with columns[3]:
         st.metric(
@@ -717,9 +620,7 @@ def render_model_evaluation() -> None:
             f"{PRODUCTION_MODEL['row_counts']['test']:,}",
         )
 
-        st.caption(
-            "Held-out forecast rows"
-        )
+        st.caption("Held-out forecast rows")
 
     st.markdown("")
 
@@ -731,21 +632,9 @@ def render_model_evaluation() -> None:
         """
     )
 
-    current = (
-        PRODUCTION_MODEL[
-            "test_baselines"
-        ][
-            "current_persistence"
-        ]
-    )
+    current = PRODUCTION_MODEL["test_baselines"]["current_persistence"]
 
-    previous = (
-        PRODUCTION_MODEL[
-            "test_baselines"
-        ][
-            "previous_day_persistence"
-        ]
-    )
+    previous = PRODUCTION_MODEL["test_baselines"]["previous_day_persistence"]
 
     benchmark_rows = [
         (
@@ -791,10 +680,7 @@ def render_model_evaluation() -> None:
         "Evaluation details",
         expanded=False,
     ):
-        st.write(
-            f"**Test R²:** "
-            f"{test['r2']:.3f}"
-        )
+        st.write(f"**Test R²:** {test['r2']:.3f}")
 
         st.write(
             "The chronological test period had "
@@ -804,22 +690,15 @@ def render_model_evaluation() -> None:
             "MAE and RMSE over persistence baselines."
         )
 
-        st.write(
-            "**Selection criterion:** "
-            "lowest overall validation RMSE."
-        )
+        st.write("**Selection criterion:** lowest overall validation RMSE.")
 
-        st.write(
-            "**Negative XGBoost test predictions:** 0"
-        )
+        st.write("**Negative XGBoost test predictions:** 0")
 
 
 def render_training_evaluation_split() -> None:
     """Render chronological train/validation/test information."""
 
-    st.markdown(
-        "### Chronological evaluation design"
-    )
+    st.markdown("### Chronological evaluation design")
 
     columns = st.columns(3)
 
@@ -846,17 +725,9 @@ def render_training_evaluation_split() -> None:
         labels,
         strict=True,
     ):
-        start, end = (
-            PRODUCTION_MODEL[
-                "data_ranges"
-            ][key]
-        )
+        start, end = PRODUCTION_MODEL["data_ranges"][key]
 
-        rows = (
-            PRODUCTION_MODEL[
-                "row_counts"
-            ][key]
-        )
+        rows = PRODUCTION_MODEL["row_counts"][key]
 
         with column:
             st.html(
@@ -912,18 +783,12 @@ def render_pipeline_architecture(
     )
 
     generated = format_timestamp(
-        pipeline.get(
-            "generated_at_utc"
-        ),
+        pipeline.get("generated_at_utc"),
         timezone_name=timezone_name,
         include_timezone=False,
     )
 
-    forecast_status = normalize_status(
-        pipeline.get(
-            "phase_6_status"
-        )
-    )
+    forecast_status = normalize_status(pipeline.get("phase_6_status"))
 
     workloads = [
         {
@@ -969,9 +834,7 @@ def render_pipeline_architecture(
 
     columns = st.columns(2)
 
-    for index, workload in enumerate(
-        workloads
-    ):
+    for index, workload in enumerate(workloads):
         with columns[index % 2]:
             st.html(
                 f"""
@@ -1001,9 +864,7 @@ def render_pipeline_architecture(
 def render_system_skeleton() -> None:
     """Render the high-level production data flow."""
 
-    st.markdown(
-        "### Production data flow"
-    )
+    st.markdown("### Production data flow")
 
     steps = [
         (
@@ -1035,9 +896,7 @@ def render_system_skeleton() -> None:
     for index, (
         title,
         subtitle,
-    ) in enumerate(
-        steps
-    ):
+    ) in enumerate(steps):
         st.html(
             f"""
             <div class="system-flow-step">
@@ -1103,44 +962,72 @@ def render_metadata(
                 <div class="metadata-item">
                     <span>Location</span>
                     <strong>
-                        {escape(str(location.get(
+                        {
+                escape(
+                    str(
+                        location.get(
                             "name",
                             "Not available",
-                        )))}
+                        )
+                    )
+                )
+            }
                     </strong>
                 </div>
 
                 <div class="metadata-item">
                     <span>Coordinates</span>
                     <strong>
-                        {escape(str(location.get(
+                        {
+                escape(
+                    str(
+                        location.get(
                             "latitude",
                             "—",
-                        )))},
-                        {escape(str(location.get(
+                        )
+                    )
+                )
+            },
+                        {
+                escape(
+                    str(
+                        location.get(
                             "longitude",
                             "—",
-                        )))}
+                        )
+                    )
+                )
+            }
                     </strong>
                 </div>
 
                 <div class="metadata-item">
                     <span>Pollutant</span>
                     <strong>
-                        {escape(str(metadata.get(
+                        {
+                escape(
+                    str(
+                        metadata.get(
                             "pollutant",
                             "PM2.5",
-                        )))}
+                        )
+                    )
+                )
+            }
                     </strong>
                 </div>
 
                 <div class="metadata-item">
                     <span>Forecast horizon</span>
                     <strong>
-                        {int(metadata.get(
-                            "forecast_horizon_hours",
-                            72,
-                        ))} hours
+                        {
+                int(
+                    metadata.get(
+                        "forecast_horizon_hours",
+                        72,
+                    )
+                )
+            } hours
                     </strong>
                 </div>
             </div>
@@ -1154,9 +1041,7 @@ def render_metadata(
         )
 
         weather_text = (
-            ", ".join(weather_sources)
-            if weather_sources
-            else "Not available"
+            ", ".join(weather_sources) if weather_sources else "Not available"
         )
 
         st.html(
@@ -1169,10 +1054,16 @@ def render_metadata(
                 <div class="metadata-item">
                     <span>PM2.5 source</span>
                     <strong>
-                        {escape(str(metadata.get(
+                        {
+                escape(
+                    str(
+                        metadata.get(
                             "pollution_source",
                             "OpenAQ",
-                        )))}
+                        )
+                    )
+                )
+            }
                     </strong>
                 </div>
 
@@ -1186,20 +1077,32 @@ def render_metadata(
                 <div class="metadata-item">
                     <span>AQI standard</span>
                     <strong>
-                        {escape(str(metadata.get(
+                        {
+                escape(
+                    str(
+                        metadata.get(
                             "aqi_standard_name",
                             "Not available",
-                        )))}
+                        )
+                    )
+                )
+            }
                     </strong>
                 </div>
 
                 <div class="metadata-item">
                     <span>AQI version</span>
                     <strong>
-                        {escape(str(metadata.get(
+                        {
+                escape(
+                    str(
+                        metadata.get(
                             "aqi_standard_version",
                             "Not available",
-                        )))}
+                        )
+                    )
+                )
+            }
                     </strong>
                 </div>
             </div>
@@ -1210,9 +1113,7 @@ def render_metadata(
 def render_infrastructure() -> None:
     """Render production infrastructure summary."""
 
-    st.markdown(
-        "### Production infrastructure"
-    )
+    st.markdown("### Production infrastructure")
 
     infrastructure = [
         (
@@ -1254,9 +1155,7 @@ def render_infrastructure() -> None:
     for index, (
         label,
         value,
-    ) in enumerate(
-        infrastructure
-    ):
+    ) in enumerate(infrastructure):
         with columns[index % 2]:
             st.html(
                 f"""
@@ -1279,30 +1178,17 @@ def render_location_map(
         {},
     )
 
-    latitude = location.get(
-        "latitude"
-    )
+    latitude = location.get("latitude")
 
-    longitude = location.get(
-        "longitude"
-    )
+    longitude = location.get("longitude")
 
-    if (
-        latitude is None
-        or longitude is None
-    ):
-        st.info(
-            "Reference-location coordinates are unavailable."
-        )
+    if latitude is None or longitude is None:
+        st.info("Reference-location coordinates are unavailable.")
         return
 
-    latitude = float(
-        latitude
-    )
+    latitude = float(latitude)
 
-    longitude = float(
-        longitude
-    )
+    longitude = float(longitude)
 
     location_name = str(
         location.get(
@@ -1328,12 +1214,7 @@ def render_location_map(
         """
     )
 
-    map_url = (
-        "https://maps.google.com/maps"
-        f"?q={latitude},{longitude}"
-        "&z=13"
-        "&output=embed"
-    )
+    map_url = f"https://maps.google.com/maps?q={latitude},{longitude}&z=13&output=embed"
 
     st.iframe(
         map_url,
@@ -1341,7 +1222,4 @@ def render_location_map(
         height=420,
     )
 
-    st.caption(
-        f"Reference point · {location_name} "
-        f"({latitude:.6f}, {longitude:.6f})"
-    )
+    st.caption(f"Reference point · {location_name} ({latitude:.6f}, {longitude:.6f})")

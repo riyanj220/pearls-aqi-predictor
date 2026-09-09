@@ -4,8 +4,8 @@ import pandas as pd
 
 from app.mlops.config import MLOpsSettings
 from app.mlops.contracts import (
-    FeatureGroupContract,
     FeatureDefinition,
+    FeatureGroupContract,
 )
 from app.mlops.feature_repository import (
     FeatureRepository,
@@ -16,9 +16,7 @@ from app.pipelines.incremental_features import (
 )
 
 
-class InMemoryFeatureRepository(
-    FeatureRepository
-):
+class InMemoryFeatureRepository(FeatureRepository):
     def __init__(self) -> None:
         self.data: dict[
             str,
@@ -40,9 +38,7 @@ class InMemoryFeatureRepository(
     ) -> pd.DataFrame:
         return self.data.get(
             contract.name,
-            empty_feature_frame(
-                contract
-            ),
+            empty_feature_frame(contract),
         ).copy()
 
     def read_range(
@@ -52,27 +48,18 @@ class InMemoryFeatureRepository(
         start_time_utc: pd.Timestamp,
         end_time_exclusive_utc: pd.Timestamp,
     ) -> pd.DataFrame:
-        dataframe = self.read_dataset(
-            contract=contract
-        )
+        dataframe = self.read_dataset(contract=contract)
 
         if dataframe.empty:
             return dataframe
 
         event_times = pd.to_datetime(
-            dataframe[
-                contract.event_time
-            ],
+            dataframe[contract.event_time],
             utc=True,
         )
 
         return dataframe.loc[
-            event_times.ge(
-                start_time_utc
-            )
-            & event_times.lt(
-                end_time_exclusive_utc
-            )
+            event_times.ge(start_time_utc) & event_times.lt(end_time_exclusive_utc)
         ].copy()
 
     def latest_event_time(
@@ -80,18 +67,14 @@ class InMemoryFeatureRepository(
         *,
         contract: FeatureGroupContract,
     ) -> pd.Timestamp | None:
-        dataframe = self.read_dataset(
-            contract=contract
-        )
+        dataframe = self.read_dataset(contract=contract)
 
         if dataframe.empty:
             return None
 
         return (
             pd.to_datetime(
-                dataframe[
-                    contract.event_time
-                ],
+                dataframe[contract.event_time],
                 utc=True,
             )
             .max()
@@ -104,9 +87,7 @@ class InMemoryFeatureRepository(
         contract: FeatureGroupContract,
         dataframe: pd.DataFrame,
     ) -> None:
-        current = self.read_dataset(
-            contract=contract
-        )
+        current = self.read_dataset(contract=contract)
 
         if current.empty:
             combined = dataframe.copy()
@@ -128,30 +109,22 @@ class InMemoryFeatureRepository(
             )
         )
 
-        self.data[
-            contract.name
-        ] = (
-            combined
-            .sort_values(
-                contract.event_time
-            )
+        self.data[contract.name] = (
+            combined.sort_values(contract.event_time)
             .drop_duplicates(
                 subset=logical_key,
                 keep="last",
             )
-            .reset_index(
-                drop=True
-            )
+            .reset_index(drop=True)
         )
+
 
 def build_test_contract() -> FeatureGroupContract:
     return FeatureGroupContract(
         name="test_features",
         version=1,
         description="Test feature dataset.",
-        primary_key=(
-            "location_key",
-        ),
+        primary_key=("location_key",),
         event_time="datetime_utc",
         online_enabled=False,
         features=(
@@ -177,9 +150,7 @@ def build_test_contract() -> FeatureGroupContract:
 def test_synchronize_group_uses_repository_contract() -> None:
     contract = build_test_contract()
 
-    repository = (
-        InMemoryFeatureRepository()
-    )
+    repository = InMemoryFeatureRepository()
 
     settings = MLOpsSettings(
         mlops_dry_run=False,
@@ -216,19 +187,9 @@ def test_synchronize_group_uses_repository_contract() -> None:
         settings=settings,
     )
 
-    assert (
-        first_report[
-            "rows_to_insert"
-        ]
-        == 2
-    )
+    assert first_report["rows_to_insert"] == 2
 
-    assert (
-        first_report[
-            "rows_written"
-        ]
-        == 2
-    )
+    assert first_report["rows_written"] == 2
 
     second_report = synchronize_group(
         dataframe=dataframe,
@@ -237,30 +198,10 @@ def test_synchronize_group_uses_repository_contract() -> None:
         settings=settings,
     )
 
-    assert (
-        second_report[
-            "rows_to_insert"
-        ]
-        == 0
-    )
+    assert second_report["rows_to_insert"] == 0
 
-    assert (
-        second_report[
-            "rows_to_update"
-        ]
-        == 0
-    )
+    assert second_report["rows_to_update"] == 0
 
-    assert (
-        second_report[
-            "rows_unchanged"
-        ]
-        == 2
-    )
+    assert second_report["rows_unchanged"] == 2
 
-    assert (
-        second_report[
-            "rows_written"
-        ]
-        == 0
-    )
+    assert second_report["rows_written"] == 0

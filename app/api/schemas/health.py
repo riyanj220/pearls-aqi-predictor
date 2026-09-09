@@ -47,8 +47,6 @@ class ReadinessResponse(PublicSchema):
 
     source_degraded: bool = False
 
-    limitations: list[str] = Field(
-        default_factory=list
-    )
+    limitations: list[str] = Field(default_factory=list)
 
     message: str

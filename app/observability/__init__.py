@@ -1,5 +1,6 @@
 """Application observability utilities."""
 
+from app.observability import error_codes
 from app.observability.logging import (
     JsonLogFormatter,
     StructuredLoggingError,
@@ -17,14 +18,13 @@ from app.observability.reports import (
     save_operational_report,
 )
 
-from app.observability import error_codes
-
 __all__ = [
     "JsonLogFormatter",
     "OperationalReportError",
     "StructuredLoggingError",
     "build_base_report",
     "configure_structured_logging",
+    "error_codes",
     "get_logger",
     "log_pipeline_completed",
     "log_pipeline_failed",
@@ -32,5 +32,4 @@ __all__ = [
     "sanitize_report",
     "sanitize_value",
     "save_operational_report",
-    "error_codes",
 ]

@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import os
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -29,7 +29,6 @@ from app.pipelines.retraining_cycle import (
     run_retraining_cycle,
 )
 
-
 REPORT_PATH = (
     PROJECT_ROOT
     / "reports"
@@ -37,17 +36,10 @@ REPORT_PATH = (
     / "blob_backed_retraining_validation_report.json"
 )
 
-RUNTIME_ROOT = (
-    PROJECT_ROOT
-    / ".cache"
-    / "phase_10p"
-    / "retraining_validation"
-)
+RUNTIME_ROOT = PROJECT_ROOT / ".cache" / "phase_10p" / "retraining_validation"
 
 
-class BlobRetrainingValidationError(
-    RuntimeError
-):
+class BlobRetrainingValidationError(RuntimeError):
     """Raised when Blob-backed retraining validation fails."""
 
 
@@ -57,18 +49,14 @@ def require_environment(
 ) -> None:
     """Require one exact environment value."""
 
-    actual = (
-        os.getenv(
-            name,
-            "",
-        )
-        .strip()
-    )
+    actual = os.getenv(
+        name,
+        "",
+    ).strip()
 
     if actual.lower() != expected.lower():
         raise BlobRetrainingValidationError(
-            f"{name} must be {expected!r}; "
-            f"received {actual!r}."
+            f"{name} must be {expected!r}; received {actual!r}."
         )
 
 
@@ -76,27 +64,14 @@ def require_hopsworks_absent() -> dict[str, bool]:
     """Verify that Hopsworks credentials are unavailable."""
 
     checks = {
-        "api_key_absent": (
-            not os.getenv(
-                "HOPSWORKS_API_KEY"
-            )
-        ),
-        "project_absent": (
-            not os.getenv(
-                "HOPSWORKS_PROJECT"
-            )
-        ),
-        "host_absent": (
-            not os.getenv(
-                "HOPSWORKS_HOST"
-            )
-        ),
+        "api_key_absent": (not os.getenv("HOPSWORKS_API_KEY")),
+        "project_absent": (not os.getenv("HOPSWORKS_PROJECT")),
+        "host_absent": (not os.getenv("HOPSWORKS_HOST")),
     }
 
     if not all(checks.values()):
         raise BlobRetrainingValidationError(
-            "Hopsworks configuration is still "
-            f"present: {checks}"
+            f"Hopsworks configuration is still present: {checks}"
         )
 
     return checks
@@ -119,8 +94,7 @@ def require_status(
 
     if status not in expected:
         raise BlobRetrainingValidationError(
-            f"{name} returned unexpected "
-            f"status {status!r}."
+            f"{name} returned unexpected status {status!r}."
         )
 
     return status
@@ -129,13 +103,9 @@ def require_status(
 def run_validation() -> dict[str, Any]:
     """Run a complete Blob-backed retraining evaluation."""
 
-    started_at = datetime.now(
-        timezone.utc
-    )
+    started_at = datetime.now(UTC)
 
-    started_monotonic = (
-        time.monotonic()
-    )
+    started_monotonic = time.monotonic()
 
     require_environment(
         "FEATURE_STORE_BACKEND",
@@ -157,33 +127,24 @@ def run_validation() -> dict[str, Any]:
         "azure_blob",
     )
 
-    hopsworks_checks = (
-        require_hopsworks_absent()
-    )
+    hopsworks_checks = require_hopsworks_absent()
 
     get_mlops_settings.cache_clear()
 
-    settings = (
-        get_mlops_settings()
-    )
+    settings = get_mlops_settings()
 
     configuration_checks = {
         "feature_backend_is_blob": (
-            settings.feature_store_backend
-            == FeatureStoreBackend.AZURE_BLOB
+            settings.feature_store_backend == FeatureStoreBackend.AZURE_BLOB
         ),
         "model_registry_is_blob": (
-            settings.model_registry_backend
-            == ModelRegistryBackend.AZURE_BLOB
+            settings.model_registry_backend == ModelRegistryBackend.AZURE_BLOB
         ),
     }
 
-    if not all(
-        configuration_checks.values()
-    ):
+    if not all(configuration_checks.values()):
         raise BlobRetrainingValidationError(
-            "MLOps settings did not resolve "
-            f"to Blob: {configuration_checks}"
+            f"MLOps settings did not resolve to Blob: {configuration_checks}"
         )
 
     RUNTIME_ROOT.mkdir(
@@ -195,14 +156,9 @@ def run_validation() -> dict[str, Any]:
     # 1. Rebuild training data entirely
     #    from Blob feature datasets.
     #
-    training_refresh_report = (
-        run_training_dataset_refresh(
-            settings=settings,
-            output_root=(
-                RUNTIME_ROOT
-                / "training"
-            ),
-        )
+    training_refresh_report = run_training_dataset_refresh(
+        settings=settings,
+        output_root=(RUNTIME_ROOT / "training"),
     )
 
     require_status(
@@ -213,25 +169,15 @@ def run_validation() -> dict[str, Any]:
         name="training dataset refresh",
     )
 
-    runtime_directory = Path(
-        str(
-            training_refresh_report[
-                "run_directory"
-            ]
-        )
-    ).resolve()
+    runtime_directory = Path(str(training_refresh_report["run_directory"])).resolve()
 
     #
     # 2. Force one challenger training
     #    cycle for validation purposes.
     #
-    retraining_report = (
-        run_retraining_cycle(
-            force=True,
-            dataset_directory=(
-                runtime_directory
-            ),
-        )
+    retraining_report = run_retraining_cycle(
+        force=True,
+        dataset_directory=(runtime_directory),
     )
 
     require_status(
@@ -242,84 +188,49 @@ def run_validation() -> dict[str, Any]:
         name="forced retraining",
     )
 
-    if not bool(
-        retraining_report.get(
-            "candidate_created"
-        )
-    ):
+    if not bool(retraining_report.get("candidate_created")):
         raise BlobRetrainingValidationError(
-            "Forced retraining did not "
-            "create a candidate."
+            "Forced retraining did not create a candidate."
         )
 
-    candidate_directory = (
-        resolve_candidate_directory(
-            retraining_report
-        )
-    )
+    candidate_directory = resolve_candidate_directory(retraining_report)
 
     #
     # 3. Compare candidate against current
     #    champion, but DO NOT register it.
     #
-    comparison_report = (
-        run_champion_challenger(
-            register_approved=False,
-            candidate_directory=(
-                candidate_directory
-            ),
-        )
+    comparison_report = run_champion_challenger(
+        register_approved=False,
+        candidate_directory=(candidate_directory),
     )
 
-    comparison_status = (
-        require_status(
-            comparison_report,
-            {
-                "CHALLENGER_APPROVED",
-                "CHALLENGER_REJECTED",
-            },
-            name=(
-                "champion challenger"
-            ),
-        )
+    comparison_status = require_status(
+        comparison_report,
+        {
+            "CHALLENGER_APPROVED",
+            "CHALLENGER_REJECTED",
+        },
+        name=("champion challenger"),
     )
 
     #
     # 4. Publish evidence to Blob.
     #
-    publication_report = (
-        publish_candidate_evidence(
-            candidate_directory=(
-                candidate_directory
-            ),
-            retraining_report=(
-                retraining_report
-            ),
-            comparison_report=(
-                comparison_report
-            ),
-            training_refresh_report=(
-                training_refresh_report
-            ),
-        )
+    publication_report = publish_candidate_evidence(
+        candidate_directory=(candidate_directory),
+        retraining_report=(retraining_report),
+        comparison_report=(comparison_report),
+        training_refresh_report=(training_refresh_report),
     )
 
     runtime_checks = {
         "training_refresh_completed": (
-            training_refresh_report.get(
-                "status"
-            )
+            training_refresh_report.get("status")
             == "TRAINING_DATASET_REFRESH_COMPLETED"
         ),
         "training_source_is_blob": (
-            training_refresh_report.get(
-                "feature_repository_backend"
-            )
-            == "azure_blob"
-            or training_refresh_report.get(
-                "source"
-            )
-            == "Azure Blob Feature Repository"
+            training_refresh_report.get("feature_repository_backend") == "azure_blob"
+            or training_refresh_report.get("source") == "Azure Blob Feature Repository"
         ),
         "training_rows_exist": (
             int(
@@ -331,30 +242,15 @@ def run_validation() -> dict[str, Any]:
             > 0
         ),
         "forced_retraining_completed": (
-            retraining_report.get(
-                "status"
-            )
-            == "RETRAINING_COMPLETED"
+            retraining_report.get("status") == "RETRAINING_COMPLETED"
         ),
-        "candidate_created": bool(
-            retraining_report.get(
-                "candidate_created"
-            )
-        ),
-        "candidate_directory_exists": (
-            candidate_directory.exists()
-        ),
+        "candidate_created": bool(retraining_report.get("candidate_created")),
+        "candidate_directory_exists": (candidate_directory.exists()),
         "candidate_model_exists": (
-            (
-                candidate_directory
-                / "best_model.joblib"
-            ).exists()
+            (candidate_directory / "best_model.joblib").exists()
         ),
         "candidate_checksum_exists": (
-            (
-                candidate_directory
-                / "checksum.sha256"
-            ).exists()
+            (candidate_directory / "checksum.sha256").exists()
         ),
         "comparison_completed": (
             comparison_status
@@ -375,83 +271,42 @@ def run_validation() -> dict[str, Any]:
             )
         ),
         "production_not_changed": (
-            comparison_report.get(
-                "production_changed"
-            )
-            is False
+            comparison_report.get("production_changed") is False
         ),
-        "candidate_evidence_published": (
-            bool(
-                publication_report.get(
-                    "run_id"
-                )
-            )
-        ),
+        "candidate_evidence_published": (bool(publication_report.get("run_id"))),
     }
 
     valid = (
-        all(
-            configuration_checks.values()
-        )
-        and all(
-            hopsworks_checks.values()
-        )
-        and all(
-            runtime_checks.values()
-        )
+        all(configuration_checks.values())
+        and all(hopsworks_checks.values())
+        and all(runtime_checks.values())
     )
 
     if not valid:
         raise BlobRetrainingValidationError(
-            "Blob-backed retraining "
-            f"validation failed: {runtime_checks}"
+            f"Blob-backed retraining validation failed: {runtime_checks}"
         )
 
-    completed_at = datetime.now(
-        timezone.utc
-    )
+    completed_at = datetime.now(UTC)
 
     return {
         "phase": "10P",
         "subphase": "10P-H",
-        "status": (
-            "BLOB_BACKED_RETRAINING_VALIDATED"
-        ),
-        "started_at_utc": (
-            started_at.isoformat()
-        ),
-        "completed_at_utc": (
-            completed_at.isoformat()
-        ),
+        "status": ("BLOB_BACKED_RETRAINING_VALIDATED"),
+        "started_at_utc": (started_at.isoformat()),
+        "completed_at_utc": (completed_at.isoformat()),
         "duration_seconds": round(
-            time.monotonic()
-            - started_monotonic,
+            time.monotonic() - started_monotonic,
             3,
         ),
-        "configuration_checks": (
-            configuration_checks
-        ),
-        "hopsworks_checks": (
-            hopsworks_checks
-        ),
-        "runtime_checks": (
-            runtime_checks
-        ),
-        "training_refresh": (
-            training_refresh_report
-        ),
-        "retraining": (
-            retraining_report
-        ),
-        "champion_challenger": (
-            comparison_report
-        ),
-        "publication": (
-            publication_report
-        ),
-        "challenger_decision": (
-            comparison_status
-        ),
+        "configuration_checks": (configuration_checks),
+        "hopsworks_checks": (hopsworks_checks),
+        "runtime_checks": (runtime_checks),
+        "training_refresh": (training_refresh_report),
+        "retraining": (retraining_report),
+        "champion_challenger": (comparison_report),
+        "publication": (publication_report),
+        "challenger_decision": (comparison_status),
         "candidate_registered": False,
         "automatic_promotion_attempted": False,
         "production_model_changed": False,
@@ -471,11 +326,7 @@ def save_report(
         exist_ok=True,
     )
 
-    temporary_path = (
-        REPORT_PATH.with_suffix(
-            ".json.tmp"
-        )
-    )
+    temporary_path = REPORT_PATH.with_suffix(".json.tmp")
 
     temporary_path.write_text(
         json.dumps(
@@ -486,9 +337,7 @@ def save_report(
         encoding="utf-8",
     )
 
-    temporary_path.replace(
-        REPORT_PATH
-    )
+    temporary_path.replace(REPORT_PATH)
 
     return REPORT_PATH
 
@@ -504,20 +353,10 @@ def main() -> int:
         report = {
             "phase": "10P",
             "subphase": "10P-H",
-            "status": (
-                "BLOB_BACKED_RETRAINING_VALIDATION_FAILED"
-            ),
-            "failed_at_utc": (
-                datetime.now(
-                    timezone.utc
-                ).isoformat()
-            ),
-            "error_type": (
-                type(error).__name__
-            ),
-            "error_message": str(
-                error
-            ),
+            "status": ("BLOB_BACKED_RETRAINING_VALIDATION_FAILED"),
+            "failed_at_utc": (datetime.now(UTC).isoformat()),
+            "error_type": (type(error).__name__),
+            "error_message": str(error),
             "candidate_registered": False,
             "automatic_promotion_attempted": False,
             "production_model_changed": False,
@@ -527,9 +366,7 @@ def main() -> int:
 
         exit_code = 1
 
-    report_path = save_report(
-        report
-    )
+    report_path = save_report(report)
 
     print(
         json.dumps(
@@ -548,6 +385,4 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    raise SystemExit(
-        main()
-    )
+    raise SystemExit(main())

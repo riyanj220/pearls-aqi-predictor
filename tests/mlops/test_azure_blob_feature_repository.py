@@ -22,9 +22,7 @@ def build_contract() -> FeatureGroupContract:
         name="test_hourly_features",
         version=1,
         description="Test dataset.",
-        primary_key=(
-            "location_key",
-        ),
+        primary_key=("location_key",),
         event_time="datetime_utc",
         online_enabled=False,
         features=(
@@ -56,34 +54,20 @@ def build_repository(
     contract = build_contract()
 
     settings = MLOpsSettings(
-        feature_store_backend=(
-            "azure_blob"
-        ),
-        azure_storage_account=(
-            "testaccount"
-        ),
-        azure_storage_container=(
-            "testcontainer"
-        ),
-        azure_feature_store_prefix=(
-            "feature-store"
-        ),
+        feature_store_backend=("azure_blob"),
+        azure_storage_account=("testaccount"),
+        azure_storage_container=("testcontainer"),
+        azure_feature_store_prefix=("feature-store"),
     )
 
-    transport = (
-        LocalArtifactRepository(
-            root_directory=tmp_path
-        )
-    )
+    transport = LocalArtifactRepository(root_directory=tmp_path)
 
-    repository = (
-        AzureBlobFeatureRepository(
-            settings=settings,
-            contracts={
-                "test": contract,
-            },
-            repository=transport,
-        )
+    repository = AzureBlobFeatureRepository(
+        settings=settings,
+        contracts={
+            "test": contract,
+        },
+        repository=transport,
     )
 
     return repository, contract
@@ -92,31 +76,19 @@ def build_repository(
 def test_empty_repository_returns_empty_frame(
     tmp_path: Path,
 ) -> None:
-    repository, contract = (
-        build_repository(
-            tmp_path
-        )
-    )
+    repository, contract = build_repository(tmp_path)
 
-    dataframe = repository.read_dataset(
-        contract=contract
-    )
+    dataframe = repository.read_dataset(contract=contract)
 
     assert dataframe.empty
 
-    assert list(
-        dataframe.columns
-    ) == contract.feature_names
+    assert list(dataframe.columns) == contract.feature_names
 
 
 def test_upsert_inserts_and_updates_rows(
     tmp_path: Path,
 ) -> None:
-    repository, contract = (
-        build_repository(
-            tmp_path
-        )
-    )
+    repository, contract = build_repository(tmp_path)
 
     initial = pd.DataFrame(
         {
@@ -172,25 +144,14 @@ def test_upsert_inserts_and_updates_rows(
         dataframe=update,
     )
 
-    result = repository.read_dataset(
-        contract=contract
-    )
+    result = repository.read_dataset(contract=contract)
 
     assert len(result) == 3
 
-    updated_value = (
-        result.loc[
-            result[
-                "datetime_utc"
-            ].eq(
-                pd.Timestamp(
-                    "2026-08-09T01:00:00Z"
-                )
-            ),
-            "value",
-        ]
-        .iloc[0]
-    )
+    updated_value = result.loc[
+        result["datetime_utc"].eq(pd.Timestamp("2026-08-09T01:00:00Z")),
+        "value",
+    ].iloc[0]
 
     assert updated_value == 99.0
 
@@ -198,11 +159,7 @@ def test_upsert_inserts_and_updates_rows(
 def test_latest_event_time_uses_metadata(
     tmp_path: Path,
 ) -> None:
-    repository, contract = (
-        build_repository(
-            tmp_path
-        )
-    )
+    repository, contract = build_repository(tmp_path)
 
     dataframe = pd.DataFrame(
         {
@@ -228,25 +185,15 @@ def test_latest_event_time_uses_metadata(
         dataframe=dataframe,
     )
 
-    latest = (
-        repository.latest_event_time(
-            contract=contract
-        )
-    )
+    latest = repository.latest_event_time(contract=contract)
 
-    assert latest == pd.Timestamp(
-        "2026-08-09T03:00:00Z"
-    )
+    assert latest == pd.Timestamp("2026-08-09T03:00:00Z")
 
 
 def test_read_range_filters_event_time(
     tmp_path: Path,
 ) -> None:
-    repository, contract = (
-        build_repository(
-            tmp_path
-        )
-    )
+    repository, contract = build_repository(tmp_path)
 
     dataframe = pd.DataFrame(
         {
@@ -280,14 +227,8 @@ def test_read_range_filters_event_time(
 
     result = repository.read_range(
         contract=contract,
-        start_time_utc=pd.Timestamp(
-            "2026-08-09T01:00:00Z"
-        ),
-        end_time_exclusive_utc=(
-            pd.Timestamp(
-                "2026-08-09T03:00:00Z"
-            )
-        ),
+        start_time_utc=pd.Timestamp("2026-08-09T01:00:00Z"),
+        end_time_exclusive_utc=(pd.Timestamp("2026-08-09T03:00:00Z")),
     )
 
     assert len(result) == 2
@@ -297,22 +238,15 @@ from app.pipelines.incremental_features import (
     synchronize_group,
 )
 
+
 def test_incremental_sync_with_blob_repository(
     tmp_path: Path,
 ) -> None:
-    repository, contract = (
-        build_repository(
-            tmp_path
-        )
-    )
+    repository, contract = build_repository(tmp_path)
 
     settings = MLOpsSettings(
-        feature_store_backend=(
-            "azure_blob"
-        ),
-        azure_storage_account=(
-            "testaccount"
-        ),
+        feature_store_backend=("azure_blob"),
+        azure_storage_account=("testaccount"),
         mlops_dry_run=False,
         incremental_overlap_hours=24,
         incremental_initial_lookback_hours=24,
@@ -347,10 +281,7 @@ def test_incremental_sync_with_blob_repository(
         settings=settings,
     )
 
-    assert (
-        first["rows_to_insert"]
-        == 2
-    )
+    assert first["rows_to_insert"] == 2
 
     assert first["rows_written"] == 2
 
@@ -361,19 +292,10 @@ def test_incremental_sync_with_blob_repository(
         settings=settings,
     )
 
-    assert (
-        second["rows_to_insert"]
-        == 0
-    )
+    assert second["rows_to_insert"] == 0
 
-    assert (
-        second["rows_to_update"]
-        == 0
-    )
+    assert second["rows_to_update"] == 0
 
-    assert (
-        second["rows_unchanged"]
-        == 2
-    )
+    assert second["rows_unchanged"] == 2
 
     assert second["rows_written"] == 0

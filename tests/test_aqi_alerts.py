@@ -12,9 +12,7 @@ def build_alert_input(
 ) -> pd.DataFrame:
     return pd.DataFrame(
         {
-            "target_time": [
-                pd.Timestamp("2026-01-01 01:00:00+00:00")
-            ],
+            "target_time": [pd.Timestamp("2026-01-01 01:00:00+00:00")],
             "forecast_horizon_hours": [1],
             "indicative_hourly_pm25_aqi": [rolling_aqi],
             "indicative_hourly_aqi_category": [category],
@@ -101,9 +99,7 @@ def test_consecutive_active_hours_form_episodes() -> None:
                 "Very Unhealthy",
                 "Hazardous",
             ],
-            "alert_basis": [
-                "rolling_24h_pm25_aqi"
-            ] * 6,
+            "alert_basis": ["rolling_24h_pm25_aqi"] * 6,
         }
     )
 

@@ -19,9 +19,7 @@ class ModelRepositoryError(RuntimeError):
     """Raised when model repository operations fail."""
 
 
-class ModelRepositoryConfigurationError(
-    ModelRepositoryError
-):
+class ModelRepositoryConfigurationError(ModelRepositoryError):
     """Raised when the configured model backend is unsupported."""
 
 
@@ -57,29 +55,19 @@ def create_model_repository(
 ) -> ModelRepository:
     """Create the configured model repository."""
 
-    if (
-        settings.model_registry_backend
-        == ModelRegistryBackend.HOPSWORKS
-    ):
+    if settings.model_registry_backend == ModelRegistryBackend.HOPSWORKS:
         from app.mlops.hopsworks_model_repository import (
             HopsworksModelRepository,
         )
 
-        return HopsworksModelRepository(
-            settings=settings
-        )
+        return HopsworksModelRepository(settings=settings)
 
-    if (
-        settings.model_registry_backend
-        == ModelRegistryBackend.AZURE_BLOB
-    ):
+    if settings.model_registry_backend == ModelRegistryBackend.AZURE_BLOB:
         from app.mlops.azure_blob_model_repository import (
             AzureBlobModelRepository,
         )
 
-        return AzureBlobModelRepository(
-            settings=settings
-        )
+        return AzureBlobModelRepository(settings=settings)
 
     raise ModelRepositoryConfigurationError(
         "No runtime ModelRepository implementation exists "

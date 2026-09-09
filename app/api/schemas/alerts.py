@@ -7,8 +7,8 @@ from datetime import datetime
 from pydantic import Field
 
 from app.api.schemas.common import (
-    AQICategory,
     AlertLevel,
+    AQICategory,
     FreshnessResponse,
     PublicSchema,
 )
@@ -68,9 +68,7 @@ class AlertEpisodeCollectionResponse(PublicSchema):
     episodes: list[AlertEpisodeResponse]
 
 
-class ActiveAlertEpisodeResponse(
-    AlertEpisodeResponse
-):
+class ActiveAlertEpisodeResponse(AlertEpisodeResponse):
     """Alert episode classified relative to current UTC."""
 
     currently_active: bool

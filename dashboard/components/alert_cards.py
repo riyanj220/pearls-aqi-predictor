@@ -16,54 +16,38 @@ from dashboard.utils.formatting import (
     format_timestamp,
 )
 
-
 AQI_GUIDE = [
     {
         "range": "0–50",
         "category": "Good",
-        "description": (
-            "Air quality is generally satisfactory."
-        ),
+        "description": ("Air quality is generally satisfactory."),
     },
     {
         "range": "51–100",
         "category": "Moderate",
-        "description": (
-            "Air quality is generally acceptable."
-        ),
+        "description": ("Air quality is generally acceptable."),
     },
     {
         "range": "101–150",
-        "category": (
-            "Unhealthy for Sensitive Groups"
-        ),
-        "description": (
-            "Sensitive groups may require "
-            "additional awareness."
-        ),
+        "category": ("Unhealthy for Sensitive Groups"),
+        "description": ("Sensitive groups may require additional awareness."),
     },
     {
         "range": "151–200",
         "category": "Unhealthy",
-        "description": (
-            "Elevated air-quality risk may "
-            "affect more people."
-        ),
+        "description": ("Elevated air-quality risk may affect more people."),
     },
     {
         "range": "201–300",
         "category": "Very Unhealthy",
         "description": (
-            "Air-quality conditions represent "
-            "a substantially elevated risk."
+            "Air-quality conditions represent a substantially elevated risk."
         ),
     },
     {
         "range": "301–500",
         "category": "Hazardous",
-        "description": (
-            "The highest AQI risk category."
-        ),
+        "description": ("The highest AQI risk category."),
     },
 ]
 
@@ -86,30 +70,20 @@ def _find_primary_episode(
 ) -> dict[str, Any] | None:
     """Return the most relevant active/upcoming alert episode."""
 
-    active_episode_records = (
-        active_alerts.get(
-            "episodes",
-            [],
-        )
+    active_episode_records = active_alerts.get(
+        "episodes",
+        [],
     )
 
     currently_active = [
-        episode
-        for episode in active_episode_records
-        if episode.get(
-            "currently_active"
-        )
+        episode for episode in active_episode_records if episode.get("currently_active")
     ]
 
     if currently_active:
         return currently_active[0]
 
     upcoming = [
-        episode
-        for episode in active_episode_records
-        if episode.get(
-            "upcoming"
-        )
+        episode for episode in active_episode_records if episode.get("upcoming")
     ]
 
     if upcoming:
@@ -147,11 +121,9 @@ def render_alert_hero(
         )
     )
 
-    primary_episode = (
-        _find_primary_episode(
-            all_alerts=all_alerts,
-            active_alerts=active_alerts,
-        )
+    primary_episode = _find_primary_episode(
+        all_alerts=all_alerts,
+        active_alerts=active_alerts,
     )
 
     if current_count > 0:
@@ -161,37 +133,22 @@ def render_alert_hero(
         eyebrow = "Current risk status"
 
         category = str(
-            (
-                primary_episode
-                or {}
-            ).get(
+            (primary_episode or {}).get(
                 "maximum_category",
                 "Alert condition",
             )
         )
 
-        peak_aqi = format_aqi(
-            (
-                primary_episode
-                or {}
-            ).get(
-                "maximum_aqi"
-            )
-        )
+        peak_aqi = format_aqi((primary_episode or {}).get("maximum_aqi"))
 
         description = str(
-            (
-                primary_episode
-                or {}
-            ).get(
+            (primary_episode or {}).get(
                 "summary_message",
                 "An air-quality alert is currently active.",
             )
         )
 
-        accent = _category_color(
-            category
-        )
+        accent = _category_color(category)
 
         main_value = peak_aqi
         main_label = "Peak episode AQI"
@@ -203,38 +160,22 @@ def render_alert_hero(
         eyebrow = "Forecast risk status"
 
         category = str(
-            (
-                primary_episode
-                or {}
-            ).get(
+            (primary_episode or {}).get(
                 "maximum_category",
                 "Upcoming alert",
             )
         )
 
-        peak_aqi = format_aqi(
-            (
-                primary_episode
-                or {}
-            ).get(
-                "maximum_aqi"
-            )
-        )
+        peak_aqi = format_aqi((primary_episode or {}).get("maximum_aqi"))
 
         description = str(
-            (
-                primary_episode
-                or {}
-            ).get(
+            (primary_episode or {}).get(
                 "summary_message",
-                "An alert condition is expected later "
-                "in the current forecast horizon.",
+                "An alert condition is expected later in the current forecast horizon.",
             )
         )
 
-        accent = _category_color(
-            category
-        )
+        accent = _category_color(category)
 
         main_value = peak_aqi
         main_label = "Expected peak AQI"
@@ -356,11 +297,7 @@ def render_alert_summary(
             current_count,
         )
 
-        st.caption(
-            "Active now"
-            if current_count
-            else "None active"
-        )
+        st.caption("Active now" if current_count else "None active")
 
     with columns[1]:
         st.metric(
@@ -368,11 +305,7 @@ def render_alert_summary(
             upcoming_count,
         )
 
-        st.caption(
-            "Expected later"
-            if upcoming_count
-            else "None expected"
-        )
+        st.caption("Expected later" if upcoming_count else "None expected")
 
     with columns[2]:
         st.metric(
@@ -380,9 +313,7 @@ def render_alert_summary(
             episode_count,
         )
 
-        st.caption(
-            "Grouped forecast events"
-        )
+        st.caption("Grouped forecast events")
 
     with columns[3]:
         st.metric(
@@ -390,9 +321,7 @@ def render_alert_summary(
             hazardous_count,
         )
 
-        st.caption(
-            "Highest-risk events"
-        )
+        st.caption("Highest-risk events")
 
 
 def render_no_alert_state() -> None:
@@ -443,17 +372,11 @@ def render_alert_episode(
         )
     )
 
-    accent = _category_color(
-        maximum_category
-    )
+    accent = _category_color(maximum_category)
 
-    title = (
-        f"{maximum_category}"
-    )
+    title = f"{maximum_category}"
 
-    with st.container(
-        border=True
-    ):
+    with st.container(border=True):
         st.html(
             f"""
             <div
@@ -480,30 +403,20 @@ def render_alert_episode(
         with metric_columns[0]:
             st.metric(
                 "Peak AQI",
-                format_aqi(
-                    episode.get(
-                        "maximum_aqi"
-                    )
-                ),
+                format_aqi(episode.get("maximum_aqi")),
             )
 
         with metric_columns[1]:
             st.metric(
                 "Duration",
-                format_duration_hours(
-                    episode.get(
-                        "duration_hours"
-                    )
-                ),
+                format_duration_hours(episode.get("duration_hours")),
             )
 
         with metric_columns[2]:
             st.metric(
                 "Starts",
                 format_timestamp(
-                    episode.get(
-                        "start_time_utc"
-                    ),
+                    episode.get("start_time_utc"),
                     timezone_name=timezone_name,
                     include_timezone=False,
                 ),
@@ -513,9 +426,7 @@ def render_alert_episode(
             st.metric(
                 "Ends",
                 format_timestamp(
-                    episode.get(
-                        "end_time_utc"
-                    ),
+                    episode.get("end_time_utc"),
                     timezone_name=timezone_name,
                     include_timezone=False,
                 ),
@@ -523,45 +434,25 @@ def render_alert_episode(
 
         st.markdown("")
 
-        summary_message = episode.get(
-            "summary_message"
-        )
+        summary_message = episode.get("summary_message")
 
         if summary_message:
-            st.write(
-                summary_message
-            )
+            st.write(summary_message)
 
         status_parts = []
 
-        if episode.get(
-            "sensitive_groups_affected"
-        ):
-            status_parts.append(
-                "Sensitive groups affected"
-            )
+        if episode.get("sensitive_groups_affected"):
+            status_parts.append("Sensitive groups affected")
 
-        if episode.get(
-            "general_population_affected"
-        ):
-            status_parts.append(
-                "General population affected"
-            )
+        if episode.get("general_population_affected"):
+            status_parts.append("General population affected")
 
-        if episode.get(
-            "hazardous"
-        ):
-            status_parts.append(
-                "Hazardous condition"
-            )
+        if episode.get("hazardous"):
+            status_parts.append("Hazardous condition")
 
         if status_parts:
             badges = "".join(
-                (
-                    '<span class="episode-status-badge">'
-                    f"{escape(part)}"
-                    "</span>"
-                )
+                (f'<span class="episode-status-badge">{escape(part)}</span>')
                 for part in status_parts
             )
 
@@ -573,20 +464,12 @@ def render_alert_episode(
                 """
             )
 
-        recommended_action = (
-            episode.get(
-                "recommended_action"
-            )
-        )
+        recommended_action = episode.get("recommended_action")
 
         if recommended_action:
-            st.markdown(
-                "#### Recommended action"
-            )
+            st.markdown("#### Recommended action")
 
-            st.info(
-                recommended_action
-            )
+            st.info(recommended_action)
 
 
 def render_aqi_guide() -> None:
@@ -615,18 +498,14 @@ def render_aqi_guide() -> None:
     ]
 
     for row in rows:
-        columns = st.columns(
-            len(row)
-        )
+        columns = st.columns(len(row))
 
         for column, item in zip(
             columns,
             row,
             strict=True,
         ):
-            color = _category_color(
-                item["category"]
-            )
+            color = _category_color(item["category"])
 
             with column:
                 st.html(
@@ -664,11 +543,9 @@ def render_aqi_types_explanation() -> None:
 
     st.markdown("### AQI values used by the system")
 
-    hourly_column, rolling_column = (
-        st.columns(
-            2,
-            gap="large",
-        )
+    hourly_column, rolling_column = st.columns(
+        2,
+        gap="large",
     )
 
     with hourly_column:
@@ -826,10 +703,7 @@ def render_alert_methodology() -> None:
             "than an official regulatory AQI product."
         )
 
-        st.write(
-            "- Rolling 24-hour AQI requires a complete "
-            "trailing PM2.5 window."
-        )
+        st.write("- Rolling 24-hour AQI requires a complete trailing PM2.5 window.")
 
         st.write(
             "- Alert generation uses the configured "

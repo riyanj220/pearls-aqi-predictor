@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -19,7 +19,6 @@ from app.mlops.model_registry import (
     resolve_production_model,
 )
 
-
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 
@@ -29,36 +28,23 @@ def run_initial_model_registration() -> dict[str, Any]:
     settings = get_mlops_settings()
 
     if settings.mlops_dry_run:
-        raise ValueError(
-            "Phase 9F requires MLOPS_DRY_RUN=false."
-        )
+        raise ValueError("Phase 9F requires MLOPS_DRY_RUN=false.")
 
-    resources = connect_to_hopsworks(
-        settings
+    resources = connect_to_hopsworks(settings)
+
+    package_directory, checksum = prepare_model_package(
+        project_root=PROJECT_ROOT,
+        settings=settings,
     )
 
-    package_directory, checksum = (
-        prepare_model_package(
-            project_root=PROJECT_ROOT,
-            settings=settings,
-        )
+    registered = register_initial_production_model(
+        resources=resources,
+        settings=settings,
+        package_directory=(package_directory),
+        checksum_sha256=checksum,
     )
 
-    registered = (
-        register_initial_production_model(
-            resources=resources,
-            settings=settings,
-            package_directory=(
-                package_directory
-            ),
-            checksum_sha256=checksum,
-        )
-    )
-
-    if (
-        registered.version
-        != settings.hopsworks_production_model_version
-    ):
+    if registered.version != settings.hopsworks_production_model_version:
         raise RuntimeError(
             "Registered model version does not "
             "match HOPSWORKS_PRODUCTION_MODEL_VERSION. "
@@ -75,24 +61,13 @@ def run_initial_model_registration() -> dict[str, Any]:
 
     return {
         "phase": "9F",
-        "generated_at_utc": datetime.now(
-            timezone.utc
-        ).isoformat(),
-        "status": (
-            "INITIAL_PRODUCTION_MODEL_REGISTERED"
-        ),
-        "registered_model": (
-            registered.to_dict()
-        ),
-        "resolved_model": (
-            resolved.to_dict()
-        ),
+        "generated_at_utc": datetime.now(UTC).isoformat(),
+        "status": ("INITIAL_PRODUCTION_MODEL_REGISTERED"),
+        "registered_model": (registered.to_dict()),
+        "resolved_model": (resolved.to_dict()),
         "explicit_version_resolution": True,
         "latest_version_resolution_used": False,
-        "checksum_validated": (
-            registered.checksum_sha256
-            == resolved.checksum_sha256
-        ),
+        "checksum_validated": (registered.checksum_sha256 == resolved.checksum_sha256),
         "model_load_validated": True,
         "local_fallback_preserved": True,
     }
@@ -101,12 +76,7 @@ def run_initial_model_registration() -> dict[str, Any]:
 def main() -> int:
     """Run Phase 9F and save its report."""
 
-    report_path = (
-        PROJECT_ROOT
-        / "reports"
-        / "phase_9"
-        / "model_registry_report.json"
-    )
+    report_path = PROJECT_ROOT / "reports" / "phase_9" / "model_registry_report.json"
 
     report_path.parent.mkdir(
         parents=True,
@@ -114,24 +84,16 @@ def main() -> int:
     )
 
     try:
-        report = (
-            run_initial_model_registration()
-        )
+        report = run_initial_model_registration()
 
         exit_code = 0
 
     except Exception as error:
         report = {
             "phase": "9F",
-            "generated_at_utc": datetime.now(
-                timezone.utc
-            ).isoformat(),
-            "status": (
-                "INITIAL_MODEL_REGISTRATION_FAILED"
-            ),
-            "error_type": (
-                type(error).__name__
-            ),
+            "generated_at_utc": datetime.now(UTC).isoformat(),
+            "status": ("INITIAL_MODEL_REGISTRATION_FAILED"),
+            "error_type": (type(error).__name__),
             "error_message": str(error),
         }
 

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-
 AQI_CATEGORIES: tuple[str, ...] = (
     "Good",
     "Moderate",

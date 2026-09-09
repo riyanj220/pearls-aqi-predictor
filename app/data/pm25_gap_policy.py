@@ -9,7 +9,6 @@ import pandas as pd
 
 from app.core.config import Settings, settings
 
-
 PM25_QUALITY_GOOD = "GOOD"
 PM25_QUALITY_DEGRADED = "DEGRADED"
 
@@ -75,37 +74,19 @@ class PM25GapRecoveryResult:
             if start <= timestamp <= end
         ]
 
-        degraded = bool(
-            used_imputed_timestamps
-        )
+        degraded = bool(used_imputed_timestamps)
 
         return {
-            "status": (
-                PM25_QUALITY_DEGRADED
-                if degraded
-                else PM25_QUALITY_GOOD
-            ),
+            "status": (PM25_QUALITY_DEGRADED if degraded else PM25_QUALITY_GOOD),
             "pm25_imputation_used": degraded,
-            "imputation_method": (
-                PM25_IMPUTATION_METHOD
-                if degraded
-                else None
-            ),
-            "imputed_hours": len(
-                used_imputed_timestamps
-            ),
+            "imputation_method": (PM25_IMPUTATION_METHOD if degraded else None),
+            "imputed_hours": len(used_imputed_timestamps),
             "imputed_timestamps": [
-                timestamp.isoformat()
-                for timestamp
-                in used_imputed_timestamps
+                timestamp.isoformat() for timestamp in used_imputed_timestamps
             ],
-            "unresolved_hours": len(
-                unresolved_in_window
-            ),
+            "unresolved_hours": len(unresolved_in_window),
             "unresolved_timestamps": [
-                timestamp.isoformat()
-                for timestamp
-                in unresolved_in_window
+                timestamp.isoformat() for timestamp in unresolved_in_window
             ],
         }
 
@@ -120,9 +101,7 @@ def _ensure_utc(
     timestamp = pd.Timestamp(value)
 
     if timestamp.tzinfo is None:
-        raise PM25GapRecoveryError(
-            f"{name} must be timezone-aware."
-        )
+        raise PM25GapRecoveryError(f"{name} must be timezone-aware.")
 
     return timestamp.tz_convert("UTC")
 
@@ -138,21 +117,15 @@ def _missing_groups(
 
     for timestamp, is_missing in missing_mask.items():
         if bool(is_missing):
-            current_group.append(
-                pd.Timestamp(timestamp)
-            )
+            current_group.append(pd.Timestamp(timestamp))
 
         elif current_group:
-            groups.append(
-                current_group
-            )
+            groups.append(current_group)
 
             current_group = []
 
     if current_group:
-        groups.append(
-            current_group
-        )
+        groups.append(current_group)
 
     return groups
 
@@ -181,22 +154,15 @@ def recover_short_pm25_gaps(
         "pm25_ug_m3",
     }
 
-    missing_columns = sorted(
-        required_columns.difference(
-            dataframe.columns
-        )
-    )
+    missing_columns = sorted(required_columns.difference(dataframe.columns))
 
     if missing_columns:
         raise PM25GapRecoveryError(
-            "PM2.5 gap recovery is missing required columns: "
-            f"{missing_columns}"
+            f"PM2.5 gap recovery is missing required columns: {missing_columns}"
         )
 
     if dataframe.empty:
-        raise PM25GapRecoveryError(
-            "PM2.5 gap recovery received an empty dataframe."
-        )
+        raise PM25GapRecoveryError("PM2.5 gap recovery received an empty dataframe.")
 
     source_df = dataframe.copy()
 
@@ -212,28 +178,16 @@ def recover_short_pm25_gaps(
     )
 
     if source_df["datetime_utc"].isna().any():
-        raise PM25GapRecoveryError(
-            "PM2.5 gap recovery received invalid timestamps."
-        )
+        raise PM25GapRecoveryError("PM2.5 gap recovery received invalid timestamps.")
 
     if source_df["datetime_utc"].duplicated().any():
-        raise PM25GapRecoveryError(
-            "PM2.5 gap recovery received duplicate timestamps."
-        )
+        raise PM25GapRecoveryError("PM2.5 gap recovery received duplicate timestamps.")
 
-    source_df = (
-        source_df
-        .sort_values("datetime_utc")
-        .reset_index(drop=True)
-    )
+    source_df = source_df.sort_values("datetime_utc").reset_index(drop=True)
 
-    start_time = source_df[
-        "datetime_utc"
-    ].min()
+    start_time = source_df["datetime_utc"].min()
 
-    end_time = source_df[
-        "datetime_utc"
-    ].max()
+    end_time = source_df["datetime_utc"].max()
 
     complete_timeline = pd.date_range(
         start=start_time,
@@ -242,95 +196,57 @@ def recover_short_pm25_gaps(
         tz="UTC",
     )
 
-    working_df = (
-        source_df
-        .set_index("datetime_utc")
-        .reindex(complete_timeline)
-    )
+    working_df = source_df.set_index("datetime_utc").reindex(complete_timeline)
 
-    working_df.index.name = (
-        "datetime_utc"
-    )
+    working_df.index.name = "datetime_utc"
 
     working_df["pm25_is_imputed"] = False
     working_df["pm25_imputation_method"] = None
 
-    missing_mask = (
-        working_df["pm25_ug_m3"].isna()
-    )
+    missing_mask = working_df["pm25_ug_m3"].isna()
 
-    missing_groups = _missing_groups(
-        missing_mask
-    )
+    missing_groups = _missing_groups(missing_mask)
 
-    imputed_timestamps: list[
-        pd.Timestamp
-    ] = []
+    imputed_timestamps: list[pd.Timestamp] = []
 
     maximum_imputed_gap_hours = 0
 
-    if (
-        app_settings
-        .pm25_short_gap_imputation_enabled
-    ):
+    if app_settings.pm25_short_gap_imputation_enabled:
         for group in missing_groups:
             gap_size = len(group)
 
-            if (
-                gap_size
-                > app_settings
-                .pm25_max_imputation_gap_hours
-            ):
+            if gap_size > app_settings.pm25_max_imputation_gap_hours:
                 continue
 
             first_missing = group[0]
             last_missing = group[-1]
 
-            previous_time = (
-                first_missing
-                - pd.Timedelta(hours=1)
-            )
+            previous_time = first_missing - pd.Timedelta(hours=1)
 
-            next_time = (
-                last_missing
-                + pd.Timedelta(hours=1)
-            )
+            next_time = last_missing + pd.Timedelta(hours=1)
 
             if (
-                previous_time
-                not in working_df.index
-                or next_time
-                not in working_df.index
+                previous_time not in working_df.index
+                or next_time not in working_df.index
             ):
                 continue
 
-            previous_value = (
-                working_df.at[
-                    previous_time,
-                    "pm25_ug_m3",
-                ]
-            )
+            previous_value = working_df.at[
+                previous_time,
+                "pm25_ug_m3",
+            ]
 
-            next_value = (
-                working_df.at[
-                    next_time,
-                    "pm25_ug_m3",
-                ]
-            )
+            next_value = working_df.at[
+                next_time,
+                "pm25_ug_m3",
+            ]
 
-            if (
-                pd.isna(previous_value)
-                or pd.isna(next_value)
-            ):
+            if pd.isna(previous_value) or pd.isna(next_value):
                 continue
 
-            previous_value = float(
-                previous_value
-            )
+            previous_value = float(previous_value)
 
-            next_value = float(
-                next_value
-            )
+            next_value = float(next_value)
 
             if (
                 not np.isfinite(previous_value)
@@ -340,13 +256,11 @@ def recover_short_pm25_gaps(
             ):
                 continue
 
-            interpolated_values = (
-                np.linspace(
-                    previous_value,
-                    next_value,
-                    gap_size + 2,
-                )[1:-1]
-            )
+            interpolated_values = np.linspace(
+                previous_value,
+                next_value,
+                gap_size + 2,
+            )[1:-1]
 
             for (
                 timestamp,
@@ -359,9 +273,7 @@ def recover_short_pm25_gaps(
                 working_df.at[
                     timestamp,
                     "pm25_ug_m3",
-                ] = float(
-                    interpolated_value
-                )
+                ] = float(interpolated_value)
 
                 working_df.at[
                     timestamp,
@@ -373,46 +285,27 @@ def recover_short_pm25_gaps(
                     "pm25_imputation_method",
                 ] = PM25_IMPUTATION_METHOD
 
-                imputed_timestamps.append(
-                    timestamp
-                )
+                imputed_timestamps.append(timestamp)
 
             maximum_imputed_gap_hours = max(
                 maximum_imputed_gap_hours,
                 gap_size,
             )
 
-    unresolved_mask = (
-        working_df["pm25_ug_m3"].isna()
-    )
+    unresolved_mask = working_df["pm25_ug_m3"].isna()
 
     unresolved_timestamps = [
-        pd.Timestamp(timestamp)
-        for timestamp
-        in working_df.index[
-            unresolved_mask
-        ]
+        pd.Timestamp(timestamp) for timestamp in working_df.index[unresolved_mask]
     ]
 
     result_df = (
-        working_df
-        .reset_index()
-        .sort_values("datetime_utc")
-        .reset_index(drop=True)
+        working_df.reset_index().sort_values("datetime_utc").reset_index(drop=True)
     )
 
     return PM25GapRecoveryResult(
         dataframe=result_df,
-        imputation_used=bool(
-            imputed_timestamps
-        ),
-        imputed_timestamps=tuple(
-            imputed_timestamps
-        ),
-        unresolved_timestamps=tuple(
-            unresolved_timestamps
-        ),
-        maximum_imputed_gap_hours=(
-            maximum_imputed_gap_hours
-        ),
+        imputation_used=bool(imputed_timestamps),
+        imputed_timestamps=tuple(imputed_timestamps),
+        unresolved_timestamps=tuple(unresolved_timestamps),
+        maximum_imputed_gap_hours=(maximum_imputed_gap_hours),
     )

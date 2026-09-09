@@ -16,104 +16,58 @@ from __future__ import annotations
 import argparse
 import json
 import subprocess
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
-
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 REPORT_PATH = (
-    PROJECT_ROOT
-    / "reports"
-    / "phase_10"
-    / "production_deployment_inventory.json"
+    PROJECT_ROOT / "reports" / "phase_10" / "production_deployment_inventory.json"
 )
 
-DEFAULT_STAGING_RESOURCE_GROUP = (
-    "rg-pearls-aqi-staging"
-)
+DEFAULT_STAGING_RESOURCE_GROUP = "rg-pearls-aqi-staging"
 
-DEFAULT_STAGING_ENVIRONMENT = (
-    "cae-pearls-aqi-staging"
-)
+DEFAULT_STAGING_ENVIRONMENT = "cae-pearls-aqi-staging"
 
-DEFAULT_STAGING_IDENTITY = (
-    "id-pearls-aqi-staging"
-)
+DEFAULT_STAGING_IDENTITY = "id-pearls-aqi-staging"
 
-DEFAULT_STAGING_API = (
-    "ca-pearls-aqi-api-staging"
-)
+DEFAULT_STAGING_API = "ca-pearls-aqi-api-staging"
 
-DEFAULT_STAGING_DASHBOARD = (
-    "ca-pearls-aqi-dashboard-staging"
-)
+DEFAULT_STAGING_DASHBOARD = "ca-pearls-aqi-dashboard-staging"
 
 DEFAULT_ACR_NAME = "walpole"
 
-DEFAULT_STORAGE_ACCOUNT = (
-    "stpearlsaqiriyan"
-)
+DEFAULT_STORAGE_ACCOUNT = "stpearlsaqiriyan"
 
-DEFAULT_STAGING_CONTAINER = (
-    "artifacts"
-)
+DEFAULT_STAGING_CONTAINER = "artifacts"
 
 PRODUCTION_PLAN = {
-    "resource_group": (
-        "rg-pearls-aqi-prod"
-    ),
+    "resource_group": ("rg-pearls-aqi-prod"),
     "location": "centralindia",
-    "container_apps_environment": (
-        "cae-pearls-aqi-staging"
-    ),
-    "managed_identity": (
-        "id-pearls-aqi-prod"
-    ),
-    "api_app": (
-        "ca-pearls-aqi-api-prod"
-    ),
-    "dashboard_app": (
-        "ca-pearls-aqi-dashboard-prod"
-    ),
-    "feature_job": (
-        "job-pearls-aqi-features-prod"
-    ),
-    "forecast_job": (
-        "job-pearls-aqi-forecast-prod"
-    ),
-    "retraining_job": (
-        "job-pearls-aqi-retraining-prod"
-    ),
-    "monitoring_job": (
-        "job-pearls-aqi-monitoring-prod"
-    ),
-    "storage_account": (
-        DEFAULT_STORAGE_ACCOUNT
-    ),
-    "artifact_container": (
-        "artifacts-prod"
-    ),
+    "container_apps_environment": ("cae-pearls-aqi-staging"),
+    "managed_identity": ("id-pearls-aqi-prod"),
+    "api_app": ("ca-pearls-aqi-api-prod"),
+    "dashboard_app": ("ca-pearls-aqi-dashboard-prod"),
+    "feature_job": ("job-pearls-aqi-features-prod"),
+    "forecast_job": ("job-pearls-aqi-forecast-prod"),
+    "retraining_job": ("job-pearls-aqi-retraining-prod"),
+    "monitoring_job": ("job-pearls-aqi-monitoring-prod"),
+    "storage_account": (DEFAULT_STORAGE_ACCOUNT),
+    "artifact_container": ("artifacts-prod"),
     "acr_name": DEFAULT_ACR_NAME,
-    "acr_server": (
-        "walpole.azurecr.io"
-    ),
+    "acr_server": ("walpole.azurecr.io"),
 }
 
 
-class ProductionDeploymentInventoryError(
-    RuntimeError
-):
+class ProductionDeploymentInventoryError(RuntimeError):
     """Raised when deployment inventory inspection fails."""
 
 
 def utc_now() -> datetime:
     """Return current timezone-aware UTC time."""
 
-    return datetime.now(
-        timezone.utc
-    )
+    return datetime.now(UTC)
 
 
 def run_command(
@@ -153,9 +107,7 @@ def run_json_command(
     )
 
     try:
-        return json.loads(
-            output
-        )
+        return json.loads(output)
     except json.JSONDecodeError as error:
         raise ProductionDeploymentInventoryError(
             "Command did not return valid JSON."
@@ -168,9 +120,7 @@ def safe_json_command(
     """Run one inspection command without aborting inventory."""
 
     try:
-        return run_json_command(
-            arguments
-        )
+        return run_json_command(arguments)
     except Exception:
         return None
 
@@ -213,18 +163,10 @@ def git_inventory() -> dict[str, Any]:
 
     return {
         "commit": commit,
-        "short_commit": (
-            short_commit
-        ),
+        "short_commit": (short_commit),
         "branch": branch,
-        "working_tree_clean": (
-            status == ""
-        ),
-        "working_tree_changes": (
-            []
-            if not status
-            else status.splitlines()
-        ),
+        "working_tree_clean": (status == ""),
+        "working_tree_changes": ([] if not status else status.splitlines()),
     }
 
 
@@ -233,12 +175,8 @@ def repository_contracts() -> dict[str, Any]:
 
     return {
         "api": {
-            "dockerfile": (
-                "Dockerfile.api"
-            ),
-            "image_repository": (
-                "pearls-aqi/api"
-            ),
+            "dockerfile": ("Dockerfile.api"),
+            "image_repository": ("pearls-aqi/api"),
             "runtime": "FastAPI/Uvicorn",
             "entrypoint": [
                 "uvicorn",
@@ -253,30 +191,18 @@ def repository_contracts() -> dict[str, Any]:
             ],
             "port": 8000,
             "non_root": True,
-            "container_user": (
-                "pearls"
-            ),
-            "healthcheck": (
-                "/api/v1/health/live"
-            ),
-            "liveness_endpoint": (
-                "/api/v1/health/live"
-            ),
-            "readiness_endpoint": (
-                "/api/v1/health/ready"
-            ),
+            "container_user": ("pearls"),
+            "healthcheck": ("/api/v1/health/live"),
+            "liveness_endpoint": ("/api/v1/health/live"),
+            "readiness_endpoint": ("/api/v1/health/ready"),
             "docs_endpoint": "/docs",
-            "openapi_endpoint": (
-                "/openapi.json"
-            ),
+            "openapi_endpoint": ("/openapi.json"),
             "artifact_backend": {
                 "supported": [
                     "local",
                     "azure_blob",
                 ],
-                "production": (
-                    "azure_blob"
-                ),
+                "production": ("azure_blob"),
                 "artifact_type": "aqi",
             },
             "required_environment": [
@@ -296,8 +222,7 @@ def repository_contracts() -> dict[str, Any]:
             ],
             "required_secrets": [],
             "azure_authentication": (
-                "user-assigned managed identity "
-                "through DefaultAzureCredential"
+                "user-assigned managed identity through DefaultAzureCredential"
             ),
             "production_dependencies": [
                 "Azure Blob Storage",
@@ -305,84 +230,46 @@ def repository_contracts() -> dict[str, Any]:
             ],
             "serving_contract": {
                 "forecast_rows": 72,
-                "forecast_horizons": (
-                    "1 through 72"
-                ),
-                "target_frequency": (
-                    "1 hour"
-                ),
+                "forecast_horizons": ("1 through 72"),
+                "target_frequency": ("1 hour"),
                 "required_validation_statuses": [
                     "AQI_ALERT_PIPELINE_APPROVED",
-                    (
-                        "AQI_ALERT_PIPELINE_"
-                        "APPROVED_WITH_LIMITATIONS"
-                    ),
+                    ("AQI_ALERT_PIPELINE_APPROVED_WITH_LIMITATIONS"),
                 ],
             },
-            "local_fallback_artifacts_in_image": (
-                True
-            ),
+            "local_fallback_artifacts_in_image": (True),
         },
         "dashboard": {
-            "dockerfile": (
-                "Dockerfile.dashboard"
-            ),
-            "image_repository": (
-                "pearls-aqi/dashboard"
-            ),
+            "dockerfile": ("Dockerfile.dashboard"),
+            "image_repository": ("pearls-aqi/dashboard"),
             "runtime": "Streamlit",
             "entrypoint": [
                 "streamlit",
                 "run",
                 "dashboard/app.py",
-                (
-                    "--server.address="
-                    "0.0.0.0"
-                ),
+                ("--server.address=0.0.0.0"),
                 "--server.port=8501",
                 "--server.headless=true",
-                (
-                    "--browser."
-                    "gatherUsageStats=false"
-                ),
+                ("--browser.gatherUsageStats=false"),
             ],
             "port": 8501,
             "non_root": True,
-            "container_user": (
-                "dashboard"
-            ),
-            "healthcheck": (
-                "/_stcore/health"
-            ),
+            "container_user": ("dashboard"),
+            "healthcheck": ("/_stcore/health"),
             "required_environment": [
                 "FASTAPI_BASE_URL",
                 "DASHBOARD_ENVIRONMENT",
             ],
             "optional_environment": [
-                (
-                    "DASHBOARD_REQUEST_"
-                    "TIMEOUT_SECONDS"
-                ),
-                (
-                    "DASHBOARD_CACHE_"
-                    "TTL_SECONDS"
-                ),
+                ("DASHBOARD_REQUEST_TIMEOUT_SECONDS"),
+                ("DASHBOARD_CACHE_TTL_SECONDS"),
                 "DASHBOARD_TITLE",
-                (
-                    "DASHBOARD_DEFAULT_"
-                    "TIMEZONE"
-                ),
+                ("DASHBOARD_DEFAULT_TIMEZONE"),
             ],
             "required_secrets": [],
-            "direct_blob_dependency": (
-                False
-            ),
-            "direct_hopsworks_dependency": (
-                False
-            ),
-            "direct_model_registry_dependency": (
-                False
-            ),
+            "direct_blob_dependency": (False),
+            "direct_hopsworks_dependency": (False),
+            "direct_model_registry_dependency": (False),
             "api_dependency": True,
             "api_protocol": "HTTPS",
             "api_routes_used": [
@@ -408,23 +295,14 @@ def repository_contracts() -> dict[str, Any]:
             },
         },
         "pipeline": {
-            "dockerfile": (
-                "Dockerfile.pipeline"
-            ),
-            "image_repository": (
-                "pearls-aqi/pipeline"
-            ),
+            "dockerfile": ("Dockerfile.pipeline"),
+            "image_repository": ("pearls-aqi/pipeline"),
             "non_root": True,
-            "container_user": (
-                "pipeline"
-            ),
+            "container_user": ("pipeline"),
             "default_entrypoint": [
                 "python",
                 "-m",
-                (
-                    "app.pipelines."
-                    "publish_forecast"
-                ),
+                ("app.pipelines.publish_forecast"),
             ],
             "workloads": [
                 "hourly feature synchronization",
@@ -448,9 +326,7 @@ def planned_production_configuration() -> dict[str, Any]:
             "max_replicas": 1,
             "cpu": 0.25,
             "memory": "0.5Gi",
-            "artifact_backend": (
-                "azure_blob"
-            ),
+            "artifact_backend": ("azure_blob"),
             "artifact_type": "aqi",
         },
         "dashboard": {
@@ -460,10 +336,7 @@ def planned_production_configuration() -> dict[str, Any]:
             "max_replicas": 1,
             "cpu": 0.25,
             "memory": "0.5Gi",
-            "api_connection": (
-                "production FastAPI HTTPS "
-                "FQDN + /api/v1"
-            ),
+            "api_connection": ("production FastAPI HTTPS FQDN + /api/v1"),
         },
         "isolation": {
             "separate_resource_group": True,
@@ -475,11 +348,8 @@ def planned_production_configuration() -> dict[str, Any]:
             "shared_acr": True,
             "shared_hopsworks_project": True,
         },
-
         "container_apps_environment_constraint": {
-            "shared_environment_name": (
-                "cae-pearls-aqi-staging"
-            ),
+            "shared_environment_name": ("cae-pearls-aqi-staging"),
             "reason": (
                 "Azure subscription currently permits "
                 "only one Container Apps environment."
@@ -494,15 +364,10 @@ def planned_production_configuration() -> dict[str, Any]:
             ],
         },
         "artifact_boundary": {
-            "staging_container": (
-                DEFAULT_STAGING_CONTAINER
-            ),
-            "production_container": (
-                "artifacts-prod"
-            ),
+            "staging_container": (DEFAULT_STAGING_CONTAINER),
+            "production_container": ("artifacts-prod"),
             "reason": (
-                "Prevent staging writers from "
-                "advancing production latest pointers."
+                "Prevent staging writers from advancing production latest pointers."
             ),
         },
     }
@@ -541,11 +406,9 @@ def inspect_container_app(
         {},
     )
 
-    configuration = (
-        properties.get(
-            "configuration",
-            {},
-        )
+    configuration = properties.get(
+        "configuration",
+        {},
     )
 
     template = properties.get(
@@ -558,117 +421,57 @@ def inspect_container_app(
         [],
     )
 
-    container = (
-        containers[0]
-        if containers
-        else {}
-    )
+    container = containers[0] if containers else {}
 
     ingress = configuration.get(
         "ingress",
         {},
     )
 
-    environment_variables = (
-        container.get(
-            "env",
-            [],
-        )
+    environment_variables = container.get(
+        "env",
+        [],
     )
 
     safe_environment = {}
 
     for item in environment_variables:
-        name = item.get(
-            "name"
-        )
+        name = item.get("name")
 
         if not name:
             continue
 
-        safe_environment[
-            str(name)
-        ] = {
-            "uses_secret": bool(
-                item.get(
-                    "secretRef"
-                )
-            ),
-            "secret_ref": (
-                item.get(
-                    "secretRef"
-                )
-            ),
-            "value": (
-                None
-                if item.get(
-                    "secretRef"
-                )
-                else item.get(
-                    "value"
-                )
-            ),
+        safe_environment[str(name)] = {
+            "uses_secret": bool(item.get("secretRef")),
+            "secret_ref": (item.get("secretRef")),
+            "value": (None if item.get("secretRef") else item.get("value")),
         }
 
     return {
         "exists": True,
         "name": app_name,
-        "provisioning_state": (
-            properties.get(
-                "provisioningState"
-            )
-        ),
-        "environment_id": (
-            properties.get(
-                "managedEnvironmentId"
-            )
-        ),
-        "image": container.get(
-            "image"
-        ),
-        "command": container.get(
-            "command"
-        ),
-        "args": container.get(
-            "args"
-        ),
+        "provisioning_state": (properties.get("provisioningState")),
+        "environment_id": (properties.get("managedEnvironmentId")),
+        "image": container.get("image"),
+        "command": container.get("command"),
+        "args": container.get("args"),
         "cpu": (
             container.get(
                 "resources",
                 {},
-            ).get(
-                "cpu"
-            )
+            ).get("cpu")
         ),
         "memory": (
             container.get(
                 "resources",
                 {},
-            ).get(
-                "memory"
-            )
+            ).get("memory")
         ),
-        "fqdn": ingress.get(
-            "fqdn"
-        ),
-        "target_port": (
-            ingress.get(
-                "targetPort"
-            )
-        ),
-        "external": (
-            ingress.get(
-                "external"
-            )
-        ),
-        "transport": (
-            ingress.get(
-                "transport"
-            )
-        ),
-        "environment": (
-            safe_environment
-        ),
+        "fqdn": ingress.get("fqdn"),
+        "target_port": (ingress.get("targetPort")),
+        "external": (ingress.get("external")),
+        "transport": (ingress.get("transport")),
+        "environment": (safe_environment),
     }
 
 
@@ -721,11 +524,7 @@ def inspect_job(
         [],
     )
 
-    container = (
-        containers[0]
-        if containers
-        else {}
-    )
+    container = containers[0] if containers else {}
 
     schedule = configuration.get(
         "scheduleTriggerConfig",
@@ -735,40 +534,14 @@ def inspect_job(
     return {
         "exists": True,
         "name": job_name,
-        "provisioning_state": (
-            properties.get(
-                "provisioningState"
-            )
-        ),
-        "image": container.get(
-            "image"
-        ),
-        "command": container.get(
-            "command"
-        ),
-        "args": container.get(
-            "args"
-        ),
-        "trigger_type": (
-            configuration.get(
-                "triggerType"
-            )
-        ),
-        "cron_expression": (
-            schedule.get(
-                "cronExpression"
-            )
-        ),
-        "replica_timeout": (
-            configuration.get(
-                "replicaTimeout"
-            )
-        ),
-        "replica_retry_limit": (
-            configuration.get(
-                "replicaRetryLimit"
-            )
-        ),
+        "provisioning_state": (properties.get("provisioningState")),
+        "image": container.get("image"),
+        "command": container.get("command"),
+        "args": container.get("args"),
+        "trigger_type": (configuration.get("triggerType")),
+        "cron_expression": (schedule.get("cronExpression")),
+        "replica_timeout": (configuration.get("replicaTimeout")),
+        "replica_retry_limit": (configuration.get("replicaRetryLimit")),
     }
 
 
@@ -784,105 +557,87 @@ def staging_inventory(
 ) -> dict[str, Any]:
     """Inspect current staging Azure resources."""
 
-    resource_group_payload = (
-        safe_json_command(
-            [
-                "az",
-                "group",
-                "show",
-                "--name",
-                resource_group,
-            ]
-        )
+    resource_group_payload = safe_json_command(
+        [
+            "az",
+            "group",
+            "show",
+            "--name",
+            resource_group,
+        ]
     )
 
-    environment_payload = (
-        safe_json_command(
-            [
-                "az",
-                "containerapp",
-                "env",
-                "show",
-                "--resource-group",
-                resource_group,
-                "--name",
-                environment_name,
-            ]
-        )
+    environment_payload = safe_json_command(
+        [
+            "az",
+            "containerapp",
+            "env",
+            "show",
+            "--resource-group",
+            resource_group,
+            "--name",
+            environment_name,
+        ]
     )
 
-    identity_payload = (
-        safe_json_command(
-            [
-                "az",
-                "identity",
-                "show",
-                "--resource-group",
-                resource_group,
-                "--name",
-                identity_name,
-            ]
-        )
+    identity_payload = safe_json_command(
+        [
+            "az",
+            "identity",
+            "show",
+            "--resource-group",
+            resource_group,
+            "--name",
+            identity_name,
+        ]
     )
 
-    storage_payload = (
-        safe_json_command(
-            [
-                "az",
-                "storage",
-                "account",
-                "show",
-                "--resource-group",
-                resource_group,
-                "--name",
-                storage_account,
-            ]
-        )
+    storage_payload = safe_json_command(
+        [
+            "az",
+            "storage",
+            "account",
+            "show",
+            "--resource-group",
+            resource_group,
+            "--name",
+            storage_account,
+        ]
     )
 
-    acr_payload = (
-        safe_json_command(
-            [
-                "az",
-                "acr",
-                "show",
-                "--name",
-                acr_name,
-            ]
-        )
+    acr_payload = safe_json_command(
+        [
+            "az",
+            "acr",
+            "show",
+            "--name",
+            acr_name,
+        ]
     )
 
     jobs = {
         "hourly_features": (
             inspect_job(
                 resource_group=resource_group,
-                job_name=(
-                    "job-pearls-aqi-features"
-                ),
+                job_name=("job-pearls-aqi-features"),
             )
         ),
         "forecast": (
             inspect_job(
                 resource_group=resource_group,
-                job_name=(
-                    "job-pearls-aqi-forecast"
-                ),
+                job_name=("job-pearls-aqi-forecast"),
             )
         ),
         "daily_retraining": (
             inspect_job(
                 resource_group=resource_group,
-                job_name=(
-                    "job-pearls-aqi-retraining"
-                ),
+                job_name=("job-pearls-aqi-retraining"),
             )
         ),
         "monitoring": (
             inspect_job(
                 resource_group=resource_group,
-                job_name=(
-                    "job-pearls-aqi-monitoring"
-                ),
+                job_name=("job-pearls-aqi-monitoring"),
             )
         ),
     }
@@ -895,9 +650,7 @@ def staging_inventory(
             ),
             "name": resource_group,
             "location": (
-                resource_group_payload.get(
-                    "location"
-                )
+                resource_group_payload.get("location")
                 if isinstance(
                     resource_group_payload,
                     dict,
@@ -915,9 +668,7 @@ def staging_inventory(
                 environment_payload.get(
                     "properties",
                     {},
-                ).get(
-                    "provisioningState"
-                )
+                ).get("provisioningState")
                 if isinstance(
                     environment_payload,
                     dict,
@@ -932,9 +683,7 @@ def staging_inventory(
             ),
             "name": identity_name,
             "client_id_present": bool(
-                identity_payload.get(
-                    "clientId"
-                )
+                identity_payload.get("clientId")
                 if isinstance(
                     identity_payload,
                     dict,
@@ -942,9 +691,7 @@ def staging_inventory(
                 else None
             ),
             "principal_id_present": bool(
-                identity_payload.get(
-                    "principalId"
-                )
+                identity_payload.get("principalId")
                 if isinstance(
                     identity_payload,
                     dict,
@@ -957,16 +704,10 @@ def staging_inventory(
                 storage_payload,
                 dict,
             ),
-            "account_name": (
-                storage_account
-            ),
-            "container": (
-                DEFAULT_STAGING_CONTAINER
-            ),
+            "account_name": (storage_account),
+            "container": (DEFAULT_STAGING_CONTAINER),
             "public_blob_access": (
-                storage_payload.get(
-                    "allowBlobPublicAccess"
-                )
+                storage_payload.get("allowBlobPublicAccess")
                 if isinstance(
                     storage_payload,
                     dict,
@@ -981,9 +722,7 @@ def staging_inventory(
             ),
             "name": acr_name,
             "login_server": (
-                acr_payload.get(
-                    "loginServer"
-                )
+                acr_payload.get("loginServer")
                 if isinstance(
                     acr_payload,
                     dict,
@@ -1012,51 +751,30 @@ def build_findings(
 ) -> list[dict[str, Any]]:
     """Build important production-readiness observations."""
 
-    findings: list[
-        dict[str, Any]
-    ] = []
+    findings: list[dict[str, Any]] = []
 
-    api_environment = (
-        staging.get(
-            "api",
-            {},
-        ).get(
-            "environment",
-            {},
-        )
+    api_environment = staging.get(
+        "api",
+        {},
+    ).get(
+        "environment",
+        {},
     )
 
-    staging_aging = (
-        api_environment.get(
-            (
-                "PEARLS_API_FORECAST_"
-                "AGING_THRESHOLD_HOURS"
-            ),
-            {},
-        ).get(
-            "value"
-        )
-    )
+    staging_aging = api_environment.get(
+        ("PEARLS_API_FORECAST_AGING_THRESHOLD_HOURS"),
+        {},
+    ).get("value")
 
-    staging_stale = (
-        api_environment.get(
-            (
-                "PEARLS_API_FORECAST_"
-                "STALENESS_THRESHOLD_HOURS"
-            ),
-            {},
-        ).get(
-            "value"
-        )
-    )
+    staging_stale = api_environment.get(
+        ("PEARLS_API_FORECAST_STALENESS_THRESHOLD_HOURS"),
+        {},
+    ).get("value")
 
     findings.append(
         {
             "severity": "INFO",
-            "code": (
-                "PRODUCTION_ARTIFACT_"
-                "ISOLATION_REQUIRED"
-            ),
+            "code": ("PRODUCTION_ARTIFACT_ISOLATION_REQUIRED"),
             "message": (
                 "Production should use "
                 "'artifacts-prod' while staging "
@@ -1068,10 +786,7 @@ def build_findings(
     findings.append(
         {
             "severity": "INFO",
-            "code": (
-                "DASHBOARD_API_ONLY_"
-                "DEPENDENCY"
-            ),
+            "code": ("DASHBOARD_API_ONLY_DEPENDENCY"),
             "message": (
                 "The dashboard consumes FastAPI "
                 "only and requires no direct Blob, "
@@ -1082,19 +797,10 @@ def build_findings(
 
     findings.append(
         {
-            "severity": (
-                "WARNING"
-                if not git[
-                    "working_tree_clean"
-                ]
-                else "INFO"
-            ),
-            "code": (
-                "SOURCE_TREE_STATE"
-            ),
+            "severity": ("WARNING" if not git["working_tree_clean"] else "INFO"),
+            "code": ("SOURCE_TREE_STATE"),
             "message": (
-                "Production images must be built "
-                "from a clean committed revision."
+                "Production images must be built from a clean committed revision."
             ),
         }
     )
@@ -1102,9 +808,7 @@ def build_findings(
     findings.append(
         {
             "severity": "DECISION_REQUIRED",
-            "code": (
-                "API_FRESHNESS_THRESHOLDS"
-            ),
+            "code": ("API_FRESHNESS_THRESHOLDS"),
             "message": (
                 "API defaults/local configuration "
                 "use 6h aging / 12h stale, while "
@@ -1120,9 +824,7 @@ def build_findings(
     findings.append(
         {
             "severity": "INFO",
-            "code": (
-                "API_LOCAL_FALLBACK_PRESENT"
-            ),
+            "code": ("API_LOCAL_FALLBACK_PRESENT"),
             "message": (
                 "Dockerfile.api contains a local "
                 "AQI fallback bundle, but production "
@@ -1135,9 +837,7 @@ def build_findings(
     findings.append(
         {
             "severity": "INFO",
-            "code": (
-                "SHARED_CONTAINER_APPS_ENVIRONMENT"
-            ),
+            "code": ("SHARED_CONTAINER_APPS_ENVIRONMENT"),
             "message": (
                 "Production reuses the existing "
                 "Container Apps environment because "
@@ -1168,27 +868,17 @@ def build_inventory(
 
     staging = staging_inventory(
         resource_group=resource_group,
-        environment_name=(
-            environment_name
-        ),
+        environment_name=(environment_name),
         identity_name=identity_name,
         api_name=api_name,
-        dashboard_name=(
-            dashboard_name
-        ),
-        storage_account=(
-            storage_account
-        ),
+        dashboard_name=(dashboard_name),
+        storage_account=(storage_account),
         acr_name=acr_name,
     )
 
-    contracts = (
-        repository_contracts()
-    )
+    contracts = repository_contracts()
 
-    production = (
-        planned_production_configuration()
-    )
+    production = planned_production_configuration()
 
     findings = build_findings(
         staging=staging,
@@ -1197,83 +887,40 @@ def build_inventory(
 
     missing_staging_resources = []
 
-    if not staging[
-        "resource_group"
-    ][
-        "exists"
-    ]:
-        missing_staging_resources.append(
-            "resource_group"
-        )
+    if not staging["resource_group"]["exists"]:
+        missing_staging_resources.append("resource_group")
 
-    if not staging[
-        "container_apps_environment"
-    ][
-        "exists"
-    ]:
-        missing_staging_resources.append(
-            "container_apps_environment"
-        )
+    if not staging["container_apps_environment"]["exists"]:
+        missing_staging_resources.append("container_apps_environment")
 
-    if not staging[
-        "api"
-    ][
-        "exists"
-    ]:
-        missing_staging_resources.append(
-            "api"
-        )
+    if not staging["api"]["exists"]:
+        missing_staging_resources.append("api")
 
-    if not staging[
-        "dashboard"
-    ][
-        "exists"
-    ]:
-        missing_staging_resources.append(
-            "dashboard"
-        )
+    if not staging["dashboard"]["exists"]:
+        missing_staging_resources.append("dashboard")
 
     status = (
         "PRODUCTION_DEPLOYMENT_INVENTORY_READY"
         if not missing_staging_resources
-        else (
-            "PRODUCTION_DEPLOYMENT_"
-            "INVENTORY_INCOMPLETE"
-        )
+        else ("PRODUCTION_DEPLOYMENT_INVENTORY_INCOMPLETE")
     )
 
     return {
         "phase": "10M",
         "subphase": "10M-A",
-        "generated_at_utc": (
-            generated_at.isoformat()
-        ),
+        "generated_at_utc": (generated_at.isoformat()),
         "status": status,
         "read_only": True,
         "source_revision": git,
-        "repository_contracts": (
-            contracts
-        ),
+        "repository_contracts": (contracts),
         "staging": staging,
-        "production_plan": (
-            production
-        ),
+        "production_plan": (production),
         "findings": findings,
-        "missing_staging_resources": (
-            missing_staging_resources
-        ),
-        "production_resources_changed": (
-            False
-        ),
-        "staging_resources_changed": (
-            False
-        ),
-        "artifact_pointers_changed": (
-            False
-        ),
-        "model_registry_changed": (
-            False
-        ),
+        "missing_staging_resources": (missing_staging_resources),
+        "production_resources_changed": (False),
+        "staging_resources_changed": (False),
+        "artifact_pointers_changed": (False),
+        "model_registry_changed": (False),
     }
 
 
@@ -1287,11 +934,7 @@ def save_report(
         exist_ok=True,
     )
 
-    temporary_path = (
-        REPORT_PATH.with_suffix(
-            ".json.tmp"
-        )
-    )
+    temporary_path = REPORT_PATH.with_suffix(".json.tmp")
 
     temporary_path.write_text(
         json.dumps(
@@ -1302,9 +945,7 @@ def save_report(
         encoding="utf-8",
     )
 
-    temporary_path.replace(
-        REPORT_PATH
-    )
+    temporary_path.replace(REPORT_PATH)
 
     return REPORT_PATH
 
@@ -1321,44 +962,32 @@ def main() -> int:
 
     parser.add_argument(
         "--resource-group",
-        default=(
-            DEFAULT_STAGING_RESOURCE_GROUP
-        ),
+        default=(DEFAULT_STAGING_RESOURCE_GROUP),
     )
 
     parser.add_argument(
         "--environment",
-        default=(
-            DEFAULT_STAGING_ENVIRONMENT
-        ),
+        default=(DEFAULT_STAGING_ENVIRONMENT),
     )
 
     parser.add_argument(
         "--identity",
-        default=(
-            DEFAULT_STAGING_IDENTITY
-        ),
+        default=(DEFAULT_STAGING_IDENTITY),
     )
 
     parser.add_argument(
         "--api",
-        default=(
-            DEFAULT_STAGING_API
-        ),
+        default=(DEFAULT_STAGING_API),
     )
 
     parser.add_argument(
         "--dashboard",
-        default=(
-            DEFAULT_STAGING_DASHBOARD
-        ),
+        default=(DEFAULT_STAGING_DASHBOARD),
     )
 
     parser.add_argument(
         "--storage-account",
-        default=(
-            DEFAULT_STORAGE_ACCOUNT
-        ),
+        default=(DEFAULT_STORAGE_ACCOUNT),
     )
 
     parser.add_argument(
@@ -1370,66 +999,35 @@ def main() -> int:
 
     try:
         report = build_inventory(
-            resource_group=(
-                arguments.resource_group
-            ),
-            environment_name=(
-                arguments.environment
-            ),
-            identity_name=(
-                arguments.identity
-            ),
+            resource_group=(arguments.resource_group),
+            environment_name=(arguments.environment),
+            identity_name=(arguments.identity),
             api_name=arguments.api,
-            dashboard_name=(
-                arguments.dashboard
-            ),
-            storage_account=(
-                arguments.storage_account
-            ),
+            dashboard_name=(arguments.dashboard),
+            storage_account=(arguments.storage_account),
             acr_name=arguments.acr,
         )
 
         exit_code = (
-            0
-            if report["status"]
-            == (
-                "PRODUCTION_DEPLOYMENT_"
-                "INVENTORY_READY"
-            )
-            else 1
+            0 if report["status"] == ("PRODUCTION_DEPLOYMENT_INVENTORY_READY") else 1
         )
 
     except Exception as error:
         report = {
             "phase": "10M",
             "subphase": "10M-A",
-            "generated_at_utc": (
-                utc_now().isoformat()
-            ),
-            "status": (
-                "PRODUCTION_DEPLOYMENT_"
-                "INVENTORY_FAILED"
-            ),
+            "generated_at_utc": (utc_now().isoformat()),
+            "status": ("PRODUCTION_DEPLOYMENT_INVENTORY_FAILED"),
             "read_only": True,
-            "error_type": (
-                type(error).__name__
-            ),
-            "error_message": str(
-                error
-            ),
-            "production_resources_changed": (
-                False
-            ),
-            "staging_resources_changed": (
-                False
-            ),
+            "error_type": (type(error).__name__),
+            "error_message": str(error),
+            "production_resources_changed": (False),
+            "staging_resources_changed": (False),
         }
 
         exit_code = 1
 
-    report_path = save_report(
-        report
-    )
+    report_path = save_report(report)
 
     print(
         json.dumps(

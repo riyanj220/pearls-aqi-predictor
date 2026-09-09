@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
+from collections.abc import Mapping
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any
 
 from app.observability.logging import (
     sanitize_value,
@@ -31,9 +32,7 @@ def build_base_report(
         "phase": phase,
         "operation_name": operation_name,
         "status": status,
-        "generated_at_utc": datetime.now(
-            timezone.utc
-        ).isoformat(),
+        "generated_at_utc": datetime.now(UTC).isoformat(),
         "environment": environment,
         "service_name": service_name,
         "run_id": run_id,
@@ -61,18 +60,14 @@ def save_operational_report(
 ) -> Path:
     """Save a redacted JSON report atomically."""
 
-    safe_report = sanitize_report(
-        report
-    )
+    safe_report = sanitize_report(report)
 
     path.parent.mkdir(
         parents=True,
         exist_ok=True,
     )
 
-    temporary_path = path.with_suffix(
-        path.suffix + ".tmp"
-    )
+    temporary_path = path.with_suffix(path.suffix + ".tmp")
 
     try:
         temporary_path.write_text(
@@ -87,12 +82,8 @@ def save_operational_report(
         temporary_path.replace(path)
 
     except OSError as error:
-        temporary_path.unlink(
-            missing_ok=True
-        )
+        temporary_path.unlink(missing_ok=True)
 
-        raise OperationalReportError(
-            f"Could not save report: {path}"
-        ) from error
+        raise OperationalReportError(f"Could not save report: {path}") from error
 
     return path

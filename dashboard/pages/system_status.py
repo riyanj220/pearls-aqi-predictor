@@ -58,55 +58,35 @@ def _render_system_sidebar() -> str:
     )
 
     st.sidebar.caption(
-        "Review production health and technical "
-        "information in your preferred timezone."
+        "Review production health and technical information in your preferred timezone."
     )
 
-    timezone_label = (
-        st.sidebar.selectbox(
-            "Display timezone",
-            options=list(
-                SUPPORTED_TIMEZONES.keys()
-            ),
-            index=0,
-            key="system_timezone",
-        )
+    timezone_label = st.sidebar.selectbox(
+        "Display timezone",
+        options=list(SUPPORTED_TIMEZONES.keys()),
+        index=0,
+        key="system_timezone",
     )
 
-    timezone_name = (
-        SUPPORTED_TIMEZONES[
-            timezone_label
-        ]
-    )
+    timezone_name = SUPPORTED_TIMEZONES[timezone_label]
 
     st.sidebar.divider()
 
-    refresh_clicked = (
-        st.sidebar.button(
-            "↻  Refresh status",
-            help=(
-                "Fetch the latest available "
-                "production status."
-            ),
-            key="system_refresh",
-            width="stretch",
-        )
+    refresh_clicked = st.sidebar.button(
+        "↻  Refresh status",
+        help=("Fetch the latest available production status."),
+        key="system_refresh",
+        width="stretch",
     )
 
     if refresh_clicked:
         clear_dashboard_api_cache()
 
-        st.session_state[
-            "last_system_refresh_utc"
-        ] = utc_now()
+        st.session_state["last_system_refresh_utc"] = utc_now()
 
         st.rerun()
 
-    last_refresh = (
-        st.session_state.get(
-            "last_system_refresh_utc"
-        )
-    )
+    last_refresh = st.session_state.get("last_system_refresh_utc")
 
     if isinstance(
         last_refresh,
@@ -120,10 +100,7 @@ def _render_system_sidebar() -> str:
             )
         )
     else:
-        st.sidebar.caption(
-            "Status data is cached briefly "
-            "for responsive browsing."
-        )
+        st.sidebar.caption("Status data is cached briefly for responsive browsing.")
 
     return timezone_name
 
@@ -163,29 +140,17 @@ def render_system_status_page() -> None:
 
     apply_dashboard_theme()
 
-    timezone_name = (
-        _render_system_sidebar()
-    )
+    timezone_name = _render_system_sidebar()
 
     try:
-        with st.spinner(
-            "Loading system status..."
-        ):
-            liveness = (
-                cached_liveness()
-            )
+        with st.spinner("Loading system status..."):
+            liveness = cached_liveness()
 
-            readiness = (
-                cached_readiness()
-            )
+            readiness = cached_readiness()
 
-            pipeline = (
-                cached_pipeline_status()
-            )
+            pipeline = cached_pipeline_status()
 
-            metadata = (
-                cached_metadata()
-            )
+            metadata = cached_metadata()
 
     except DashboardAPIError as error:
         render_api_error(error)
@@ -236,11 +201,9 @@ def render_system_status_page() -> None:
 
         render_system_skeleton()
 
-        limitations = (
-            metadata.get(
-                "known_limitations",
-                [],
-            )
+        limitations = metadata.get(
+            "known_limitations",
+            [],
         )
 
         if limitations:
@@ -251,9 +214,7 @@ def render_system_status_page() -> None:
                 expanded=False,
             ):
                 for limitation in limitations:
-                    st.write(
-                        f"- {limitation}"
-                    )
+                    st.write(f"- {limitation}")
 
     with model_tab:
         st.markdown("")
