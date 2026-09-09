@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -18,7 +18,6 @@ from app.mlops.model_registry import (
     register_initial_production_model,
     resolve_production_model,
 )
-
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
@@ -62,7 +61,7 @@ def run_initial_model_registration() -> dict[str, Any]:
 
     return {
         "phase": "9F",
-        "generated_at_utc": datetime.now(timezone.utc).isoformat(),
+        "generated_at_utc": datetime.now(UTC).isoformat(),
         "status": ("INITIAL_PRODUCTION_MODEL_REGISTERED"),
         "registered_model": (registered.to_dict()),
         "resolved_model": (resolved.to_dict()),
@@ -92,7 +91,7 @@ def main() -> int:
     except Exception as error:
         report = {
             "phase": "9F",
-            "generated_at_utc": datetime.now(timezone.utc).isoformat(),
+            "generated_at_utc": datetime.now(UTC).isoformat(),
             "status": ("INITIAL_MODEL_REGISTRATION_FAILED"),
             "error_type": (type(error).__name__),
             "error_message": str(error),

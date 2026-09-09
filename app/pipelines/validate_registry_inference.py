@@ -3,18 +3,16 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from app.inference.model_source import (
     resolve_local_artifacts,
     resolve_registry_artifacts,
 )
-
 from app.mlops.config import (
     get_mlops_settings,
 )
-
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
@@ -72,7 +70,7 @@ def main() -> int:
 
         report = {
             "phase": "9G",
-            "generated_at_utc": datetime.now(timezone.utc).isoformat(),
+            "generated_at_utc": datetime.now(UTC).isoformat(),
             "status": ("REGISTRY_MODEL_LOADING_VALIDATED"),
             "configured_mode": (settings.model_loading_mode.value),
             "registry_model_name": (registry.model_name),
@@ -93,7 +91,7 @@ def main() -> int:
     except Exception as error:
         report = {
             "phase": "9G",
-            "generated_at_utc": datetime.now(timezone.utc).isoformat(),
+            "generated_at_utc": datetime.now(UTC).isoformat(),
             "status": ("REGISTRY_MODEL_LOADING_FAILED"),
             "error_type": (type(error).__name__),
             "error_message": str(error),

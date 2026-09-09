@@ -21,13 +21,12 @@ import argparse
 import json
 import os
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 from app.artifacts.repository import (
     ArtifactRepository,
-    ArtifactRepositoryError,
     PublicationResult,
     create_artifact_repository,
 )
@@ -39,7 +38,6 @@ from app.pipelines.live_inference import (
     generate_pipeline_run_id,
     run_live_inference,
 )
-
 
 REPORT_PATH = PROJECT_ROOT / "reports" / "phase_10" / "forecast_publication_report.json"
 
@@ -353,7 +351,7 @@ def run_forecast_publication() -> dict[str, Any]:
 
     subphase = resolve_subphase(artifact_backend)
 
-    started_at = datetime.now(timezone.utc)
+    started_at = datetime.now(UTC)
 
     started_monotonic = time.monotonic()
 
@@ -399,7 +397,7 @@ def run_forecast_publication() -> dict[str, Any]:
         expected_source_run_id=(phase_5_run_id),
     )
 
-    completed_at = datetime.now(timezone.utc)
+    completed_at = datetime.now(UTC)
 
     return {
         "phase": "10J",
@@ -504,7 +502,7 @@ def main() -> int:
             "artifact_backend": artifact_backend,
             "pipeline_name": ("forecast_publication"),
             "status": ("FORECAST_PUBLICATION_FAILED"),
-            "failed_at_utc": datetime.now(timezone.utc).isoformat(),
+            "failed_at_utc": datetime.now(UTC).isoformat(),
             "error_type": (type(error).__name__),
             "error_message": str(error),
             "api_updated": False,

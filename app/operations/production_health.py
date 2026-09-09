@@ -14,17 +14,23 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import subprocess
 import time
+import urllib.error
+import urllib.parse
+import urllib.request
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 import pandas as pd
+from azure.identity import (
+    DefaultAzureCredential,
+)
 
 from app.core.config import PROJECT_ROOT
-
 from app.mlops.config import (
     MLOpsSettings,
     get_mlops_settings,
@@ -33,25 +39,15 @@ from app.mlops.contracts import (
     FeatureGroupContract,
     build_feature_group_contracts,
 )
+from app.mlops.feature_repository import (
+    FeatureRepositoryError,
+    create_feature_repository,
+)
 from app.pipelines.historical_backfill import (
     load_feature_columns,
 )
 from app.pipelines.publish_forecast import (
     create_configured_repository,
-)
-
-from app.mlops.feature_repository import (
-    FeatureRepositoryError,
-    create_feature_repository,
-)
-
-import os
-import urllib.error
-import urllib.parse
-import urllib.request
-
-from azure.identity import (
-    DefaultAzureCredential,
 )
 
 REPORT_PATH = PROJECT_ROOT / "reports" / "phase_10" / "production_health_report.json"
@@ -128,7 +124,7 @@ RETRAINING_JOB_THRESHOLD = FreshnessThreshold(
 def utc_now() -> datetime:
     """Return the current timezone-aware UTC time."""
 
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 def parse_utc_timestamp(

@@ -6,9 +6,9 @@ import json
 import logging
 import os
 import sys
-from datetime import datetime, timezone
-from typing import Any, Mapping
-
+from collections.abc import Mapping
+from datetime import UTC, datetime
+from typing import Any
 
 STANDARD_LOG_RECORD_FIELDS = {
     "args",
@@ -57,7 +57,7 @@ class StructuredLoggingError(RuntimeError):
 def utc_timestamp() -> str:
     """Return the current UTC timestamp."""
 
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(UTC).isoformat()
 
 
 def is_sensitive_field(

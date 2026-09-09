@@ -18,10 +18,11 @@ import json
 import mimetypes
 import shutil
 from abc import ABC, abstractmethod
+from collections.abc import Mapping
 from dataclasses import asdict, dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path, PurePosixPath
-from typing import Any, BinaryIO, Iterable, Mapping
+from typing import Any
 
 from azure.core.exceptions import (
     AzureError,
@@ -343,7 +344,7 @@ class ArtifactRepository(ABC):
                 )
             )
 
-        published_at_utc = datetime.now(timezone.utc).isoformat()
+        published_at_utc = datetime.now(UTC).isoformat()
 
         manifest = RunManifest(
             artifact_type=normalized_artifact_type,

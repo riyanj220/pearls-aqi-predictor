@@ -16,7 +16,6 @@ from dashboard.utils.formatting import (
     format_timestamp,
 )
 
-
 AQI_GUIDE = [
     {
         "range": "0–50",

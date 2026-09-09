@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pandas as pd
 
@@ -22,7 +22,6 @@ from app.api.services.artifact_repository import (
 from app.api.services.readiness_service import (
     freshness_response,
 )
-
 
 ALERT_LEVEL_RANK: dict[str, int] = {
     "NORMAL": 0,
@@ -197,7 +196,7 @@ class AlertService:
     ) -> ActiveAlertsResponse:
         """Return filtered current and upcoming episodes."""
 
-        now_utc = datetime.now(timezone.utc)
+        now_utc = datetime.now(UTC)
 
         classified_episodes = []
 

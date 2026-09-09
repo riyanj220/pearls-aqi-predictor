@@ -2,15 +2,13 @@
 
 from __future__ import annotations
 
-from typing import Any
-
 import pandas as pd
 
 from app.api.config import APISettings
 from app.api.errors import APIServiceError
 from app.api.schemas.common import (
-    AQICategory,
     AlertLevel,
+    AQICategory,
     LocationResponse,
 )
 from app.api.schemas.forecast import (

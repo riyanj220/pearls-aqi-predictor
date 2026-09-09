@@ -8,7 +8,6 @@ import pandas as pd
 
 from app.core.config import Settings, settings
 
-
 REFERENCE_READY = "READY"
 REFERENCE_STALE_PM25 = "STALE_PM25_DATA"
 REFERENCE_INSUFFICIENT_HISTORY = "NOT_READY_INSUFFICIENT_PM25_HISTORY"

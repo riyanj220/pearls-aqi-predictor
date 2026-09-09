@@ -5,10 +5,9 @@ from __future__ import annotations
 import argparse
 import json
 import subprocess
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
-
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
@@ -294,7 +293,7 @@ def main() -> int:
         report = {
             "phase": "10K",
             "subphase": "10K-E",
-            "generated_at_utc": (datetime.now(timezone.utc).isoformat()),
+            "generated_at_utc": (datetime.now(UTC).isoformat()),
             "status": (
                 "DAILY_RETRAINING_JOB_VALIDATED"
                 if validation["valid"]
@@ -311,7 +310,7 @@ def main() -> int:
         report = {
             "phase": "10K",
             "subphase": "10K-E",
-            "generated_at_utc": (datetime.now(timezone.utc).isoformat()),
+            "generated_at_utc": (datetime.now(UTC).isoformat()),
             "status": ("DAILY_RETRAINING_JOB_VALIDATION_FAILED"),
             "resource_group": (arguments.resource_group),
             "job_name": (arguments.job_name),

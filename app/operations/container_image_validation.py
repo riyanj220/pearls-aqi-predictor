@@ -5,10 +5,9 @@ from __future__ import annotations
 import argparse
 import json
 import subprocess
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
-
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
@@ -126,7 +125,7 @@ def build_validation_report(
 
     return {
         "phase": "10G",
-        "generated_at_utc": datetime.now(timezone.utc).isoformat(),
+        "generated_at_utc": datetime.now(UTC).isoformat(),
         "status": (
             "PRODUCTION_CONTAINER_IMAGES_VALIDATED"
             if approved
@@ -190,7 +189,7 @@ def main() -> int:
     except Exception as error:
         report = {
             "phase": "10G",
-            "generated_at_utc": datetime.now(timezone.utc).isoformat(),
+            "generated_at_utc": datetime.now(UTC).isoformat(),
             "status": ("PRODUCTION_CONTAINER_IMAGE_VALIDATION_FAILED"),
             "approved": False,
             "error_type": type(error).__name__,

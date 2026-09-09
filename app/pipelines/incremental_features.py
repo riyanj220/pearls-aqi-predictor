@@ -5,7 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -19,6 +19,12 @@ from app.mlops.contracts import (
     FeatureGroupContract,
     build_feature_group_contracts,
 )
+from app.mlops.feature_repository import (
+    FeatureRepository,
+    FeatureRepositoryError,
+    create_feature_repository,
+    empty_feature_frame,
+)
 from app.pipelines.historical_backfill import (
     classify_rows,
     load_feature_columns,
@@ -27,14 +33,6 @@ from app.pipelines.historical_backfill import (
     prepare_pm25_rows,
     prepare_weather_rows,
 )
-
-from app.mlops.feature_repository import (
-    FeatureRepository,
-    FeatureRepositoryError,
-    create_feature_repository,
-    empty_feature_frame,
-)
-
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
@@ -228,13 +226,13 @@ def synchronize_group(
         "incremental_start": (incremental_start.isoformat()),
         "incremental_end": (local_end.isoformat()),
         "overlap_hours": (settings.incremental_overlap_hours),
-        "candidate_rows": int(len(candidate)),
-        "existing_rows_in_window": int(len(existing)),
+        "candidate_rows": len(candidate),
+        "existing_rows_in_window": len(existing),
         "rows_to_insert": (classification.inserted),
         "rows_to_update": (classification.updated),
         "rows_unchanged": (classification.unchanged),
         "rows_written": (
-            0 if settings.mlops_dry_run else int(len(classification.writable))
+            0 if settings.mlops_dry_run else len(classification.writable)
         ),
         "duplicate_keys": int(
             candidate.duplicated(
@@ -257,7 +255,7 @@ def run_incremental_feature_pipeline(
 ) -> dict[str, Any]:
     """Synchronize PM2.5, weather and engineered features."""
 
-    started_at = datetime.now(timezone.utc)
+    started_at = datetime.now(UTC)
 
     pipeline_run_id = "incremental_features_" + uuid.uuid4().hex
 
@@ -338,7 +336,7 @@ def run_incremental_feature_pipeline(
             settings=settings,
         )
 
-    completed_at = datetime.now(timezone.utc)
+    completed_at = datetime.now(UTC)
 
     total_rows_written = sum(
         group_report["rows_written"] for group_report in group_reports.values()
@@ -414,7 +412,7 @@ def main() -> int:
             "phase": "9H",
             "pipeline_name": ("incremental_feature_sync"),
             "status": ("INCREMENTAL_SYNC_FAILED"),
-            "completed_at_utc": datetime.now(timezone.utc).isoformat(),
+            "completed_at_utc": datetime.now(UTC).isoformat(),
             "error_type": (type(error).__name__),
             "error_message": str(error),
         }

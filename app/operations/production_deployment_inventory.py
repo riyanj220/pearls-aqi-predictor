@@ -16,10 +16,9 @@ from __future__ import annotations
 import argparse
 import json
 import subprocess
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
-
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
@@ -68,7 +67,7 @@ class ProductionDeploymentInventoryError(RuntimeError):
 def utc_now() -> datetime:
     """Return current timezone-aware UTC time."""
 
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 def run_command(

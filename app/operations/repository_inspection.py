@@ -7,10 +7,9 @@ import json
 import subprocess
 import sys
 from dataclasses import asdict, dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
-
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
@@ -660,7 +659,7 @@ def build_repository_operations_report() -> dict[str, Any]:
 
     return {
         "phase": "10A",
-        "generated_at_utc": datetime.now(timezone.utc).isoformat(),
+        "generated_at_utc": datetime.now(UTC).isoformat(),
         "status": (
             "REPOSITORY_OPERATIONS_INSPECTION_COMPLETED"
             if inspection_passed

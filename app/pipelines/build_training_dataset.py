@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -21,16 +21,15 @@ from app.mlops.contracts import (
 from app.pipelines.feature_views import (
     create_or_get_reference_feature_view,
 )
+from app.pipelines.historical_backfill import (
+    load_feature_columns,
+)
 from app.pipelines.training_datasets import (
     build_hopsworks_backed_training_dataset,
     compare_training_datasets,
     read_hopsworks_reference_features,
     save_versioned_training_snapshot,
 )
-from app.pipelines.historical_backfill import (
-    load_feature_columns,
-)
-
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
@@ -155,12 +154,12 @@ def run_training_dataset_pipeline() -> dict[str, Any]:
     if not parity.passed:
         return {
             "phase": "9E",
-            "generated_at_utc": datetime.now(timezone.utc).isoformat(),
+            "generated_at_utc": datetime.now(UTC).isoformat(),
             "status": ("TRAINING_DATASET_PARITY_FAILED"),
             "feature_view": (resolved_view.safe_summary()),
             "training_dataset": {
-                "local_row_count": int(len(local_training_df)),
-                "generated_row_count": int(len(generated_df)),
+                "local_row_count": len(local_training_df),
+                "generated_row_count": len(generated_df),
                 "local_reference_count": int(
                     local_training_df["reference_time"].nunique()
                 ),
@@ -180,7 +179,7 @@ def run_training_dataset_pipeline() -> dict[str, Any]:
 
     return {
         "phase": "9E",
-        "generated_at_utc": datetime.now(timezone.utc).isoformat(),
+        "generated_at_utc": datetime.now(UTC).isoformat(),
         "status": ("TRAINING_DATASET_PARITY_PASSED"),
         "feature_view": (resolved_view.safe_summary()),
         "training_dataset": {
@@ -241,7 +240,7 @@ def main() -> int:
     except Exception as error:
         failure_report = {
             "phase": "9E",
-            "generated_at_utc": datetime.now(timezone.utc).isoformat(),
+            "generated_at_utc": datetime.now(UTC).isoformat(),
             "status": ("TRAINING_DATASET_PARITY_FAILED"),
             "error_type": type(error).__name__,
             "error_message": str(error),

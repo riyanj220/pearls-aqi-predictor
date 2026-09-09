@@ -7,7 +7,7 @@ import math
 import threading
 import time
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -16,7 +16,6 @@ import pandas as pd
 
 from app.api.config import APISettings
 from app.api.schemas.common import FreshnessStatus
-
 from app.api.services.blob_artifact_source import (
     ArtifactMaterializationError,
     BlobArtifactSource,
@@ -315,7 +314,7 @@ class ArtifactRepository:
 
         freshness = self.calculate_freshness(generated_at_utc)
 
-        loaded_at_utc = datetime.now(timezone.utc)
+        loaded_at_utc = datetime.now(UTC)
 
         safe_alert_episodes = json_safe_value(alert_episodes)
 
@@ -736,13 +735,13 @@ class ArtifactRepository:
         normalized_generated_time = (
             generated_at_utc
             if generated_at_utc.tzinfo is not None
-            else generated_at_utc.replace(tzinfo=timezone.utc)
+            else generated_at_utc.replace(tzinfo=UTC)
         )
 
-        normalized_now = now_utc if now_utc is not None else datetime.now(timezone.utc)
+        normalized_now = now_utc if now_utc is not None else datetime.now(UTC)
 
         if normalized_now.tzinfo is None:
-            normalized_now = normalized_now.replace(tzinfo=timezone.utc)
+            normalized_now = normalized_now.replace(tzinfo=UTC)
 
         age_seconds = max(
             0.0,

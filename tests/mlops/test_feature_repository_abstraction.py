@@ -4,8 +4,8 @@ import pandas as pd
 
 from app.mlops.config import MLOpsSettings
 from app.mlops.contracts import (
-    FeatureGroupContract,
     FeatureDefinition,
+    FeatureGroupContract,
 )
 from app.mlops.feature_repository import (
     FeatureRepository,

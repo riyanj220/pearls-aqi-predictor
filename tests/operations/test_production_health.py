@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
 
@@ -18,14 +18,13 @@ from app.operations.production_health import (
     worst_status,
 )
 
-
 NOW = datetime(
     2026,
     8,
     6,
     12,
     0,
-    tzinfo=timezone.utc,
+    tzinfo=UTC,
 )
 
 THRESHOLD = FreshnessThreshold(

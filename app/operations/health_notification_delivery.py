@@ -5,7 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from app.artifacts.repository import (
@@ -17,7 +17,6 @@ from app.notifications.email import (
 from app.notifications.webhook import (
     JsonWebhookClient,
 )
-
 
 NOTIFICATION_OUTBOX_PATH = "production-health/notifications/outbox.json"
 
@@ -37,7 +36,7 @@ class HealthNotificationError(RuntimeError):
 def utc_now() -> datetime:
     """Return current timezone-aware UTC time."""
 
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 def read_environment_value(

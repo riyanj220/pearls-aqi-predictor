@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from app.artifacts.repository import (
@@ -15,14 +15,13 @@ from app.operations.persist_production_health import (
     extract_unhealthy_components,
 )
 
-
 NOW = datetime(
     2026,
     8,
     6,
     12,
     0,
-    tzinfo=timezone.utc,
+    tzinfo=UTC,
 )
 
 

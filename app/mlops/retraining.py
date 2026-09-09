@@ -7,7 +7,7 @@ import math
 import shutil
 import uuid
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -500,7 +500,7 @@ def evaluate_candidate(
     )
 
     return {
-        "row_count": int(len(dataframe)),
+        "row_count": len(dataframe),
         "overall": overall_metrics,
         "horizon_groups": horizon_metrics,
         "severe_pm25": {
@@ -527,7 +527,7 @@ def save_candidate_package(
     """Save one immutable local challenger package."""
 
     candidate_id = (
-        datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+        datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
         + "_"
         + uuid.uuid4().hex[:8]
     )
@@ -556,7 +556,7 @@ def save_candidate_package(
     candidate_metadata = {
         "candidate_id": candidate_id,
         "lifecycle_status": "CANDIDATE",
-        "created_at_utc": datetime.now(timezone.utc).isoformat(),
+        "created_at_utc": datetime.now(UTC).isoformat(),
         "model_type": (type(candidate_model).__name__),
         "selected_strategy": (production_metadata.get("selected_strategy")),
         "routing": {"persistence_max_horizon": (persistence_max_horizon)},

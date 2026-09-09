@@ -13,7 +13,6 @@ from dashboard.utils.formatting import (
     format_timestamp,
 )
 
-
 PRODUCTION_MODEL = {
     "version": 1,
     "model_type": "XGBRegressor",

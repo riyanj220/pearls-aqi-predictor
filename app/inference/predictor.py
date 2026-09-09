@@ -11,7 +11,6 @@ import joblib
 import pandas as pd
 
 from app.core.config import Settings, settings
-
 from app.inference.model_source import (
     ModelArtifactPaths,
     resolve_model_artifact_paths,

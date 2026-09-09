@@ -6,8 +6,9 @@ import json
 import urllib.error
 import urllib.parse
 import urllib.request
+from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Any, Mapping
+from typing import Any
 
 
 class WebhookConfigurationError(ValueError):

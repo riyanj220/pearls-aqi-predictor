@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 from pathlib import Path
-from typing import Iterator
 
 import pytest
 from fastapi.testclient import TestClient
@@ -11,7 +11,6 @@ from fastapi.testclient import TestClient
 from app.api.config import get_api_settings
 from app.api.main import create_application
 from app.core.config import PROJECT_ROOT
-
 
 TEST_ARTIFACT_DIRECTORY = PROJECT_ROOT / "tests" / "fixtures" / "aqi" / "latest"
 

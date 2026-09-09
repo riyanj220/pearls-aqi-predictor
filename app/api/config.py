@@ -274,7 +274,7 @@ class APISettings(BaseSettings):
     @model_validator(mode="after")
     def validate_artifact_source(
         self,
-    ) -> "APISettings":
+    ) -> APISettings:
         """Validate backend-specific configuration."""
 
         if self.artifact_backend == "azure_blob" and not self.azure_storage_account:

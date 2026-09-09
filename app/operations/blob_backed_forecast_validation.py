@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 import os
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -18,7 +18,6 @@ from app.mlops.config import (
 from app.pipelines.publish_forecast import (
     run_forecast_publication,
 )
-
 
 REPORT_PATH = (
     PROJECT_ROOT
@@ -49,7 +48,7 @@ def require_environment(
 def run_validation() -> dict[str, Any]:
     """Run one complete Blob-backed production forecast."""
 
-    started_at = datetime.now(timezone.utc)
+    started_at = datetime.now(UTC)
 
     require_environment(
         "FEATURE_STORE_BACKEND",
@@ -139,7 +138,7 @@ def run_validation() -> dict[str, Any]:
             f"Blob-backed forecast validation failed: {runtime_checks}"
         )
 
-    completed_at = datetime.now(timezone.utc)
+    completed_at = datetime.now(UTC)
 
     return {
         "phase": "10P",
@@ -196,7 +195,7 @@ def main() -> int:
             "phase": "10P",
             "subphase": "10P-G",
             "status": ("BLOB_BACKED_FORECAST_VALIDATION_FAILED"),
-            "failed_at_utc": (datetime.now(timezone.utc).isoformat()),
+            "failed_at_utc": (datetime.now(UTC).isoformat()),
             "error_type": (type(error).__name__),
             "error_message": str(error),
             "hopsworks_required_for_execution": (None),

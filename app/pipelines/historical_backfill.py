@@ -6,7 +6,7 @@ import argparse
 import json
 import uuid
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -20,10 +20,10 @@ from app.mlops.config import (
     get_mlops_settings,
 )
 from app.mlops.contracts import (
-    FeatureGroupContract,
     LOCATION_KEY,
     OPENAQ_LOCATION_ID,
     OPENAQ_SENSOR_ID,
+    FeatureGroupContract,
     build_feature_group_contracts,
 )
 from app.mlops.feature_groups import (
@@ -32,7 +32,6 @@ from app.mlops.feature_groups import (
 from app.mlops.gaps import (
     detect_hourly_gaps,
 )
-
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
@@ -676,7 +675,7 @@ def run_historical_backfill(
 
     run_id = "historical_backfill_" + uuid.uuid4().hex
 
-    started_at = datetime.now(timezone.utc)
+    started_at = datetime.now(UTC)
 
     canonical_path = PROJECT_ROOT / settings.phase_1_canonical_dataset_path
 
@@ -819,13 +818,13 @@ def run_historical_backfill(
         group_reports[group_name] = {
             "feature_group_name": contract.name,
             "version": contract.version,
-            "candidate_rows": int(len(dataframe)),
-            "existing_rows_in_range": int(len(existing)),
+            "candidate_rows": len(dataframe),
+            "existing_rows_in_range": len(existing),
             "rows_to_insert": (classification.inserted),
             "rows_to_update": (classification.updated),
             "rows_unchanged": (classification.unchanged),
             "rows_written": (
-                0 if settings.mlops_dry_run else int(len(classification.writable))
+                0 if settings.mlops_dry_run else len(classification.writable)
             ),
             "duplicate_keys": int(
                 dataframe.duplicated(
@@ -843,7 +842,7 @@ def run_historical_backfill(
             "missing_intervals": [interval.to_dict() for interval in source_gaps],
         }
 
-    completed_at = datetime.now(timezone.utc)
+    completed_at = datetime.now(UTC)
 
     return {
         "phase": "9D",
@@ -953,7 +952,7 @@ def main() -> int:
             "phase": "9D",
             "pipeline_name": ("historical_feature_backfill"),
             "status": "BACKFILL_FAILED",
-            "completed_at_utc": datetime.now(timezone.utc).isoformat(),
+            "completed_at_utc": datetime.now(UTC).isoformat(),
             "error_type": type(error).__name__,
             "error_message": str(error),
         }

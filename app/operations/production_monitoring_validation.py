@@ -6,10 +6,9 @@ import argparse
 import hashlib
 import json
 import subprocess
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
-
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
@@ -646,7 +645,7 @@ def main() -> int:
         report = {
             "phase": "10L",
             "subphase": "10L-E",
-            "generated_at_utc": (datetime.now(timezone.utc).isoformat()),
+            "generated_at_utc": (datetime.now(UTC).isoformat()),
             "status": (
                 "PRODUCTION_MONITORING_VALIDATED"
                 if validation["valid"]
@@ -663,7 +662,7 @@ def main() -> int:
         report = {
             "phase": "10L",
             "subphase": "10L-E",
-            "generated_at_utc": (datetime.now(timezone.utc).isoformat()),
+            "generated_at_utc": (datetime.now(UTC).isoformat()),
             "status": ("PRODUCTION_MONITORING_VALIDATION_FAILED"),
             "error_type": (type(error).__name__),
             "error_message": str(error),

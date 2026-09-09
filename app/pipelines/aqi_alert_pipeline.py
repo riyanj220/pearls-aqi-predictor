@@ -11,7 +11,8 @@ from __future__ import annotations
 
 import argparse
 import json
-from datetime import datetime, timezone
+import time
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -34,9 +35,6 @@ from app.aqi.run_artifacts import (
     publish_latest_aqi_run,
     save_aqi_run,
 )
-
-import time
-
 from app.observability import error_codes
 from app.observability.logging import (
     configure_structured_logging,
@@ -44,7 +42,6 @@ from app.observability.logging import (
     log_pipeline_failed,
     log_pipeline_started,
 )
-
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
@@ -386,7 +383,7 @@ def run_aqi_alert_pipeline(
 ) -> dict[str, Any]:
     """Run the complete Phase 6 AQI and alert pipeline."""
 
-    started_at = datetime.now(timezone.utc)
+    started_at = datetime.now(UTC)
 
     started_monotonic = time.monotonic()
     temporary_run_id = source_run_id or "latest-successful-inference"
@@ -556,14 +553,14 @@ def run_aqi_alert_pipeline(
         )
 
         limitations.append(
-            (
+            
                 "Recent PM2.5 observations contained "
                 "a short sensor-data gap. "
                 f"{imputed_hours} hourly value"
                 f"{'s were' if imputed_hours != 1 else ' was'} "
                 "estimated using bounded linear interpolation "
                 "to maintain forecast continuity."
-            )
+            
         )
 
     validation_report = {
@@ -591,7 +588,7 @@ def run_aqi_alert_pipeline(
     # Publish only after every validation and save step succeeds.
     publish_latest_aqi_run(saved_run)
 
-    completed_at = datetime.now(timezone.utc)
+    completed_at = datetime.now(UTC)
 
     log_pipeline_completed(
         LOGGER,
@@ -681,7 +678,7 @@ def main() -> int:
             "phase": "6",
             "pipeline_name": ("aqi_alert_pipeline"),
             "status": ("AQI_ALERT_PIPELINE_FAILED"),
-            "failed_at_utc": datetime.now(timezone.utc).isoformat(),
+            "failed_at_utc": datetime.now(UTC).isoformat(),
             "source_run_id": (arguments.source_run_id),
             "error_type": (type(error).__name__),
             "error_message": str(error),

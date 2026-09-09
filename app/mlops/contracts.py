@@ -7,7 +7,6 @@ from typing import Any
 
 import pandas as pd
 
-
 LOCATION_KEY = "zafar_memon_dha_karachi"
 
 OPENAQ_LOCATION_ID = 4814327

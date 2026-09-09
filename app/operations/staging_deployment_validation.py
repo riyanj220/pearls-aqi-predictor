@@ -7,10 +7,9 @@ import json
 import subprocess
 import urllib.error
 import urllib.request
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
-
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
@@ -151,7 +150,7 @@ def build_report(
 
     return {
         "phase": "10I",
-        "generated_at_utc": datetime.now(timezone.utc).isoformat(),
+        "generated_at_utc": datetime.now(UTC).isoformat(),
         "status": (
             "STAGING_DEPLOYMENT_VALIDATED" if approved else "STAGING_DEPLOYMENT_INVALID"
         ),
@@ -243,7 +242,7 @@ def main() -> int:
     except Exception as error:
         report = {
             "phase": "10I",
-            "generated_at_utc": datetime.now(timezone.utc).isoformat(),
+            "generated_at_utc": datetime.now(UTC).isoformat(),
             "status": ("STAGING_DEPLOYMENT_VALIDATION_FAILED"),
             "approved": False,
             "error_type": type(error).__name__,

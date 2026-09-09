@@ -5,7 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import shutil
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -24,8 +24,6 @@ from app.mlops.model_registry import (
     calculate_sha256,
     load_json_object,
 )
-from app.inference.model_source import ModelArtifactPaths
-
 
 REPORT_PATH = (
     PROJECT_ROOT
@@ -183,7 +181,7 @@ def run_migration(
 ) -> dict[str, Any]:
     """Seed and validate the approved production model."""
 
-    started_at = datetime.now(timezone.utc)
+    started_at = datetime.now(UTC)
 
     blob_settings = build_blob_settings(settings)
 
@@ -209,7 +207,7 @@ def run_migration(
         expected_version=version,
     )
 
-    completed_at = datetime.now(timezone.utc)
+    completed_at = datetime.now(UTC)
 
     return {
         "phase": "10P",
@@ -288,7 +286,7 @@ def main() -> int:
             "phase": "10P",
             "subphase": "10P-F",
             "status": ("AZURE_BLOB_PRODUCTION_MODEL_SEED_FAILED"),
-            "failed_at_utc": (datetime.now(timezone.utc).isoformat()),
+            "failed_at_utc": (datetime.now(UTC).isoformat()),
             "error_type": (type(error).__name__),
             "error_message": (str(error)),
             "production_runtime_configuration_changed": (False),

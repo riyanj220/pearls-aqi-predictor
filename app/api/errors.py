@@ -3,12 +3,15 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from starlette.exceptions import (
+    HTTPException as StarletteHTTPException,
+)
 
 from app.api.services.artifact_repository import (
     ArtifactFormatError,
@@ -16,10 +19,6 @@ from app.api.services.artifact_repository import (
     ArtifactRepositoryError,
     ArtifactRunMismatchError,
     ArtifactSchemaError,
-)
-
-from starlette.exceptions import (
-    HTTPException as StarletteHTTPException,
 )
 
 LOGGER = logging.getLogger(__name__)
@@ -76,7 +75,7 @@ def _error_response(
                 "message": message,
                 "details": details or {},
                 "request_id": request_id,
-                "timestamp_utc": datetime.now(timezone.utc).isoformat(),
+                "timestamp_utc": datetime.now(UTC).isoformat(),
             }
         },
         headers={

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -14,22 +14,18 @@ import pandas as pd
 from app.mlops.champion_challenger import (
     evaluate_promotion_gates,
 )
-
 from app.mlops.config import (
     get_mlops_settings,
 )
-
 from app.mlops.model_repository import (
     create_model_repository,
 )
-
 from app.mlops.retraining import (
     evaluate_candidate,
     load_feature_columns,
     load_json_object,
     validate_training_frame,
 )
-
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
@@ -182,7 +178,7 @@ def run_champion_challenger(
 
     return {
         "phase": "9J",
-        "generated_at_utc": datetime.now(timezone.utc).isoformat(),
+        "generated_at_utc": datetime.now(UTC).isoformat(),
         "status": status,
         "candidate_directory": (
             candidate_directory.relative_to(PROJECT_ROOT).as_posix()
@@ -257,7 +253,7 @@ def main() -> int:
     except Exception as error:
         report = {
             "phase": "9J",
-            "generated_at_utc": datetime.now(timezone.utc).isoformat(),
+            "generated_at_utc": datetime.now(UTC).isoformat(),
             "status": ("CHAMPION_CHALLENGER_FAILED"),
             "error_type": type(error).__name__,
             "error_message": str(error),

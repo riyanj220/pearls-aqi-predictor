@@ -19,8 +19,8 @@ from __future__ import annotations
 
 import argparse
 import json
-import sys
-from datetime import datetime, timezone
+import time
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 from uuid import uuid4
@@ -29,6 +29,9 @@ import numpy as np
 import pandas as pd
 
 from app.core.config import settings
+from app.data.pm25_gap_policy import (
+    recover_short_pm25_gaps,
+)
 from app.data.validation import (
     select_latest_safe_reference_time,
 )
@@ -52,9 +55,6 @@ from app.inference.predictor import (
 from app.inference.run_artifacts import (
     save_inference_run,
 )
-
-import time
-
 from app.observability import error_codes
 from app.observability.logging import (
     configure_structured_logging,
@@ -62,11 +62,6 @@ from app.observability.logging import (
     log_pipeline_failed,
     log_pipeline_started,
 )
-
-from app.data.pm25_gap_policy import (
-    recover_short_pm25_gaps,
-)
-
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
@@ -351,7 +346,7 @@ def run_live_inference(
 ) -> dict[str, Any]:
     """Run the complete Phase 5 production inference pipeline."""
 
-    started_at = datetime.now(timezone.utc)
+    started_at = datetime.now(UTC)
     started_monotonic = time.monotonic()
 
     log_pipeline_started(
@@ -626,7 +621,7 @@ def run_live_inference(
         app_settings=settings,
     )
 
-    completed_at = datetime.now(timezone.utc)
+    completed_at = datetime.now(UTC)
 
     return {
         "phase": "5",
@@ -703,7 +698,7 @@ def main() -> int:
             "pipeline_name": "live_inference",
             "pipeline_run_id": pipeline_run_id,
             "status": "LIVE_INFERENCE_FAILED",
-            "failed_at_utc": datetime.now(timezone.utc).isoformat(),
+            "failed_at_utc": datetime.now(UTC).isoformat(),
             "error_type": type(error).__name__,
             "error_message": str(error),
         }

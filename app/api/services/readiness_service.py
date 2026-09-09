@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from app.api.config import APISettings
 from app.api.schemas.common import (
@@ -35,7 +35,7 @@ class ReadinessService:
     def evaluate(self) -> ReadinessResponse:
         """Build readiness without raising artifact errors."""
 
-        checked_at_utc = datetime.now(timezone.utc)
+        checked_at_utc = datetime.now(UTC)
 
         try:
             bundle = self._repository.load_latest()

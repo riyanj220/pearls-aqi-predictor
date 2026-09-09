@@ -17,7 +17,7 @@ import json
 import os
 import shutil
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -33,15 +33,13 @@ from app.mlops.contracts import (
     FeatureGroupContract,
     build_feature_group_contracts,
 )
-from app.pipelines.historical_backfill import (
-    load_feature_columns,
-)
-
 from app.mlops.feature_repository import (
     FeatureRepository,
     create_feature_repository,
 )
-
+from app.pipelines.historical_backfill import (
+    load_feature_columns,
+)
 
 REPORT_PATH = (
     PROJECT_ROOT / "reports" / "phase_10" / "training_dataset_refresh_report.json"
@@ -78,7 +76,7 @@ def generate_run_id() -> str:
     """Generate one immutable training-refresh run ID."""
 
     return (
-        datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+        datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
         + "_training_refresh_"
         + uuid.uuid4().hex[:8]
     )
@@ -735,7 +733,7 @@ def describe_split(
     """Return one JSON-safe split summary."""
 
     return {
-        "rows": int(len(dataframe)),
+        "rows": len(dataframe),
         "reference_count": int(dataframe["reference_time"].nunique()),
         "reference_start": (dataframe["reference_time"].min().isoformat()),
         "reference_end": (dataframe["reference_time"].max().isoformat()),
@@ -751,7 +749,7 @@ def run_training_dataset_refresh(
 ) -> dict[str, Any]:
     """Run one fresh production training-data refresh."""
 
-    started_at = datetime.now(timezone.utc)
+    started_at = datetime.now(UTC)
 
     run_id = generate_run_id()
 
@@ -815,7 +813,7 @@ def run_training_dataset_refresh(
 
     metadata = {
         "run_id": run_id,
-        "generated_at_utc": datetime.now(timezone.utc).isoformat(),
+        "generated_at_utc": datetime.now(UTC).isoformat(),
         "source": repository.source_label,
         "feature_repository_backend": (repository.backend_name),
         "feature_count": len(model_feature_columns),
@@ -853,7 +851,7 @@ def run_training_dataset_refresh(
         metadata=metadata,
     )
 
-    completed_at = datetime.now(timezone.utc)
+    completed_at = datetime.now(UTC)
 
     return {
         "phase": "10K",
@@ -867,12 +865,12 @@ def run_training_dataset_refresh(
         "completed_at_utc": (completed_at.isoformat()),
         "duration_seconds": (completed_at - started_at).total_seconds(),
         "source_rows": {
-            "pm25": int(len(pm25_lookup)),
-            "weather": int(len(weather_lookup)),
-            "engineered": int(len(reference_features)),
+            "pm25": len(pm25_lookup),
+            "weather": len(weather_lookup),
+            "engineered": len(reference_features),
         },
-        "candidate_rows": int(len(candidates)),
-        "final_rows": int(len(full_dataset)),
+        "candidate_rows": len(candidates),
+        "final_rows": len(full_dataset),
         "fully_labeled_reference_count": int(full_dataset["reference_time"].nunique()),
         "latest_eligible_reference": (latest_eligible_reference.isoformat()),
         "latest_fully_labeled_reference": (
@@ -951,7 +949,7 @@ def main() -> int:
             "subphase": "10K-C1",
             "pipeline_name": ("training_dataset_refresh"),
             "status": ("TRAINING_DATASET_REFRESH_FAILED"),
-            "failed_at_utc": datetime.now(timezone.utc).isoformat(),
+            "failed_at_utc": datetime.now(UTC).isoformat(),
             "error_type": type(error).__name__,
             "error_message": str(error),
             "production_model_changed": False,

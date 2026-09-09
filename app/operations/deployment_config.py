@@ -14,12 +14,12 @@ from __future__ import annotations
 import argparse
 import json
 import os
+from collections.abc import Mapping
 from dataclasses import asdict, dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any
 from urllib.parse import urlparse
-
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
@@ -682,7 +682,7 @@ def build_configuration_report(
 
     return {
         "phase": "10C",
-        "generated_at_utc": datetime.now(timezone.utc).isoformat(),
+        "generated_at_utc": datetime.now(UTC).isoformat(),
         "status": (
             "DEPLOYMENT_CONFIGURATION_VALIDATED"
             if approved
@@ -735,7 +735,7 @@ def main() -> int:
     except Exception as error:
         report = {
             "phase": "10C",
-            "generated_at_utc": datetime.now(timezone.utc).isoformat(),
+            "generated_at_utc": datetime.now(UTC).isoformat(),
             "status": ("DEPLOYMENT_CONFIGURATION_FAILED"),
             "approved": False,
             "error_type": type(error).__name__,

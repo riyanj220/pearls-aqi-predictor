@@ -11,7 +11,6 @@ import pandas as pd
 
 from app.mlops.contracts import (
     FeatureGroupContract,
-    LOCATION_KEY,
 )
 
 

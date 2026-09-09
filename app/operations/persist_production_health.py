@@ -18,18 +18,19 @@ import hashlib
 import json
 import time
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 from app.artifacts.repository import (
     ArtifactRepository,
-    ArtifactRepositoryError,
 )
 from app.core.config import PROJECT_ROOT
+from app.operations.health_notification_delivery import (
+    process_health_notifications,
+)
 from app.operations.production_health import (
     CRITICAL,
-    HEALTHY,
     UNKNOWN,
     WARNING,
     run_production_health,
@@ -37,11 +38,6 @@ from app.operations.production_health import (
 from app.pipelines.publish_forecast import (
     create_configured_repository,
 )
-
-from app.operations.health_notification_delivery import (
-    process_health_notifications,
-)
-
 
 REPORT_PATH = (
     PROJECT_ROOT / "reports" / "phase_10" / "production_health_delivery_report.json"
@@ -73,7 +69,7 @@ class ProductionHealthPersistenceError(RuntimeError):
 def utc_now() -> datetime:
     """Return current timezone-aware UTC time."""
 
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 def generate_health_run_id(

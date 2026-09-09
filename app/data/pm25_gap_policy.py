@@ -9,7 +9,6 @@ import pandas as pd
 
 from app.core.config import Settings, settings
 
-
 PM25_QUALITY_GOOD = "GOOD"
 PM25_QUALITY_DEGRADED = "DEGRADED"
 

@@ -20,7 +20,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -49,7 +49,6 @@ from app.pipelines.historical_backfill import (
     load_feature_columns,
     order_for_contract,
 )
-
 
 REPORT_PATH = (
     PROJECT_ROOT
@@ -288,7 +287,7 @@ def compare_datasets(
         "checks": checks,
         "valid": all(checks.values()),
         "source": {
-            "rows": int(len(source)),
+            "rows": len(source),
             "columns": list(source.columns),
             "duplicate_keys": (
                 duplicate_key_count(
@@ -305,7 +304,7 @@ def compare_datasets(
             "content_sha256": (source_digest),
         },
         "target": {
-            "rows": int(len(target)),
+            "rows": len(target),
             "columns": list(target.columns),
             "duplicate_keys": (
                 duplicate_key_count(
@@ -402,7 +401,7 @@ def run_migration(
 ) -> dict[str, Any]:
     """Run one complete Hopsworks-to-Blob feature migration."""
 
-    started_at = datetime.now(timezone.utc)
+    started_at = datetime.now(UTC)
 
     contracts = build_contracts(settings=settings)
 
@@ -446,7 +445,7 @@ def run_migration(
             "One or more migrated feature datasets failed parity validation."
         )
 
-    completed_at = datetime.now(timezone.utc)
+    completed_at = datetime.now(UTC)
 
     return {
         "phase": "10P",
@@ -521,7 +520,7 @@ def main() -> int:
             "phase": "10P",
             "subphase": "10P-D",
             "status": ("HOPSWORKS_TO_BLOB_FEATURE_MIGRATION_FAILED"),
-            "failed_at_utc": (datetime.now(timezone.utc).isoformat()),
+            "failed_at_utc": (datetime.now(UTC).isoformat()),
             "error_type": (type(error).__name__),
             "error_message": str(error),
             "production_backend_changed": False,

@@ -17,7 +17,7 @@ import argparse
 import json
 import shutil
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -41,7 +41,6 @@ from app.pipelines.refresh_training_dataset import (
 from app.pipelines.retraining_cycle import (
     run_retraining_cycle,
 )
-
 
 REPORT_PATH = PROJECT_ROOT / "reports" / "phase_10" / "daily_retraining_report.json"
 
@@ -249,7 +248,7 @@ def run_daily_retraining(
 ) -> dict[str, Any]:
     """Run one production-safe daily retraining evaluation."""
 
-    started_at = datetime.now(timezone.utc)
+    started_at = datetime.now(UTC)
 
     started_monotonic = time.monotonic()
 
@@ -284,7 +283,7 @@ def run_daily_retraining(
         pipeline_name=("controlled retraining"),
     )
 
-    completed_at = datetime.now(timezone.utc)
+    completed_at = datetime.now(UTC)
 
     if retraining_status == "RETRAINING_SKIPPED_NO_NEW_DATA":
         return {
@@ -342,7 +341,7 @@ def run_daily_retraining(
         else ("DAILY_RETRAINING_CHALLENGER_REJECTED")
     )
 
-    completed_at = datetime.now(timezone.utc)
+    completed_at = datetime.now(UTC)
 
     return {
         "phase": "10K",
@@ -425,7 +424,7 @@ def main() -> int:
             "subphase": "10K-C3",
             "pipeline_name": ("daily_retraining"),
             "status": ("DAILY_RETRAINING_FAILED"),
-            "failed_at_utc": datetime.now(timezone.utc).isoformat(),
+            "failed_at_utc": datetime.now(UTC).isoformat(),
             "error_type": (type(error).__name__),
             "error_message": str(error),
             "candidate_created": False,

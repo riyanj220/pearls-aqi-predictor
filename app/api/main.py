@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from typing import AsyncIterator
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import (
@@ -82,7 +82,7 @@ def create_application() -> FastAPI:
 
         except ArtifactRepositoryError:
             LOGGER.exception(
-                ("artifact_cache_warm_failed service_will_start_not_ready")
+                "artifact_cache_warm_failed service_will_start_not_ready"
             )
 
         yield

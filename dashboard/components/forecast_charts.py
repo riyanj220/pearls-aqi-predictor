@@ -10,7 +10,6 @@ from dashboard.utils.constants import (
     AQI_COLOR_FALLBACKS,
 )
 
-
 PLOT_CONFIG = {
     "displaylogo": False,
     "scrollZoom": False,

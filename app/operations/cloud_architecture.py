@@ -11,10 +11,9 @@ from __future__ import annotations
 import argparse
 import json
 import os
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
-
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
@@ -287,7 +286,7 @@ def build_cloud_resource_inventory() -> dict[str, Any]:
 
     return {
         "phase": "10B",
-        "generated_at_utc": datetime.now(timezone.utc).isoformat(),
+        "generated_at_utc": datetime.now(UTC).isoformat(),
         "status": ("CLOUD_ARCHITECTURE_SELECTED"),
         "project_name": ("Pearls AQI Predictor"),
         "cloud_provider": ("Microsoft Azure"),
@@ -378,7 +377,7 @@ def main() -> int:
     except Exception as error:
         report = {
             "phase": "10B",
-            "generated_at_utc": datetime.now(timezone.utc).isoformat(),
+            "generated_at_utc": datetime.now(UTC).isoformat(),
             "status": ("CLOUD_ARCHITECTURE_INVENTORY_FAILED"),
             "error_type": (type(error).__name__),
             "error_message": str(error),

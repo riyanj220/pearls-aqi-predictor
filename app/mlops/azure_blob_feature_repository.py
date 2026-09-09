@@ -3,8 +3,7 @@
 from __future__ import annotations
 
 import io
-import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pandas as pd
 
@@ -301,11 +300,11 @@ class AzureBlobFeatureRepository(FeatureRepository):
             "dataset_name": (contract.name),
             "dataset_version": (contract.version),
             "backend": "azure_blob",
-            "row_count": int(len(combined)),
+            "row_count": len(combined),
             "event_time_column": (contract.event_time),
             "primary_key": list(contract.primary_key),
             "latest_event_time_utc": (latest_event_time.isoformat()),
-            "updated_at_utc": (datetime.now(timezone.utc).isoformat()),
+            "updated_at_utc": (datetime.now(UTC).isoformat()),
             "schema": (contract.safe_summary()),
         }
 

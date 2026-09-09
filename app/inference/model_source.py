@@ -15,7 +15,6 @@ from app.mlops.model_registry import (
     ModelRegistryError,
     calculate_sha256,
 )
-
 from app.mlops.model_repository import (
     ModelRepositoryError,
     create_model_repository,

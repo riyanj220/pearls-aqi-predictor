@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -24,7 +24,6 @@ from app.mlops.retraining import (
     train_candidate_model,
     validate_training_frame,
 )
-
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
@@ -107,7 +106,7 @@ def run_retraining_cycle(
         return {
             "phase": "10K",
             "subphase": "10K-C2",
-            "generated_at_utc": datetime.now(timezone.utc).isoformat(),
+            "generated_at_utc": datetime.now(UTC).isoformat(),
             "status": ("RETRAINING_SKIPPED_NO_NEW_DATA"),
             "dataset_directory": str(dataset_paths["root"]),
             "eligibility": (eligibility.to_dict()),
@@ -195,14 +194,14 @@ def run_retraining_cycle(
     return {
         "phase": "10K",
         "subphase": "10K-C2",
-        "generated_at_utc": datetime.now(timezone.utc).isoformat(),
+        "generated_at_utc": datetime.now(UTC).isoformat(),
         "status": "RETRAINING_COMPLETED",
         "eligibility": (eligibility.to_dict()),
         "dataset_directory": str(dataset_paths["root"]),
         "training": {
-            "train_rows": int(len(train_df)),
-            "validation_rows": int(len(validation_df)),
-            "test_rows": int(len(test_df)),
+            "train_rows": len(train_df),
+            "validation_rows": len(validation_df),
+            "test_rows": len(test_df),
             "feature_count": len(feature_columns),
             "target_column": target_column,
             "persistence_max_horizon": (persistence_max_horizon),
@@ -288,7 +287,7 @@ def main() -> int:
         report = {
             "phase": "10K",
             "subphase": "10K-C2",
-            "generated_at_utc": datetime.now(timezone.utc).isoformat(),
+            "generated_at_utc": datetime.now(UTC).isoformat(),
             "status": "RETRAINING_FAILED",
             "error_type": type(error).__name__,
             "error_message": str(error),

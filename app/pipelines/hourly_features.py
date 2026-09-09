@@ -19,13 +19,16 @@ from __future__ import annotations
 import argparse
 import json
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 import pandas as pd
 
 from app.core.config import settings as app_settings
+from app.data.pm25_gap_policy import (
+    recover_short_pm25_gaps,
+)
 from app.data.validation import (
     select_latest_safe_reference_time,
 )
@@ -38,9 +41,6 @@ from app.data_sources.openaq_client import (
 from app.features.live_feature_builder import (
     build_reference_feature_table,
 )
-from app.mlops.feature_repository import (
-    create_feature_repository,
-)
 from app.mlops.config import (
     MLOpsSettings,
     get_mlops_settings,
@@ -48,6 +48,9 @@ from app.mlops.config import (
 from app.mlops.contracts import (
     FeatureGroupContract,
     build_feature_group_contracts,
+)
+from app.mlops.feature_repository import (
+    create_feature_repository,
 )
 from app.pipelines.historical_backfill import (
     load_feature_columns,
@@ -58,10 +61,6 @@ from app.pipelines.historical_backfill import (
 )
 from app.pipelines.incremental_features import (
     synchronize_group,
-)
-
-from app.data.pm25_gap_policy import (
-    recover_short_pm25_gaps,
 )
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -78,7 +77,7 @@ class HourlyFeaturePipelineError(RuntimeError):
 def generate_pipeline_run_id() -> str:
     """Generate one traceable hourly pipeline-run ID."""
 
-    timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    timestamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
 
     return f"{timestamp}_hourly_features_{uuid.uuid4().hex[:8]}"
 
@@ -375,7 +374,7 @@ def run_hourly_feature_pipeline(
 ) -> dict[str, Any]:
     """Run one fresh hourly feature synchronization cycle."""
 
-    started_at = datetime.now(timezone.utc)
+    started_at = datetime.now(UTC)
 
     pipeline_run_id = generate_pipeline_run_id()
 
@@ -527,7 +526,7 @@ def run_hourly_feature_pipeline(
     else:
         status = "HOURLY_FEATURE_PIPELINE_COMPLETED"
 
-    completed_at = datetime.now(timezone.utc)
+    completed_at = datetime.now(UTC)
 
     return {
         "phase": "10K",
@@ -546,14 +545,14 @@ def run_hourly_feature_pipeline(
             "latest_pm25_age_hours": (reference_selection.latest_pm25_age_hours),
         },
         "source_data": {
-            "pm25_rows_received": int(len(recent_pm25_df)),
-            "weather_rows_received": int(len(recent_weather_df)),
-            "observed_pm25_rows": int(len(observed_pm25_df)),
-            "observed_weather_rows": int(len(observed_weather_df)),
-            "pm25_recovered_rows": int(len(recovered_pm25_df)),
+            "pm25_rows_received": len(recent_pm25_df),
+            "weather_rows_received": len(recent_weather_df),
+            "observed_pm25_rows": len(observed_pm25_df),
+            "observed_weather_rows": len(observed_weather_df),
+            "pm25_recovered_rows": len(recovered_pm25_df),
             "pm25_input_quality": (pm25_input_quality),
-            "canonical_rows": int(len(canonical_df)),
-            "complete_engineered_rows": int(len(engineered_df)),
+            "canonical_rows": len(canonical_df),
+            "complete_engineered_rows": len(engineered_df),
             "pm25_start": str(observed_pm25_df["datetime_utc"].min()),
             "pm25_end": str(observed_pm25_df["datetime_utc"].max()),
             "weather_start": str(observed_weather_df["datetime_utc"].min()),
@@ -635,7 +634,7 @@ def main() -> int:
             "subphase": "10K-A",
             "pipeline_name": ("hourly_feature_pipeline"),
             "status": ("HOURLY_FEATURE_PIPELINE_FAILED"),
-            "failed_at_utc": datetime.now(timezone.utc).isoformat(),
+            "failed_at_utc": datetime.now(UTC).isoformat(),
             "error_type": (type(error).__name__),
             "error_message": str(error),
         }

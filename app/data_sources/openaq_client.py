@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import pandas as pd
@@ -51,7 +51,7 @@ def _utc_isoformat(
     if value.tzinfo is None:
         raise OpenAQClientError("OpenAQ request datetimes must be timezone-aware.")
 
-    utc_value = value.astimezone(timezone.utc)
+    utc_value = value.astimezone(UTC)
 
     return utc_value.isoformat().replace(
         "+00:00",
@@ -337,7 +337,7 @@ class OpenAQClient:
 
         api_key = self.settings.require_openaq_api_key()
 
-        request_end_time = end_time or datetime.now(timezone.utc)
+        request_end_time = end_time or datetime.now(UTC)
 
         if request_end_time.tzinfo is None:
             raise OpenAQClientError("end_time must be timezone-aware.")

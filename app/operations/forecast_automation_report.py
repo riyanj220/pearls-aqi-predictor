@@ -4,10 +4,9 @@ from __future__ import annotations
 
 import argparse
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
-
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
@@ -278,7 +277,7 @@ def build_phase_10j_report() -> dict[str, Any]:
 
     return {
         "phase": "10J",
-        "generated_at_utc": datetime.now(timezone.utc).isoformat(),
+        "generated_at_utc": datetime.now(UTC).isoformat(),
         "status": final_status,
         "approved": approved,
         "architecture": {
@@ -418,7 +417,7 @@ def main() -> int:
     except Exception as error:
         failure_report = {
             "phase": "10J",
-            "generated_at_utc": datetime.now(timezone.utc).isoformat(),
+            "generated_at_utc": datetime.now(UTC).isoformat(),
             "status": ("PHASE_10J_FORECAST_AUTOMATION_FAILED"),
             "approved": False,
             "error_type": (type(error).__name__),

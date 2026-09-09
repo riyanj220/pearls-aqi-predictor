@@ -231,7 +231,7 @@ class MLOpsSettings(BaseSettings):
     @model_validator(mode="after")
     def validate_backend_credentials(
         self,
-    ) -> "MLOpsSettings":
+    ) -> MLOpsSettings:
         """Validate backend-specific configuration."""
 
         hopsworks_required = any(

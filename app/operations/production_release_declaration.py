@@ -5,10 +5,9 @@ from __future__ import annotations
 import argparse
 import json
 import subprocess
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
-
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
@@ -356,7 +355,7 @@ def build_declaration(
     return {
         "phase": "10M",
         "subphase": "10M-J",
-        "declared_at_utc": (datetime.now(timezone.utc).isoformat()),
+        "declared_at_utc": (datetime.now(UTC).isoformat()),
         "status": (declaration_status),
         "production_live": (core_release_ready),
         "release": {
@@ -480,7 +479,7 @@ def main() -> int:
         report = {
             "phase": "10M",
             "subphase": "10M-J",
-            "declared_at_utc": (datetime.now(timezone.utc).isoformat()),
+            "declared_at_utc": (datetime.now(UTC).isoformat()),
             "status": ("PRODUCTION_RELEASE_DECLARATION_FAILED"),
             "production_live": False,
             "error_type": (type(error).__name__),

@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import shutil
 import tempfile
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -243,7 +243,7 @@ class AzureBlobModelRepository(ModelRepository):
         payload = {
             "model_name": (self.model_name),
             "latest_version": version,
-            "updated_at_utc": (datetime.now(timezone.utc).isoformat()),
+            "updated_at_utc": (datetime.now(UTC).isoformat()),
             "versions": versions,
         }
 
@@ -285,7 +285,7 @@ class AzureBlobModelRepository(ModelRepository):
         except ArtifactRepositoryError as error:
             raise ModelRepositoryError("Could not inspect model version.") from error
 
-        registered_at = datetime.now(timezone.utc).isoformat()
+        registered_at = datetime.now(UTC).isoformat()
 
         registry_metadata = {
             "model_name": (self.model_name),
@@ -419,7 +419,7 @@ class AzureBlobModelRepository(ModelRepository):
             "manifest_path": (manifest_path),
             "model_checksum_sha256": (checksum),
             "production_status": ("PRODUCTION"),
-            "promoted_at_utc": (datetime.now(timezone.utc).isoformat()),
+            "promoted_at_utc": (datetime.now(UTC).isoformat()),
         }
 
         try:
@@ -559,8 +559,6 @@ class AzureBlobModelRepository(ModelRepository):
             model_path = temporary_bundle / "best_model.joblib"
 
             feature_columns_path = temporary_bundle / "model_feature_columns.json"
-
-            model_metadata_path = temporary_bundle / "model_metadata.json"
 
             required = [
                 model_path,
@@ -722,7 +720,7 @@ class AzureBlobModelRepository(ModelRepository):
                 "Could not inspect target model version."
             ) from error
 
-        published_at = datetime.now(timezone.utc).isoformat()
+        published_at = datetime.now(UTC).isoformat()
 
         records: list[dict[str, Any]] = []
 

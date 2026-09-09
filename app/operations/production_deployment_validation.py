@@ -7,10 +7,9 @@ import json
 import subprocess
 import urllib.error
 import urllib.request
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
-
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
@@ -756,7 +755,7 @@ def main() -> int:
         report = {
             "phase": "10M",
             "subphase": "10M-I",
-            "generated_at_utc": (datetime.now(timezone.utc).isoformat()),
+            "generated_at_utc": (datetime.now(UTC).isoformat()),
             "status": (
                 "PRODUCTION_DEPLOYMENT_VALIDATED"
                 if validation["valid"]
@@ -772,7 +771,7 @@ def main() -> int:
         report = {
             "phase": "10M",
             "subphase": "10M-I",
-            "generated_at_utc": (datetime.now(timezone.utc).isoformat()),
+            "generated_at_utc": (datetime.now(UTC).isoformat()),
             "status": ("PRODUCTION_DEPLOYMENT_VALIDATION_FAILED"),
             "production_live": False,
             "valid": False,

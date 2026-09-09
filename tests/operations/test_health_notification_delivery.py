@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from app.artifacts.repository import (
@@ -19,14 +19,13 @@ from app.operations.health_notification_delivery import (
     enqueue_notification,
 )
 
-
 NOW = datetime(
     2026,
     8,
     6,
     12,
     0,
-    tzinfo=timezone.utc,
+    tzinfo=UTC,
 )
 
 

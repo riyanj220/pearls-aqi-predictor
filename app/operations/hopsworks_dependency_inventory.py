@@ -8,10 +8,9 @@ from __future__ import annotations
 
 import json
 import re
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
-
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
@@ -249,7 +248,7 @@ def build_inventory() -> dict[
     return {
         "phase": "10P",
         "subphase": "10P-A",
-        "generated_at_utc": (datetime.now(timezone.utc).isoformat()),
+        "generated_at_utc": (datetime.now(UTC).isoformat()),
         "status": ("HOPSWORKS_DEPENDENCY_INVENTORY_READY"),
         "read_only": True,
         "runtime_configuration_changed": False,

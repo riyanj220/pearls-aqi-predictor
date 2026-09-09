@@ -17,9 +17,9 @@ from dashboard.components import (
     render_api_error,
     render_dashboard_header,
     render_empty_forecast,
+    render_forecast_status_notice,
     render_metric_cards,
     render_no_rolling_aqi,
-    render_forecast_status_notice,
 )
 from dashboard.components.theme import (
     apply_dashboard_theme,

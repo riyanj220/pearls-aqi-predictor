@@ -7,8 +7,8 @@ from datetime import datetime
 from pydantic import Field
 
 from app.api.schemas.common import (
-    AQICategory,
     AlertLevel,
+    AQICategory,
     FreshnessResponse,
     PublicSchema,
 )

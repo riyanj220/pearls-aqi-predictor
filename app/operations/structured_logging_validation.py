@@ -7,7 +7,7 @@ import io
 import json
 import logging
 import tempfile
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -18,7 +18,6 @@ from app.observability.reports import (
     build_base_report,
     save_operational_report,
 )
-
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
@@ -124,7 +123,7 @@ def run_structured_logging_validation() -> dict[str, Any]:
 
     return {
         "phase": "10E",
-        "generated_at_utc": datetime.now(timezone.utc).isoformat(),
+        "generated_at_utc": datetime.now(UTC).isoformat(),
         "status": (
             "STRUCTURED_LOGGING_VALIDATED" if approved else "STRUCTURED_LOGGING_INVALID"
         ),
@@ -177,7 +176,7 @@ def main() -> int:
     except Exception as error:
         report = {
             "phase": "10E",
-            "generated_at_utc": datetime.now(timezone.utc).isoformat(),
+            "generated_at_utc": datetime.now(UTC).isoformat(),
             "status": ("STRUCTURED_LOGGING_VALIDATION_FAILED"),
             "approved": False,
             "error_type": (type(error).__name__),

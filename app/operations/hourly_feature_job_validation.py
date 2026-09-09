@@ -5,10 +5,9 @@ from __future__ import annotations
 import argparse
 import json
 import subprocess
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
-
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
@@ -237,7 +236,7 @@ def build_report(
     return {
         "phase": "10K",
         "subphase": "10K-B",
-        "generated_at_utc": datetime.now(timezone.utc).isoformat(),
+        "generated_at_utc": datetime.now(UTC).isoformat(),
         "status": (
             "HOURLY_FEATURE_JOB_VALIDATED" if approved else "HOURLY_FEATURE_JOB_INVALID"
         ),
@@ -343,7 +342,7 @@ def main() -> int:
         report = {
             "phase": "10K",
             "subphase": "10K-B",
-            "generated_at_utc": datetime.now(timezone.utc).isoformat(),
+            "generated_at_utc": datetime.now(UTC).isoformat(),
             "status": ("HOURLY_FEATURE_JOB_VALIDATION_FAILED"),
             "approved": False,
             "error_type": type(error).__name__,

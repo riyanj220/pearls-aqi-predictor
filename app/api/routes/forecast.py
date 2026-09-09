@@ -9,8 +9,8 @@ from app.api.dependencies import (
     SettingsDependency,
 )
 from app.api.schemas.common import (
-    AQICategory,
     AlertLevel,
+    AQICategory,
 )
 from app.api.schemas.forecast import (
     CompleteForecastResponse,

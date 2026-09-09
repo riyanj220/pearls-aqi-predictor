@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import os
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -28,7 +28,6 @@ from app.pipelines.refresh_training_dataset import (
 from app.pipelines.retraining_cycle import (
     run_retraining_cycle,
 )
-
 
 REPORT_PATH = (
     PROJECT_ROOT
@@ -104,7 +103,7 @@ def require_status(
 def run_validation() -> dict[str, Any]:
     """Run a complete Blob-backed retraining evaluation."""
 
-    started_at = datetime.now(timezone.utc)
+    started_at = datetime.now(UTC)
 
     started_monotonic = time.monotonic()
 
@@ -288,7 +287,7 @@ def run_validation() -> dict[str, Any]:
             f"Blob-backed retraining validation failed: {runtime_checks}"
         )
 
-    completed_at = datetime.now(timezone.utc)
+    completed_at = datetime.now(UTC)
 
     return {
         "phase": "10P",
@@ -355,7 +354,7 @@ def main() -> int:
             "phase": "10P",
             "subphase": "10P-H",
             "status": ("BLOB_BACKED_RETRAINING_VALIDATION_FAILED"),
-            "failed_at_utc": (datetime.now(timezone.utc).isoformat()),
+            "failed_at_utc": (datetime.now(UTC).isoformat()),
             "error_type": (type(error).__name__),
             "error_message": str(error),
             "candidate_registered": False,
