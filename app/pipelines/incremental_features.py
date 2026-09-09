@@ -26,7 +26,6 @@ from app.pipelines.historical_backfill import (
     prepare_engineered_rows,
     prepare_pm25_rows,
     prepare_weather_rows,
-
 )
 
 from app.mlops.feature_repository import (
@@ -67,9 +66,7 @@ def get_dataframe_event_range(
     """Return minimum and maximum valid event times."""
 
     if dataframe.empty:
-        raise IncrementalFeatureError(
-            f"No rows are available for {event_time_column}."
-        )
+        raise IncrementalFeatureError(f"No rows are available for {event_time_column}.")
 
     event_times = pd.to_datetime(
         dataframe[event_time_column],
@@ -96,14 +93,12 @@ def get_latest_stored_event_time(
     """Return the latest stored event time."""
 
     try:
-        return repository.latest_event_time(
-            contract=contract
-        )
+        return repository.latest_event_time(contract=contract)
     except FeatureRepositoryError as error:
         raise IncrementalFeatureError(
-            f"Could not inspect stored dataset "
-            f"{contract.name}."
+            f"Could not inspect stored dataset {contract.name}."
         ) from error
+
 
 def calculate_incremental_start(
     *,
@@ -116,24 +111,14 @@ def calculate_incremental_start(
     """Calculate the inclusive synchronization start time."""
 
     if latest_stored_time is not None:
-        start_time = (
-            latest_stored_time
-            - pd.Timedelta(
-                hours=overlap_hours
-            )
-        )
+        start_time = latest_stored_time - pd.Timedelta(hours=overlap_hours)
 
         return max(
             local_start_time,
             start_time,
         )
 
-    initial_start = (
-        local_end_time
-        - pd.Timedelta(
-            hours=initial_lookback_hours - 1
-        )
-    )
+    initial_start = local_end_time - pd.Timedelta(hours=initial_lookback_hours - 1)
 
     return max(
         local_start_time,
@@ -174,45 +159,27 @@ def synchronize_group(
 ) -> dict[str, Any]:
     """Synchronize one prepared feature-group DataFrame."""
 
-    local_start, local_end = (
-        get_dataframe_event_range(
-            dataframe=dataframe,
-            event_time_column=(
-                contract.event_time
-            ),
-        )
+    local_start, local_end = get_dataframe_event_range(
+        dataframe=dataframe,
+        event_time_column=(contract.event_time),
     )
 
-    latest_stored_time = (
-        get_latest_stored_event_time(
-            repository=repository,
-            contract=contract,
-        )
+    latest_stored_time = get_latest_stored_event_time(
+        repository=repository,
+        contract=contract,
     )
 
-    incremental_start = (
-        calculate_incremental_start(
-            latest_stored_time=(
-                latest_stored_time
-            ),
-            local_start_time=local_start,
-            local_end_time=local_end,
-            overlap_hours=(
-                settings
-                .incremental_overlap_hours
-            ),
-            initial_lookback_hours=(
-                settings
-                .incremental_initial_lookback_hours
-            ),
-        )
+    incremental_start = calculate_incremental_start(
+        latest_stored_time=(latest_stored_time),
+        local_start_time=local_start,
+        local_end_time=local_end,
+        overlap_hours=(settings.incremental_overlap_hours),
+        initial_lookback_hours=(settings.incremental_initial_lookback_hours),
     )
 
     candidate = filter_incremental_rows(
         dataframe=dataframe,
-        event_time_column=(
-            contract.event_time
-        ),
+        event_time_column=(contract.event_time),
         start_time_utc=incremental_start,
         end_time_utc=local_end,
     )
@@ -222,10 +189,7 @@ def synchronize_group(
         contract,
     )
 
-    end_exclusive = (
-        local_end
-        + pd.Timedelta(hours=1)
-    )
+    end_exclusive = local_end + pd.Timedelta(hours=1)
 
     try:
         existing = repository.read_range(
@@ -238,9 +202,7 @@ def synchronize_group(
         # Preserve the previous synchronization behavior:
         # an unavailable overlap read is treated as no
         # existing rows for classification.
-        existing = empty_feature_frame(
-            contract
-        )
+        existing = empty_feature_frame(contract)
 
     classification = classify_rows(
         candidate=candidate,
@@ -248,10 +210,7 @@ def synchronize_group(
         contract=contract,
     )
 
-    if (
-        not settings.mlops_dry_run
-        and not classification.writable.empty
-    ):
+    if not settings.mlops_dry_run and not classification.writable.empty:
         repository.upsert(
             contract=contract,
             dataframe=classification.writable,
@@ -260,52 +219,22 @@ def synchronize_group(
     return {
         "feature_group_name": contract.name,
         "version": contract.version,
-        "event_time_column": (
-            contract.event_time
-        ),
+        "event_time_column": (contract.event_time),
         "latest_stored_event_time_before_run": (
-            latest_stored_time.isoformat()
-            if latest_stored_time is not None
-            else None
+            latest_stored_time.isoformat() if latest_stored_time is not None else None
         ),
-        "local_available_start": (
-            local_start.isoformat()
-        ),
-        "local_available_end": (
-            local_end.isoformat()
-        ),
-        "incremental_start": (
-            incremental_start.isoformat()
-        ),
-        "incremental_end": (
-            local_end.isoformat()
-        ),
-        "overlap_hours": (
-            settings.incremental_overlap_hours
-        ),
-        "candidate_rows": int(
-            len(candidate)
-        ),
-        "existing_rows_in_window": int(
-            len(existing)
-        ),
-        "rows_to_insert": (
-            classification.inserted
-        ),
-        "rows_to_update": (
-            classification.updated
-        ),
-        "rows_unchanged": (
-            classification.unchanged
-        ),
+        "local_available_start": (local_start.isoformat()),
+        "local_available_end": (local_end.isoformat()),
+        "incremental_start": (incremental_start.isoformat()),
+        "incremental_end": (local_end.isoformat()),
+        "overlap_hours": (settings.incremental_overlap_hours),
+        "candidate_rows": int(len(candidate)),
+        "existing_rows_in_window": int(len(existing)),
+        "rows_to_insert": (classification.inserted),
+        "rows_to_update": (classification.updated),
+        "rows_unchanged": (classification.unchanged),
         "rows_written": (
-            0
-            if settings.mlops_dry_run
-            else int(
-                len(
-                    classification.writable
-                )
-            )
+            0 if settings.mlops_dry_run else int(len(classification.writable))
         ),
         "duplicate_keys": int(
             candidate.duplicated(
@@ -328,30 +257,15 @@ def run_incremental_feature_pipeline(
 ) -> dict[str, Any]:
     """Synchronize PM2.5, weather and engineered features."""
 
-    started_at = datetime.now(
-        timezone.utc
-    )
+    started_at = datetime.now(timezone.utc)
 
-    pipeline_run_id = (
-        "incremental_features_"
-        + uuid.uuid4().hex
-    )
+    pipeline_run_id = "incremental_features_" + uuid.uuid4().hex
 
-    canonical_path = (
-        PROJECT_ROOT
-        / settings.phase_1_canonical_dataset_path
-    )
+    canonical_path = PROJECT_ROOT / settings.phase_1_canonical_dataset_path
 
-    training_path = (
-        PROJECT_ROOT
-        / settings.phase_2_training_dataset_path
-    )
+    training_path = PROJECT_ROOT / settings.phase_2_training_dataset_path
 
-    feature_columns_path = (
-        PROJECT_ROOT
-        / "models"
-        / "model_feature_columns.json"
-    )
+    feature_columns_path = PROJECT_ROOT / "models" / "model_feature_columns.json"
 
     required_paths = [
         canonical_path,
@@ -359,88 +273,49 @@ def run_incremental_feature_pipeline(
         feature_columns_path,
     ]
 
-    missing_paths = [
-        str(path)
-        for path in required_paths
-        if not path.exists()
-    ]
+    missing_paths = [str(path) for path in required_paths if not path.exists()]
 
     if missing_paths:
         raise FileNotFoundError(
-            "Required incremental artifacts "
-            f"are missing: {missing_paths}"
+            f"Required incremental artifacts are missing: {missing_paths}"
         )
 
-    canonical_df = pd.read_parquet(
-        canonical_path
-    )
+    canonical_df = pd.read_parquet(canonical_path)
 
-    training_df = pd.read_parquet(
-        training_path
-    )
+    training_df = pd.read_parquet(training_path)
 
-    model_feature_columns = (
-        load_feature_columns(
-            feature_columns_path
-        )
-    )
+    model_feature_columns = load_feature_columns(feature_columns_path)
 
     contracts = build_feature_group_contracts(
-        pm25_version=(
-            settings
-            .hopsworks_pm25_feature_group_version
-        ),
-        weather_version=(
-            settings
-            .hopsworks_weather_feature_group_version
-        ),
-        engineered_version=(
-            settings
-            .hopsworks_engineered_feature_group_version
-        ),
-        pm25_name=(
-            settings.hopsworks_pm25_feature_group_name
-        ),
-        weather_name=(
-            settings.hopsworks_weather_feature_group_name
-        ),
-        engineered_name=(
-            settings
-            .hopsworks_engineered_feature_group_name
-        ),
-        model_feature_columns=(
-            model_feature_columns
-        ),
+        pm25_version=(settings.hopsworks_pm25_feature_group_version),
+        weather_version=(settings.hopsworks_weather_feature_group_version),
+        engineered_version=(settings.hopsworks_engineered_feature_group_version),
+        pm25_name=(settings.hopsworks_pm25_feature_group_name),
+        weather_name=(settings.hopsworks_weather_feature_group_name),
+        engineered_name=(settings.hopsworks_engineered_feature_group_name),
+        model_feature_columns=(model_feature_columns),
     )
 
-    prepared_at = pd.Timestamp.now(
-        tz="UTC"
-    )
+    prepared_at = pd.Timestamp.now(tz="UTC")
 
     prepared_rows = {
         "pm25": prepare_pm25_rows(
             canonical_df=canonical_df,
             retrieved_at_utc=prepared_at,
             pipeline_run_id=pipeline_run_id,
-            source_data_version=(
-                settings.source_data_version
-            ),
+            source_data_version=(settings.source_data_version),
         ),
         "weather": prepare_weather_rows(
             canonical_df=canonical_df,
             retrieved_at_utc=prepared_at,
             pipeline_run_id=pipeline_run_id,
-            source_data_version=(
-                settings.source_data_version
-            ),
+            source_data_version=(settings.source_data_version),
         ),
         "engineered": prepare_engineered_rows(
             training_df=training_df,
             contract=contracts["engineered"],
             pipeline_run_id=pipeline_run_id,
-            feature_pipeline_version=(
-                settings.feature_pipeline_version
-            ),
+            feature_pipeline_version=(settings.feature_pipeline_version),
         ),
     }
 
@@ -456,68 +331,39 @@ def run_incremental_feature_pipeline(
         "weather",
         "engineered",
     ):
-        group_reports[group_name] = (
-           synchronize_group(
-                dataframe=prepared_rows[
-                    group_name
-                ],
-                repository=repository,
-                contract=contracts[
-                    group_name
-                ],
-                settings=settings,
-            )
+        group_reports[group_name] = synchronize_group(
+            dataframe=prepared_rows[group_name],
+            repository=repository,
+            contract=contracts[group_name],
+            settings=settings,
         )
 
-    completed_at = datetime.now(
-        timezone.utc
-    )
+    completed_at = datetime.now(timezone.utc)
 
     total_rows_written = sum(
-        group_report["rows_written"]
-        for group_report
-        in group_reports.values()
+        group_report["rows_written"] for group_report in group_reports.values()
     )
 
     return {
         "phase": "9H",
         "pipeline_run_id": pipeline_run_id,
-        "pipeline_name": (
-            "incremental_feature_sync"
-        ),
+        "pipeline_name": ("incremental_feature_sync"),
         "status": (
             "INCREMENTAL_SYNC_DRY_RUN_SUCCESS"
             if settings.mlops_dry_run
             else "INCREMENTAL_SYNC_SUCCESS"
         ),
-        "started_at_utc": (
-            started_at.isoformat()
-        ),
-        "completed_at_utc": (
-            completed_at.isoformat()
-        ),
+        "started_at_utc": (started_at.isoformat()),
+        "completed_at_utc": (completed_at.isoformat()),
         "dry_run": settings.mlops_dry_run,
         "remote_writes_performed": (
-            not settings.mlops_dry_run
-            and total_rows_written > 0
+            not settings.mlops_dry_run and total_rows_written > 0
         ),
-        "canonical_dataset_path": (
-            canonical_path.relative_to(
-                PROJECT_ROOT
-            ).as_posix()
-        ),
-        "training_dataset_path": (
-            training_path.relative_to(
-                PROJECT_ROOT
-            ).as_posix()
-        ),
-        "total_rows_written": (
-            total_rows_written
-        ),
+        "canonical_dataset_path": (canonical_path.relative_to(PROJECT_ROOT).as_posix()),
+        "training_dataset_path": (training_path.relative_to(PROJECT_ROOT).as_posix()),
+        "total_rows_written": (total_rows_written),
         "groups": group_reports,
-        "feature_repository_backend": (
-            repository.backend_name
-        ),
+        "feature_repository_backend": (repository.backend_name),
     }
 
 
@@ -527,10 +373,7 @@ def save_incremental_report(
     """Save the latest incremental synchronization report."""
 
     report_path = (
-        PROJECT_ROOT
-        / "reports"
-        / "phase_9"
-        / "incremental_feature_report.json"
+        PROJECT_ROOT / "reports" / "phase_9" / "incremental_feature_report.json"
     )
 
     report_path.parent.mkdir(
@@ -554,10 +397,7 @@ def main() -> int:
     """CLI entry point."""
 
     parser = argparse.ArgumentParser(
-        description=(
-            "Incrementally synchronize validated "
-            "features with Hopsworks."
-        )
+        description=("Incrementally synchronize validated features with Hopsworks.")
     )
 
     parser.parse_args()
@@ -565,37 +405,23 @@ def main() -> int:
     try:
         settings = get_mlops_settings()
 
-        report = (
-            run_incremental_feature_pipeline(
-                settings=settings
-            )
-        )
+        report = run_incremental_feature_pipeline(settings=settings)
 
         exit_code = 0
 
     except Exception as error:
         report = {
             "phase": "9H",
-            "pipeline_name": (
-                "incremental_feature_sync"
-            ),
-            "status": (
-                "INCREMENTAL_SYNC_FAILED"
-            ),
-            "completed_at_utc": datetime.now(
-                timezone.utc
-            ).isoformat(),
-            "error_type": (
-                type(error).__name__
-            ),
+            "pipeline_name": ("incremental_feature_sync"),
+            "status": ("INCREMENTAL_SYNC_FAILED"),
+            "completed_at_utc": datetime.now(timezone.utc).isoformat(),
+            "error_type": (type(error).__name__),
             "error_message": str(error),
         }
 
         exit_code = 1
 
-    report_path = save_incremental_report(
-        report
-    )
+    report_path = save_incremental_report(report)
 
     print(
         json.dumps(

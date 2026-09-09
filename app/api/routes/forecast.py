@@ -38,11 +38,7 @@ def get_complete_forecast(
 ) -> CompleteForecastResponse:
     """Return the complete dashboard-oriented forecast."""
 
-    return ForecastService(
-        settings=settings
-    ).build_complete_forecast(
-        bundle
-    )
+    return ForecastService(settings=settings).build_complete_forecast(bundle)
 
 
 @router.get(
@@ -75,9 +71,7 @@ def get_hourly_forecast(
 ) -> HourlyForecastResponse:
     """Filter the 72-hour forecast by horizon, category, or alert."""
 
-    return ForecastService(
-        settings=settings
-    ).filter_hourly(
+    return ForecastService(settings=settings).filter_hourly(
         bundle=bundle,
         minimum_horizon=minimum_horizon,
         maximum_horizon=maximum_horizon,
@@ -98,8 +92,4 @@ def get_forecast_summary(
 ) -> ForecastSummaryResponse:
     """Return a compact public forecast summary."""
 
-    return ForecastService(
-        settings=settings
-    ).build_summary(
-        bundle
-    )
+    return ForecastService(settings=settings).build_summary(bundle)

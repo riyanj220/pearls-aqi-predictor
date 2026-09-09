@@ -142,23 +142,14 @@ def build_pm25_chart(
     )
 
     if not forecast_df.empty:
-        peak_index = forecast_df[
-            "predicted_pm25_ug_m3"
-        ].idxmax()
+        peak_index = forecast_df["predicted_pm25_ug_m3"].idxmax()
 
-        peak_row = forecast_df.loc[
-            peak_index
-        ]
+        peak_row = forecast_df.loc[peak_index]
 
         figure.add_annotation(
             x=peak_row["display_time"],
-            y=peak_row[
-                "predicted_pm25_ug_m3"
-            ],
-            text=(
-                "Peak "
-                f"{peak_row['predicted_pm25_ug_m3']:.1f}"
-            ),
+            y=peak_row["predicted_pm25_ug_m3"],
+            text=(f"Peak {peak_row['predicted_pm25_ug_m3']:.1f}"),
             showarrow=True,
             arrowhead=2,
             arrowcolor="#64748B",
@@ -204,11 +195,7 @@ def _add_aqi_bands(
         figure.add_hrect(
             y0=lower,
             y1=upper,
-            fillcolor=(
-                AQI_COLOR_FALLBACKS[
-                    category
-                ]
-            ),
+            fillcolor=(AQI_COLOR_FALLBACKS[category]),
             opacity=0.075,
             line_width=0,
             layer="below",
@@ -220,12 +207,8 @@ def build_indicative_aqi_chart(
 ) -> go.Figure:
     """Build the indicative hourly AQI chart."""
 
-    marker_colors = forecast_df[
-        "indicative_hourly_aqi_color_hex"
-    ].fillna(
-        forecast_df[
-            "indicative_hourly_aqi_category"
-        ].map(AQI_COLOR_FALLBACKS)
+    marker_colors = forecast_df["indicative_hourly_aqi_color_hex"].fillna(
+        forecast_df["indicative_hourly_aqi_category"].map(AQI_COLOR_FALLBACKS)
     )
 
     figure = go.Figure()
@@ -233,9 +216,7 @@ def build_indicative_aqi_chart(
     figure.add_trace(
         go.Scatter(
             x=forecast_df["display_time"],
-            y=forecast_df[
-                "indicative_hourly_pm25_aqi"
-            ],
+            y=forecast_df["indicative_hourly_pm25_aqi"],
             mode="lines+markers",
             line={
                 "width": 2.3,
@@ -289,12 +270,8 @@ def build_rolling_aqi_chart(
     """Build the complete rolling 24-hour AQI chart."""
 
     rolling_df = forecast_df.loc[
-        forecast_df[
-            "rolling_24h_pm25_is_complete"
-        ].astype(bool)
-        & forecast_df[
-            "rolling_24h_pm25_aqi"
-        ].notna()
+        forecast_df["rolling_24h_pm25_is_complete"].astype(bool)
+        & forecast_df["rolling_24h_pm25_aqi"].notna()
     ].copy()
 
     if rolling_df.empty:
@@ -305,9 +282,7 @@ def build_rolling_aqi_chart(
     figure.add_trace(
         go.Scatter(
             x=rolling_df["display_time"],
-            y=rolling_df[
-                "rolling_24h_pm25_aqi"
-            ],
+            y=rolling_df["rolling_24h_pm25_aqi"],
             mode="lines+markers",
             line={
                 "width": 2.7,
@@ -315,9 +290,7 @@ def build_rolling_aqi_chart(
             },
             marker={
                 "size": 6,
-                "color": rolling_df[
-                    "rolling_24h_aqi_color_hex"
-                ],
+                "color": rolling_df["rolling_24h_aqi_color_hex"],
                 "line": {
                     "width": 1,
                     "color": "#0B0F15",
@@ -369,27 +342,21 @@ def build_category_timeline(
     color_mapping = {
         category: (
             timeline_df.loc[
-                timeline_df[
-                    "alert_trigger_category"
-                ].eq(category),
+                timeline_df["alert_trigger_category"].eq(category),
                 "rolling_24h_aqi_color_hex",
-            ].dropna().iloc[0]
+            ]
+            .dropna()
+            .iloc[0]
             if (
-                timeline_df[
-                    "alert_trigger_category"
-                ].eq(category)
-                & timeline_df[
-                    "rolling_24h_aqi_color_hex"
-                ].notna()
+                timeline_df["alert_trigger_category"].eq(category)
+                & timeline_df["rolling_24h_aqi_color_hex"].notna()
             ).any()
             else AQI_COLOR_FALLBACKS.get(
                 category,
                 "#64748B",
             )
         )
-        for category in timeline_df[
-            "alert_trigger_category"
-        ].dropna().unique()
+        for category in timeline_df["alert_trigger_category"].dropna().unique()
     }
 
     figure = px.bar(

@@ -35,9 +35,7 @@ class HourlyForecastRecord(PublicSchema):
 
     indicative_hourly_aqi_category: AQICategory
 
-    indicative_hourly_aqi_color_hex: str = Field(
-        pattern=r"^#[0-9A-Fa-f]{6}$"
-    )
+    indicative_hourly_aqi_color_hex: str = Field(pattern=r"^#[0-9A-Fa-f]{6}$")
 
     rolling_24h_pm25_ug_m3: float | None = Field(
         default=None,

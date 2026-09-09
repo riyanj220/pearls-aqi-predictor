@@ -21,9 +21,7 @@ from app.mlops.model_repository import (
 )
 
 
-class HopsworksModelRepository(
-    ModelRepository
-):
+class HopsworksModelRepository(ModelRepository):
     """Model repository backed by Hopsworks Model Registry."""
 
     def __init__(
@@ -34,22 +32,15 @@ class HopsworksModelRepository(
         self.settings = settings
 
         try:
-            self.resources = (
-                connect_to_hopsworks(
-                    settings
-                )
-            )
+            self.resources = connect_to_hopsworks(settings)
 
         except HopsworksConnectionError as error:
             raise ModelRepositoryError(
-                "Could not initialize Hopsworks "
-                "model repository."
+                "Could not initialize Hopsworks model repository."
             ) from error
 
         if self.resources.model_registry is None:
-            raise ModelRepositoryError(
-                "Hopsworks Model Registry was not resolved."
-            )
+            raise ModelRepositoryError("Hopsworks Model Registry was not resolved.")
 
     @property
     def backend_name(self) -> str:
@@ -88,9 +79,7 @@ class HopsworksModelRepository(
             return register_candidate_model(
                 resources=self.resources,
                 settings=self.settings,
-                candidate_directory=(
-                    candidate_directory
-                ),
+                candidate_directory=(candidate_directory),
                 metrics=metrics,
             )
 

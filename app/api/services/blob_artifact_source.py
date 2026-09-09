@@ -22,9 +22,7 @@ from app.artifacts.repository import (
 )
 
 
-class ArtifactMaterializationError(
-    RuntimeError
-):
+class ArtifactMaterializationError(RuntimeError):
     """Raised when durable artifacts cannot be materialized."""
 
 
@@ -44,9 +42,7 @@ def calculate_bytes_sha256(
 ) -> str:
     """Calculate one SHA-256 checksum."""
 
-    return hashlib.sha256(
-        data
-    ).hexdigest()
+    return hashlib.sha256(data).hexdigest()
 
 
 class BlobArtifactSource:
@@ -67,28 +63,19 @@ class BlobArtifactSource:
         self,
         settings: APISettings,
         *,
-        repository: (
-            DurableArtifactRepository
-            | None
-        ) = None,
+        repository: (DurableArtifactRepository | None) = None,
     ) -> None:
         self._settings = settings
 
         self._repository = (
-            repository
-            if repository is not None
-            else self._create_repository()
+            repository if repository is not None else self._create_repository()
         )
 
         self._lock = threading.RLock()
 
-        self._last_checked_monotonic: (
-            float | None
-        ) = None
+        self._last_checked_monotonic: float | None = None
 
-        self._materialized_run_id: (
-            str | None
-        ) = None
+        self._materialized_run_id: str | None = None
 
     def _create_repository(
         self,
@@ -98,19 +85,12 @@ class BlobArtifactSource:
         try:
             return create_artifact_repository(
                 backend="azure_blob",
-                azure_storage_account=(
-                    self._settings
-                    .azure_storage_account
-                ),
-                azure_storage_container=(
-                    self._settings
-                    .azure_storage_container
-                ),
+                azure_storage_account=(self._settings.azure_storage_account),
+                azure_storage_container=(self._settings.azure_storage_container),
             )
         except DurableRepositoryError as error:
             raise ArtifactMaterializationError(
-                "Could not create Azure Blob "
-                "artifact repository."
+                "Could not create Azure Blob artifact repository."
             ) from error
 
     def refresh(
@@ -128,15 +108,10 @@ class BlobArtifactSource:
             ):
                 return MaterializationResult(
                     backend="azure_blob",
-                    run_id=(
-                        self._materialized_run_id
-                    ),
+                    run_id=(self._materialized_run_id),
                     source_run_id=None,
                     refreshed=False,
-                    cache_directory=(
-                        self._settings
-                        .active_phase_6_directory
-                    ),
+                    cache_directory=(self._settings.active_phase_6_directory),
                 )
 
             pointer = self._load_pointer()
@@ -146,25 +121,17 @@ class BlobArtifactSource:
                 "run_id",
             )
 
-            source_run_id = (
-                self._optional_string(
-                    pointer,
-                    "source_run_id",
-                )
+            source_run_id = self._optional_string(
+                pointer,
+                "source_run_id",
             )
 
-            validation_status = (
-                self._require_string(
-                    pointer,
-                    "validation_status",
-                )
+            validation_status = self._require_string(
+                pointer,
+                "validation_status",
             )
 
-            if (
-                validation_status
-                not in self
-                .ACCEPTABLE_VALIDATION_STATUSES
-            ):
+            if validation_status not in self.ACCEPTABLE_VALIDATION_STATUSES:
                 raise ArtifactMaterializationError(
                     "Latest pointer does not identify "
                     "a serving-approved run: "
@@ -173,8 +140,7 @@ class BlobArtifactSource:
 
             if (
                 not force
-                and run_id
-                == self._materialized_run_id
+                and run_id == self._materialized_run_id
                 and self._local_cache_is_complete()
             ):
                 self._mark_checked()
@@ -182,46 +148,29 @@ class BlobArtifactSource:
                 return MaterializationResult(
                     backend="azure_blob",
                     run_id=run_id,
-                    source_run_id=(
-                        source_run_id
-                    ),
+                    source_run_id=(source_run_id),
                     refreshed=False,
-                    cache_directory=(
-                        self._settings
-                        .active_phase_6_directory
-                    ),
+                    cache_directory=(self._settings.active_phase_6_directory),
                 )
 
-            manifest = self._load_manifest(
-                pointer
-            )
+            manifest = self._load_manifest(pointer)
 
             self._validate_pointer_manifest(
                 pointer=pointer,
                 manifest=manifest,
             )
 
-            temporary_directory = (
-                self._prepare_temporary_directory(
-                    run_id
-                )
-            )
+            temporary_directory = self._prepare_temporary_directory(run_id)
 
             try:
                 self._download_manifest_files(
                     manifest=manifest,
-                    temporary_directory=(
-                        temporary_directory
-                    ),
+                    temporary_directory=(temporary_directory),
                 )
 
-                self._validate_required_files(
-                    temporary_directory
-                )
+                self._validate_required_files(temporary_directory)
 
-                self._publish_local_cache(
-                    temporary_directory
-                )
+                self._publish_local_cache(temporary_directory)
 
             except Exception:
                 shutil.rmtree(
@@ -230,9 +179,7 @@ class BlobArtifactSource:
                 )
                 raise
 
-            self._materialized_run_id = (
-                run_id
-            )
+            self._materialized_run_id = run_id
 
             self._mark_checked()
 
@@ -241,10 +188,7 @@ class BlobArtifactSource:
                 run_id=run_id,
                 source_run_id=source_run_id,
                 refreshed=True,
-                cache_directory=(
-                    self._settings
-                    .active_phase_6_directory
-                ),
+                cache_directory=(self._settings.active_phase_6_directory),
             )
 
     def _refresh_is_due(
@@ -252,31 +196,19 @@ class BlobArtifactSource:
     ) -> bool:
         """Return whether the durable pointer should be checked."""
 
-        if (
-            self._last_checked_monotonic
-            is None
-        ):
+        if self._last_checked_monotonic is None:
             return True
 
-        elapsed_seconds = (
-            time.monotonic()
-            - self._last_checked_monotonic
-        )
+        elapsed_seconds = time.monotonic() - self._last_checked_monotonic
 
-        return (
-            elapsed_seconds
-            >= self._settings
-            .artifact_cache_seconds
-        )
+        return elapsed_seconds >= self._settings.artifact_cache_seconds
 
     def _mark_checked(
         self,
     ) -> None:
         """Record one successful pointer check."""
 
-        self._last_checked_monotonic = (
-            time.monotonic()
-        )
+        self._last_checked_monotonic = time.monotonic()
 
     def _load_pointer(
         self,
@@ -284,17 +216,10 @@ class BlobArtifactSource:
         """Read the latest durable AQI pointer."""
 
         try:
-            return (
-                self._repository
-                .get_latest_pointer(
-                    self._settings
-                    .artifact_type
-                )
-            )
+            return self._repository.get_latest_pointer(self._settings.artifact_type)
         except DurableRepositoryError as error:
             raise ArtifactMaterializationError(
-                "Could not read the latest AQI "
-                "artifact pointer."
+                "Could not read the latest AQI artifact pointer."
             ) from error
 
     def _load_manifest(
@@ -309,16 +234,10 @@ class BlobArtifactSource:
         )
 
         try:
-            return (
-                self._repository
-                .download_json(
-                    manifest_path
-                )
-            )
+            return self._repository.download_json(manifest_path)
         except DurableRepositoryError as error:
             raise ArtifactMaterializationError(
-                "Could not read the latest AQI "
-                "artifact manifest."
+                "Could not read the latest AQI artifact manifest."
             ) from error
 
     def _validate_pointer_manifest(
@@ -329,80 +248,53 @@ class BlobArtifactSource:
     ) -> None:
         """Confirm pointer and manifest identify one approved run."""
 
-        pointer_run_id = (
-            self._require_string(
-                pointer,
-                "run_id",
-            )
+        pointer_run_id = self._require_string(
+            pointer,
+            "run_id",
         )
 
-        manifest_run_id = (
-            self._require_string(
-                manifest,
-                "run_id",
-            )
+        manifest_run_id = self._require_string(
+            manifest,
+            "run_id",
         )
 
-        if (
-            pointer_run_id
-            != manifest_run_id
-        ):
+        if pointer_run_id != manifest_run_id:
             raise ArtifactMaterializationError(
-                "Latest pointer and manifest "
-                "contain different run IDs."
+                "Latest pointer and manifest contain different run IDs."
             )
 
-        pointer_source_run_id = (
-            self._optional_string(
-                pointer,
-                "source_run_id",
-            )
+        pointer_source_run_id = self._optional_string(
+            pointer,
+            "source_run_id",
         )
 
-        manifest_source_run_id = (
-            self._optional_string(
-                manifest,
-                "source_run_id",
-            )
+        manifest_source_run_id = self._optional_string(
+            manifest,
+            "source_run_id",
         )
 
-        if (
-            pointer_source_run_id
-            != manifest_source_run_id
-        ):
+        if pointer_source_run_id != manifest_source_run_id:
             raise ArtifactMaterializationError(
-                "Latest pointer and manifest "
-                "contain different source run IDs."
+                "Latest pointer and manifest contain different source run IDs."
             )
 
-        pointer_status = (
-            self._require_string(
-                pointer,
-                "validation_status",
-            )
+        pointer_status = self._require_string(
+            pointer,
+            "validation_status",
         )
 
-        manifest_status = (
-            self._require_string(
-                manifest,
-                "validation_status",
-            )
+        manifest_status = self._require_string(
+            manifest,
+            "validation_status",
         )
 
         if pointer_status != manifest_status:
             raise ArtifactMaterializationError(
-                "Latest pointer and manifest "
-                "contain different validation statuses."
+                "Latest pointer and manifest contain different validation statuses."
             )
 
-        if (
-            manifest_status
-            not in self
-            .ACCEPTABLE_VALIDATION_STATUSES
-        ):
-            raise ArtifactMaterializationError(
-                "Manifest is not approved for serving."
-            )
+        if manifest_status not in self.ACCEPTABLE_VALIDATION_STATUSES:
+            raise ArtifactMaterializationError("Manifest is not approved for serving.")
 
     def _prepare_temporary_directory(
         self,
@@ -410,14 +302,10 @@ class BlobArtifactSource:
     ) -> Path:
         """Create an empty temporary cache directory."""
 
-        cache_directory = (
-            self._settings
-            .active_phase_6_directory
-        )
+        cache_directory = self._settings.active_phase_6_directory
 
         temporary_directory = (
-            cache_directory.parent
-            / f".{cache_directory.name}-{run_id}.tmp"
+            cache_directory.parent / f".{cache_directory.name}-{run_id}.tmp"
         )
 
         shutil.rmtree(
@@ -440,59 +328,45 @@ class BlobArtifactSource:
     ) -> None:
         """Download and checksum every manifest file."""
 
-        artifact_prefix = (
-            self._require_string(
-                manifest,
-                "artifact_prefix",
-            )
+        artifact_prefix = self._require_string(
+            manifest,
+            "artifact_prefix",
         )
 
         files = manifest.get("files")
 
-        if (
-            not isinstance(files, list)
-            or not files
-        ):
-            raise ArtifactMaterializationError(
-                "Artifact manifest contains no files."
-            )
+        if not isinstance(files, list) or not files:
+            raise ArtifactMaterializationError("Artifact manifest contains no files.")
 
         for record in files:
             if not isinstance(record, dict):
                 raise ArtifactMaterializationError(
-                    "Artifact manifest contains "
-                    "an invalid file record."
+                    "Artifact manifest contains an invalid file record."
                 )
 
-            relative_path = (
-                self._require_string(
-                    record,
-                    "relative_path",
-                )
+            relative_path = self._require_string(
+                record,
+                "relative_path",
             )
 
             if (
                 "/" in relative_path
                 or "\\" in relative_path
-                or relative_path in {
+                or relative_path
+                in {
                     ".",
                     "..",
                 }
             ):
                 raise ArtifactMaterializationError(
-                    "Artifact filename is unsafe: "
-                    f"{relative_path}"
+                    f"Artifact filename is unsafe: {relative_path}"
                 )
 
-            expected_size = record.get(
-                "size_bytes"
-            )
+            expected_size = record.get("size_bytes")
 
-            expected_checksum = (
-                self._require_string(
-                    record,
-                    "sha256",
-                )
+            expected_checksum = self._require_string(
+                record,
+                "sha256",
             )
 
             if (
@@ -503,53 +377,31 @@ class BlobArtifactSource:
                 or expected_size <= 0
             ):
                 raise ArtifactMaterializationError(
-                    "Artifact manifest contains "
-                    "an invalid file size."
+                    "Artifact manifest contains an invalid file size."
                 )
 
-            blob_path = (
-                f"{artifact_prefix}/"
-                f"{relative_path}"
-            )
+            blob_path = f"{artifact_prefix}/{relative_path}"
 
             try:
-                data = (
-                    self._repository
-                    .download_bytes(
-                        blob_path
-                    )
-                )
+                data = self._repository.download_bytes(blob_path)
             except DurableRepositoryError as error:
                 raise ArtifactMaterializationError(
-                    "Could not download durable "
-                    f"artifact: {relative_path}"
+                    f"Could not download durable artifact: {relative_path}"
                 ) from error
 
             if len(data) != expected_size:
                 raise ArtifactMaterializationError(
-                    "Downloaded artifact size mismatch: "
-                    f"{relative_path}"
+                    f"Downloaded artifact size mismatch: {relative_path}"
                 )
 
-            actual_checksum = (
-                calculate_bytes_sha256(
-                    data
-                )
-            )
+            actual_checksum = calculate_bytes_sha256(data)
 
-            if (
-                actual_checksum
-                != expected_checksum
-            ):
+            if actual_checksum != expected_checksum:
                 raise ArtifactMaterializationError(
-                    "Downloaded artifact checksum mismatch: "
-                    f"{relative_path}"
+                    f"Downloaded artifact checksum mismatch: {relative_path}"
                 )
 
-            destination = (
-                temporary_directory
-                / relative_path
-            )
+            destination = temporary_directory / relative_path
 
             destination.write_bytes(data)
 
@@ -560,33 +412,20 @@ class BlobArtifactSource:
         """Require the exact files needed by the FastAPI repository."""
 
         required_names = {
-            self._settings
-            .phase_6_forecast_filename,
-            self._settings
-            .phase_6_alert_episodes_filename,
-            self._settings
-            .phase_6_summary_filename,
-            self._settings
-            .phase_6_metadata_filename,
-            self._settings
-            .phase_6_validation_filename,
+            self._settings.phase_6_forecast_filename,
+            self._settings.phase_6_alert_episodes_filename,
+            self._settings.phase_6_summary_filename,
+            self._settings.phase_6_metadata_filename,
+            self._settings.phase_6_validation_filename,
         }
 
-        actual_names = {
-            path.name
-            for path in directory.iterdir()
-            if path.is_file()
-        }
+        actual_names = {path.name for path in directory.iterdir() if path.is_file()}
 
-        missing_names = (
-            required_names
-            - actual_names
-        )
+        missing_names = required_names - actual_names
 
         if missing_names:
             raise ArtifactMaterializationError(
-                "Downloaded AQI package is missing: "
-                f"{sorted(missing_names)}"
+                f"Downloaded AQI package is missing: {sorted(missing_names)}"
             )
 
         for filename in required_names:
@@ -594,8 +433,7 @@ class BlobArtifactSource:
 
             if path.stat().st_size <= 0:
                 raise ArtifactMaterializationError(
-                    "Downloaded AQI artifact is empty: "
-                    f"{filename}"
+                    f"Downloaded AQI artifact is empty: {filename}"
                 )
 
     def _publish_local_cache(
@@ -604,20 +442,14 @@ class BlobArtifactSource:
     ) -> None:
         """Atomically replace the API's active local cache."""
 
-        cache_directory = (
-            self._settings
-            .active_phase_6_directory
-        )
+        cache_directory = self._settings.active_phase_6_directory
 
         cache_directory.parent.mkdir(
             parents=True,
             exist_ok=True,
         )
 
-        backup_directory = (
-            cache_directory.parent
-            / f".{cache_directory.name}.previous"
-        )
+        backup_directory = cache_directory.parent / f".{cache_directory.name}.previous"
 
         shutil.rmtree(
             backup_directory,
@@ -626,26 +458,16 @@ class BlobArtifactSource:
 
         try:
             if cache_directory.exists():
-                cache_directory.replace(
-                    backup_directory
-                )
+                cache_directory.replace(backup_directory)
 
-            temporary_directory.replace(
-                cache_directory
-            )
+            temporary_directory.replace(cache_directory)
 
         except Exception as error:
-            if (
-                not cache_directory.exists()
-                and backup_directory.exists()
-            ):
-                backup_directory.replace(
-                    cache_directory
-                )
+            if not cache_directory.exists() and backup_directory.exists():
+                backup_directory.replace(cache_directory)
 
             raise ArtifactMaterializationError(
-                "Could not publish the refreshed "
-                "API artifact cache."
+                "Could not publish the refreshed API artifact cache."
             ) from error
 
         shutil.rmtree(
@@ -659,9 +481,7 @@ class BlobArtifactSource:
         """Return whether all API-required cache files exist."""
 
         return all(
-            path.exists()
-            and path.is_file()
-            and path.stat().st_size > 0
+            path.exists() and path.is_file() and path.stat().st_size > 0
             for path in (
                 self._settings.forecast_path,
                 self._settings.alert_episodes_path,
@@ -680,13 +500,8 @@ class BlobArtifactSource:
 
         value = payload.get(key)
 
-        if (
-            not isinstance(value, str)
-            or not value.strip()
-        ):
-            raise ArtifactMaterializationError(
-                f"Artifact document has no valid {key}."
-            )
+        if not isinstance(value, str) or not value.strip():
+            raise ArtifactMaterializationError(f"Artifact document has no valid {key}.")
 
         return value.strip()
 

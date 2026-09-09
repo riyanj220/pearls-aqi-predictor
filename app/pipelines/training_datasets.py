@@ -47,9 +47,7 @@ class DatasetParityResult:
             "missing_columns": self.missing_columns,
             "additional_columns": self.additional_columns,
             "mismatched_columns": self.mismatched_columns,
-            "maximum_numeric_difference": (
-                self.maximum_numeric_difference
-            ),
+            "maximum_numeric_difference": (self.maximum_numeric_difference),
         }
 
 
@@ -77,49 +75,32 @@ def read_hopsworks_reference_features(
     """Read reusable reference-time features from Hopsworks."""
 
     try:
-        dataframe = engineered_feature_group.read(
-            dataframe_type="pandas"
-        )
+        dataframe = engineered_feature_group.read(dataframe_type="pandas")
     except Exception as error:
         raise TrainingDatasetError(
-            "Could not read engineered features "
-            "from Hopsworks."
+            "Could not read engineered features from Hopsworks."
         ) from error
 
     if dataframe is None or dataframe.empty:
-        raise TrainingDatasetError(
-            "The engineered feature group is empty."
-        )
+        raise TrainingDatasetError("The engineered feature group is empty.")
 
-    dataframe.columns = [
-        str(column).lower()
-        for column in dataframe.columns
-    ]
+    dataframe.columns = [str(column).lower() for column in dataframe.columns]
 
     missing_columns = [
-        column
-        for column in contract.feature_names
-        if column not in dataframe.columns
+        column for column in contract.feature_names if column not in dataframe.columns
     ]
 
     if missing_columns:
         raise TrainingDatasetError(
-            "Hopsworks engineered features are missing: "
-            f"{missing_columns}"
+            f"Hopsworks engineered features are missing: {missing_columns}"
         )
 
-    dataframe = dataframe[
-        contract.feature_names
-    ].copy()
+    dataframe = dataframe[contract.feature_names].copy()
 
-    dataframe = normalize_reference_time(
-        dataframe
-    )
+    dataframe = normalize_reference_time(dataframe)
 
     dataframe = (
-        dataframe.sort_values(
-            "reference_time"
-        )
+        dataframe.sort_values("reference_time")
         .drop_duplicates(
             subset=[
                 "location_key",
@@ -141,18 +122,15 @@ def build_hopsworks_backed_training_dataset(
 ) -> pd.DataFrame:
     """Replace local reference features with Hopsworks values."""
 
-    local = normalize_reference_time(
-        local_training_df
-    )
+    local = normalize_reference_time(local_training_df)
 
-    reference_features = normalize_reference_time(
-        reference_features_df
-    )
+    reference_features = normalize_reference_time(reference_features_df)
 
     reference_feature_columns = [
         column
         for column in engineered_contract.feature_names
-        if column not in {
+        if column
+        not in {
             "location_key",
             "reference_time",
             "feature_pipeline_version",
@@ -161,9 +139,7 @@ def build_hopsworks_backed_training_dataset(
     ]
 
     missing_local_columns = [
-        column
-        for column in reference_feature_columns
-        if column not in local.columns
+        column for column in reference_feature_columns if column not in local.columns
     ]
 
     if missing_local_columns:
@@ -179,24 +155,16 @@ def build_hopsworks_backed_training_dataset(
         ]
     ].copy()
 
-    local_without_reference_features = (
-        local.drop(
-            columns=reference_feature_columns
-        )
+    local_without_reference_features = local.drop(columns=reference_feature_columns)
+
+    generated = local_without_reference_features.merge(
+        replacement,
+        on="reference_time",
+        how="inner",
+        validate="many_to_one",
     )
 
-    generated = (
-        local_without_reference_features.merge(
-            replacement,
-            on="reference_time",
-            how="inner",
-            validate="many_to_one",
-        )
-    )
-
-    generated = generated[
-        local.columns
-    ].copy()
+    generated = generated[local.columns].copy()
 
     generated = generated.sort_values(
         [
@@ -221,44 +189,32 @@ def compare_training_datasets(
         "forecast_horizon_hours",
     ]
 
-    local = normalize_reference_time(
-        local_df
-    ).sort_values(
-        key_columns
-    ).reset_index(drop=True)
+    local = (
+        normalize_reference_time(local_df)
+        .sort_values(key_columns)
+        .reset_index(drop=True)
+    )
 
-    generated = normalize_reference_time(
-        generated_df
-    ).sort_values(
-        key_columns
-    ).reset_index(drop=True)
+    generated = (
+        normalize_reference_time(generated_df)
+        .sort_values(key_columns)
+        .reset_index(drop=True)
+    )
 
     missing_columns = [
-        column
-        for column in local.columns
-        if column not in generated.columns
+        column for column in local.columns if column not in generated.columns
     ]
 
     additional_columns = [
-        column
-        for column in generated.columns
-        if column not in local.columns
+        column for column in generated.columns if column not in local.columns
     ]
 
-    duplicate_keys = int(
-        generated.duplicated(
-            subset=key_columns
-        ).sum()
-    )
+    duplicate_keys = int(generated.duplicated(subset=key_columns).sum())
 
     mismatched_columns: list[str] = []
     maximum_numeric_difference = 0.0
 
-    if (
-        len(local) == len(generated)
-        and not missing_columns
-        and not additional_columns
-    ):
+    if len(local) == len(generated) and not missing_columns and not additional_columns:
         for column in local.columns:
             left = local[column]
             right = generated[column]
@@ -274,21 +230,12 @@ def compare_training_datasets(
                     errors="coerce",
                 ).to_numpy(dtype="float64")
 
-                differences = np.abs(
-                    left_numeric
-                    - right_numeric
-                )
+                differences = np.abs(left_numeric - right_numeric)
 
-                finite_differences = differences[
-                    np.isfinite(differences)
-                ]
+                finite_differences = differences[np.isfinite(differences)]
 
                 column_maximum = (
-                    float(
-                        finite_differences.max()
-                    )
-                    if finite_differences.size
-                    else 0.0
+                    float(finite_differences.max()) if finite_differences.size else 0.0
                 )
 
                 maximum_numeric_difference = max(
@@ -305,26 +252,19 @@ def compare_training_datasets(
                 )
 
             else:
-                equal = left.astype(
-                    "string"
-                ).fillna(
-                    "<NA>"
-                ).equals(
-                    right.astype(
-                        "string"
-                    ).fillna("<NA>")
+                equal = (
+                    left.astype("string")
+                    .fillna("<NA>")
+                    .equals(right.astype("string").fillna("<NA>"))
                 )
 
             if not equal:
-                mismatched_columns.append(
-                    column
-                )
+                mismatched_columns.append(column)
 
     passed = all(
         [
             len(local) == len(generated),
-            list(local.columns)
-            == list(generated.columns),
+            list(local.columns) == list(generated.columns),
             duplicate_keys == 0,
             not missing_columns,
             not additional_columns,
@@ -337,16 +277,12 @@ def compare_training_datasets(
         local_rows=len(local),
         generated_rows=len(generated),
         local_columns=len(local.columns),
-        generated_columns=len(
-            generated.columns
-        ),
+        generated_columns=len(generated.columns),
         duplicate_keys=duplicate_keys,
         missing_columns=missing_columns,
         additional_columns=additional_columns,
         mismatched_columns=mismatched_columns,
-        maximum_numeric_difference=(
-            maximum_numeric_difference
-        ),
+        maximum_numeric_difference=(maximum_numeric_difference),
     )
 
 
@@ -364,13 +300,7 @@ def save_versioned_training_snapshot(
         exist_ok=True,
     )
 
-    output_path = (
-        output_directory
-        / (
-            f"{dataset_name}_v"
-            f"{dataset_version}.parquet"
-        )
-    )
+    output_path = output_directory / (f"{dataset_name}_v{dataset_version}.parquet")
 
     dataframe.to_parquet(
         output_path,

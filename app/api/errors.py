@@ -76,9 +76,7 @@ def _error_response(
                 "message": message,
                 "details": details or {},
                 "request_id": request_id,
-                "timestamp_utc": datetime.now(
-                    timezone.utc
-                ).isoformat(),
+                "timestamp_utc": datetime.now(timezone.utc).isoformat(),
             }
         },
         headers={
@@ -117,16 +115,11 @@ async def artifact_error_handler(
 
     if isinstance(exc, ArtifactNotFoundError):
         code = "FORECAST_NOT_FOUND"
-        message = (
-            "The latest forecast artifacts are not available."
-        )
+        message = "The latest forecast artifacts are not available."
 
     elif isinstance(exc, ArtifactRunMismatchError):
         code = "ARTIFACT_RUN_MISMATCH"
-        message = (
-            "The latest forecast artifacts belong to "
-            "different pipeline runs."
-        )
+        message = "The latest forecast artifacts belong to different pipeline runs."
 
     elif isinstance(
         exc,
@@ -136,15 +129,11 @@ async def artifact_error_handler(
         ),
     ):
         code = "ARTIFACT_SCHEMA_INVALID"
-        message = (
-            "The latest forecast artifacts are invalid."
-        )
+        message = "The latest forecast artifacts are invalid."
 
     else:
         code = "FORECAST_NOT_READY"
-        message = (
-            "The latest validated forecast is not ready."
-        )
+        message = "The latest validated forecast is not ready."
 
     LOGGER.exception(
         "Artifact repository failure code=%s request_id=%s",
@@ -185,13 +174,12 @@ async def request_validation_error_handler(
         request=request,
         status_code=422,
         code="INVALID_QUERY_PARAMETER",
-        message=(
-            "One or more request parameters are invalid."
-        ),
+        message=("One or more request parameters are invalid."),
         details={
             "validation_errors": safe_errors,
         },
     )
+
 
 async def http_exception_error_handler(
     request: Request,
@@ -204,16 +192,10 @@ async def http_exception_error_handler(
         message = "The requested API resource was not found."
     elif exc.status_code == 405:
         code = "METHOD_NOT_ALLOWED"
-        message = (
-            "The requested HTTP method is not allowed "
-            "for this resource."
-        )
+        message = "The requested HTTP method is not allowed for this resource."
     else:
         code = "HTTP_ERROR"
-        message = str(
-            exc.detail
-            or "The request could not be completed."
-        )
+        message = str(exc.detail or "The request could not be completed.")
 
     return _error_response(
         request=request,
@@ -221,6 +203,7 @@ async def http_exception_error_handler(
         code=code,
         message=message,
     )
+
 
 async def unexpected_error_handler(
     request: Request,
@@ -237,9 +220,7 @@ async def unexpected_error_handler(
         request=request,
         status_code=500,
         code="INTERNAL_SERVICE_ERROR",
-        message=(
-            "An unexpected internal service error occurred."
-        ),
+        message=("An unexpected internal service error occurred."),
     )
 
 
@@ -264,9 +245,9 @@ def register_exception_handlers(
     )
 
     app.add_exception_handler(
-            StarletteHTTPException,
-            http_exception_error_handler,
-        )
+        StarletteHTTPException,
+        http_exception_error_handler,
+    )
 
     app.add_exception_handler(
         Exception,

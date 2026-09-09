@@ -43,9 +43,7 @@ class MetadataResponse(PublicSchema):
     aqi_standard_name: str
     aqi_standard_version: str
 
-    aqi_interpretation: (
-        AQIInterpretationResponse
-    )
+    aqi_interpretation: AQIInterpretationResponse
 
     latest_phase_6_run_id: str
     latest_phase_5_run_id: str

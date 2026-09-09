@@ -51,55 +51,34 @@ def _render_alert_sidebar() -> str:
         """
     )
 
-    st.sidebar.caption(
-        "Review forecast alerts in your preferred timezone."
-    )
+    st.sidebar.caption("Review forecast alerts in your preferred timezone.")
 
-    timezone_label = (
-        st.sidebar.selectbox(
-            "Display timezone",
-            options=list(
-                SUPPORTED_TIMEZONES.keys()
-            ),
-            index=0,
-            key="alerts_timezone",
-        )
+    timezone_label = st.sidebar.selectbox(
+        "Display timezone",
+        options=list(SUPPORTED_TIMEZONES.keys()),
+        index=0,
+        key="alerts_timezone",
     )
 
     st.sidebar.divider()
 
-    refresh_clicked = (
-        st.sidebar.button(
-            "↻  Refresh alerts",
-            help=(
-                "Fetch the latest available "
-                "alert information."
-            ),
-            key="alerts_refresh",
-            width="stretch",
-        )
+    refresh_clicked = st.sidebar.button(
+        "↻  Refresh alerts",
+        help=("Fetch the latest available alert information."),
+        key="alerts_refresh",
+        width="stretch",
     )
 
     if refresh_clicked:
         clear_dashboard_api_cache()
 
-        st.session_state[
-            "last_alert_refresh_utc"
-        ] = utc_now()
+        st.session_state["last_alert_refresh_utc"] = utc_now()
 
         st.rerun()
 
-    timezone_name = (
-        SUPPORTED_TIMEZONES[
-            timezone_label
-        ]
-    )
+    timezone_name = SUPPORTED_TIMEZONES[timezone_label]
 
-    last_refresh = (
-        st.session_state.get(
-            "last_alert_refresh_utc"
-        )
-    )
+    last_refresh = st.session_state.get("last_alert_refresh_utc")
 
     if isinstance(
         last_refresh,
@@ -113,10 +92,7 @@ def _render_alert_sidebar() -> str:
             )
         )
     else:
-        st.sidebar.caption(
-            "Alert data follows the latest "
-            "published forecast."
-        )
+        st.sidebar.caption("Alert data follows the latest published forecast.")
 
     return timezone_name
 
@@ -172,34 +148,20 @@ def _render_overview(
         [],
     )
 
-    active_episode_records = (
-        active_alerts.get(
-            "episodes",
-            [],
-        )
+    active_episode_records = active_alerts.get(
+        "episodes",
+        [],
     )
 
     currently_active = [
-        episode
-        for episode in active_episode_records
-        if episode.get(
-            "currently_active"
-        )
+        episode for episode in active_episode_records if episode.get("currently_active")
     ]
 
     upcoming = [
-        episode
-        for episode in active_episode_records
-        if episode.get(
-            "upcoming"
-        )
+        episode for episode in active_episode_records if episode.get("upcoming")
     ]
 
-    if (
-        not episodes
-        and not currently_active
-        and not upcoming
-    ):
+    if not episodes and not currently_active and not upcoming:
         st.html(
             """
             <div class="section-kicker">
@@ -304,21 +266,13 @@ def render_alerts_page() -> None:
 
     apply_dashboard_theme()
 
-    timezone_name = (
-        _render_alert_sidebar()
-    )
+    timezone_name = _render_alert_sidebar()
 
     try:
-        with st.spinner(
-            "Loading alert information..."
-        ):
-            all_alerts = (
-                cached_alerts()
-            )
+        with st.spinner("Loading alert information..."):
+            all_alerts = cached_alerts()
 
-            active_alerts = (
-                cached_active_alerts()
-            )
+            active_alerts = cached_active_alerts()
 
     except DashboardAPIError as error:
         render_api_error(error)

@@ -71,10 +71,7 @@ from app.data.pm25_gap_policy import (
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 REPORT_PATH = (
-    PROJECT_ROOT
-    / "reports"
-    / "phase_10"
-    / "live_inference_pipeline_report.json"
+    PROJECT_ROOT / "reports" / "phase_10" / "live_inference_pipeline_report.json"
 )
 
 LOGGER = configure_structured_logging(
@@ -95,11 +92,7 @@ def utc_now() -> pd.Timestamp:
 def generate_pipeline_run_id() -> str:
     """Generate one unique and traceable pipeline-run ID."""
 
-    return (
-        utc_now().strftime("%Y%m%dT%H%M%SZ")
-        + "_"
-        + uuid4().hex[:8]
-    )
+    return utc_now().strftime("%Y%m%dT%H%M%SZ") + "_" + uuid4().hex[:8]
 
 
 def validate_pm25_history(
@@ -114,22 +107,16 @@ def validate_pm25_history(
         "pm25_ug_m3",
     }
 
-    missing_columns = sorted(
-        required_columns.difference(
-            history_df.columns
-        )
-    )
+    missing_columns = sorted(required_columns.difference(history_df.columns))
 
     if missing_columns:
         raise LiveInferencePipelineError(
-            "PM2.5 history is missing columns: "
-            f"{missing_columns}"
+            f"PM2.5 history is missing columns: {missing_columns}"
         )
 
     if len(history_df) != 25:
         raise LiveInferencePipelineError(
-            "Expected exactly 25 PM2.5 history rows, "
-            f"but received {len(history_df)}."
+            f"Expected exactly 25 PM2.5 history rows, but received {len(history_df)}."
         )
 
     expected_timeline = pd.date_range(
@@ -139,9 +126,7 @@ def validate_pm25_history(
         tz="UTC",
     )
 
-    actual_timeline = pd.DatetimeIndex(
-        history_df["datetime_utc"]
-    )
+    actual_timeline = pd.DatetimeIndex(history_df["datetime_utc"])
 
     if not actual_timeline.equals(expected_timeline):
         raise LiveInferencePipelineError(
@@ -155,21 +140,13 @@ def validate_pm25_history(
     )
 
     if values.isna().any():
-        raise LiveInferencePipelineError(
-            "PM2.5 history contains missing values."
-        )
+        raise LiveInferencePipelineError("PM2.5 history contains missing values.")
 
-    if not np.isfinite(
-        values.to_numpy(dtype=float)
-    ).all():
-        raise LiveInferencePipelineError(
-            "PM2.5 history contains infinite values."
-        )
+    if not np.isfinite(values.to_numpy(dtype=float)).all():
+        raise LiveInferencePipelineError("PM2.5 history contains infinite values.")
 
     if not values.gt(0).all():
-        raise LiveInferencePipelineError(
-            "PM2.5 history contains non-positive values."
-        )
+        raise LiveInferencePipelineError("PM2.5 history contains non-positive values.")
 
 
 def validate_weather_inputs(
@@ -181,9 +158,7 @@ def validate_weather_inputs(
     """Validate reference and 72-hour target weather coverage."""
 
     if len(reference_weather_df) != 1:
-        raise LiveInferencePipelineError(
-            "Expected exactly one reference-weather row."
-        )
+        raise LiveInferencePipelineError("Expected exactly one reference-weather row.")
 
     if len(target_weather_df) != 72:
         raise LiveInferencePipelineError(
@@ -191,20 +166,15 @@ def validate_weather_inputs(
             f"but received {len(target_weather_df)}."
         )
 
-    required_weather_columns = list(
-        OPEN_METEO_HOURLY_VARIABLES
-    )
+    required_weather_columns = list(OPEN_METEO_HOURLY_VARIABLES)
 
     missing_columns = sorted(
-        set(required_weather_columns).difference(
-            target_weather_df.columns
-        )
+        set(required_weather_columns).difference(target_weather_df.columns)
     )
 
     if missing_columns:
         raise LiveInferencePipelineError(
-            "Weather input is missing columns: "
-            f"{missing_columns}"
+            f"Weather input is missing columns: {missing_columns}"
         )
 
     expected_target_timeline = pd.date_range(
@@ -214,40 +184,21 @@ def validate_weather_inputs(
         tz="UTC",
     )
 
-    actual_target_timeline = pd.DatetimeIndex(
-        target_weather_df["datetime_utc"]
-    )
+    actual_target_timeline = pd.DatetimeIndex(target_weather_df["datetime_utc"])
 
-    if not actual_target_timeline.equals(
-        expected_target_timeline
-    ):
+    if not actual_target_timeline.equals(expected_target_timeline):
         raise LiveInferencePipelineError(
-            "Target weather does not cover the exact "
-            "72-hour forecast timeline."
+            "Target weather does not cover the exact 72-hour forecast timeline."
         )
 
     reference_missing = int(
-        reference_weather_df[
-            required_weather_columns
-        ]
-        .isna()
-        .sum()
-        .sum()
+        reference_weather_df[required_weather_columns].isna().sum().sum()
     )
 
-    target_missing = int(
-        target_weather_df[
-            required_weather_columns
-        ]
-        .isna()
-        .sum()
-        .sum()
-    )
+    target_missing = int(target_weather_df[required_weather_columns].isna().sum().sum())
 
     if reference_missing or target_missing:
-        raise LiveInferencePipelineError(
-            "Weather input contains missing values."
-        )
+        raise LiveInferencePipelineError("Weather input contains missing values.")
 
 
 def build_live_feature_matrix(
@@ -277,17 +228,11 @@ def build_live_feature_matrix(
         .reset_index(drop=True)
     )
 
-    reference_feature_df = (
-        build_reference_feature_table(
-            live_reference_input_df
-        )
-    )
+    reference_feature_df = build_reference_feature_table(live_reference_input_df)
 
     selected_reference_feature_df = (
         reference_feature_df.loc[
-            reference_feature_df[
-                "reference_time"
-            ].eq(reference_time)
+            reference_feature_df["reference_time"].eq(reference_time)
         ]
         .copy()
         .reset_index(drop=True)
@@ -295,40 +240,26 @@ def build_live_feature_matrix(
 
     if len(selected_reference_feature_df) != 1:
         raise LiveInferencePipelineError(
-            "Could not construct exactly one reference "
-            "feature row."
+            "Could not construct exactly one reference feature row."
         )
 
-    target_weather_feature_df = (
-        build_target_weather_feature_table(
-            target_weather_df
-        )
-    )
+    target_weather_feature_df = build_target_weather_feature_table(target_weather_df)
 
     forecast_horizons = list(range(1, 73))
 
     model_feature_matrix_df = build_feature_rows(
-        reference_feature_df=(
-            selected_reference_feature_df
-        ),
-        target_weather_feature_df=(
-            target_weather_feature_df
-        ),
+        reference_feature_df=(selected_reference_feature_df),
+        target_weather_feature_df=(target_weather_feature_df),
         reference_times=[reference_time],
         forecast_horizons=forecast_horizons,
-        model_feature_columns=(
-            model_feature_columns
-        ),
+        model_feature_columns=(model_feature_columns),
     )
 
     identifiers_df = pd.DataFrame(
         {
             "reference_time": [reference_time] * 72,
             "target_time": pd.date_range(
-                start=(
-                    reference_time
-                    + pd.Timedelta(hours=1)
-                ),
+                start=(reference_time + pd.Timedelta(hours=1)),
                 periods=72,
                 freq="h",
                 tz="UTC",
@@ -339,9 +270,7 @@ def build_live_feature_matrix(
     complete_feature_df = pd.concat(
         [
             identifiers_df.reset_index(drop=True),
-            model_feature_matrix_df.reset_index(
-                drop=True
-            ),
+            model_feature_matrix_df.reset_index(drop=True),
         ],
         axis=1,
     )
@@ -372,30 +301,19 @@ def validate_forecast_output(
         "selected_strategy",
     }
 
-    missing_columns = sorted(
-        required_columns.difference(
-            forecast_df.columns
-        )
-    )
+    missing_columns = sorted(required_columns.difference(forecast_df.columns))
 
     if missing_columns:
         raise LiveInferencePipelineError(
-            "Forecast output is missing columns: "
-            f"{missing_columns}"
+            f"Forecast output is missing columns: {missing_columns}"
         )
 
     if len(forecast_df) != 72:
-        raise LiveInferencePipelineError(
-            "Forecast must contain exactly 72 rows."
-        )
+        raise LiveInferencePipelineError("Forecast must contain exactly 72 rows.")
 
     expected_horizons = list(range(1, 73))
 
-    actual_horizons = (
-        forecast_df["forecast_horizon_hours"]
-        .astype(int)
-        .tolist()
-    )
+    actual_horizons = forecast_df["forecast_horizon_hours"].astype(int).tolist()
 
     if actual_horizons != expected_horizons:
         raise LiveInferencePipelineError(
@@ -408,9 +326,7 @@ def validate_forecast_output(
         )
 
     if forecast_df["target_time"].nunique() != 72:
-        raise LiveInferencePipelineError(
-            "Forecast target timestamps are not unique."
-        )
+        raise LiveInferencePipelineError("Forecast target timestamps are not unique.")
 
     predictions = pd.to_numeric(
         forecast_df["predicted_pm25_ug_m3"],
@@ -418,16 +334,10 @@ def validate_forecast_output(
     )
 
     if predictions.isna().any():
-        raise LiveInferencePipelineError(
-            "Forecast contains missing predictions."
-        )
+        raise LiveInferencePipelineError("Forecast contains missing predictions.")
 
-    if not np.isfinite(
-        predictions.to_numpy(dtype=float)
-    ).all():
-        raise LiveInferencePipelineError(
-            "Forecast contains infinite predictions."
-        )
+    if not np.isfinite(predictions.to_numpy(dtype=float)).all():
+        raise LiveInferencePipelineError("Forecast contains infinite predictions.")
 
     if predictions.lt(0).any():
         raise LiveInferencePipelineError(
@@ -450,43 +360,27 @@ def run_live_inference(
         pipeline_run_id=pipeline_run_id,
     )
 
-    model_artifacts = load_model_artifacts(
-        settings
+    model_artifacts = load_model_artifacts(settings)
+
+    openaq_client = OpenAQClient(app_settings=settings)
+
+    weather_client = OpenMeteoClient(app_settings=settings)
+
+    recent_pm25_df = openaq_client.fetch_recent_hourly_pm25()
+
+    live_weather_df = weather_client.fetch_hourly_weather()
+
+    pm25_recovery = recover_short_pm25_gaps(
+        recent_pm25_df,
+        app_settings=settings,
     )
 
-    openaq_client = OpenAQClient(
-        app_settings=settings
-    )
+    recovered_pm25_df = pm25_recovery.dataframe
 
-    weather_client = OpenMeteoClient(
-        app_settings=settings
-    )
-
-    recent_pm25_df = (
-        openaq_client.fetch_recent_hourly_pm25()
-    )
-
-    live_weather_df = (
-        weather_client.fetch_hourly_weather()
-    )
-
-    pm25_recovery = (
-        recover_short_pm25_gaps(
-            recent_pm25_df,
-            app_settings=settings,
-        )
-    )
-
-    recovered_pm25_df = (
-        pm25_recovery.dataframe
-    )
-
-    reference_selection = (
-        select_latest_safe_reference_time(
-            pm25_df=recovered_pm25_df,
-            weather_df=live_weather_df,
-            app_settings=settings,
-        )
+    reference_selection = select_latest_safe_reference_time(
+        pm25_df=recovered_pm25_df,
+        weather_df=live_weather_df,
+        app_settings=settings,
     )
 
     if not reference_selection.is_ready:
@@ -496,34 +390,23 @@ def run_live_inference(
             f"Message={reference_selection.message}"
         )
 
-    reference_time = (
-        reference_selection.selected_reference_time
-    )
+    reference_time = reference_selection.selected_reference_time
 
     if reference_time is None:
-        raise LiveInferencePipelineError(
-            "Reference selection returned no timestamp."
-        )
+        raise LiveInferencePipelineError("Reference selection returned no timestamp.")
 
-    history_start = (
-        reference_time
-        - pd.Timedelta(
-            hours=settings.minimum_pm25_history_hours
-        )
+    history_start = reference_time - pd.Timedelta(
+        hours=settings.minimum_pm25_history_hours
     )
 
-    pm25_input_quality = (
-        pm25_recovery.quality_for_window(
-            start_time=history_start,
-            end_time=reference_time,
-        )
+    pm25_input_quality = pm25_recovery.quality_for_window(
+        start_time=history_start,
+        end_time=reference_time,
     )
 
     selected_pm25_history_df = (
         recovered_pm25_df.loc[
-            recovered_pm25_df[
-                "datetime_utc"
-            ].between(
+            recovered_pm25_df["datetime_utc"].between(
                 history_start,
                 reference_time,
             )
@@ -534,30 +417,18 @@ def run_live_inference(
     )
 
     selected_reference_weather_df = (
-        live_weather_df.loc[
-            live_weather_df[
-                "datetime_utc"
-            ].eq(reference_time)
-        ]
+        live_weather_df.loc[live_weather_df["datetime_utc"].eq(reference_time)]
         .copy()
         .reset_index(drop=True)
     )
 
-    target_start = (
-        reference_time
-        + pd.Timedelta(hours=1)
-    )
+    target_start = reference_time + pd.Timedelta(hours=1)
 
-    target_end = (
-        reference_time
-        + pd.Timedelta(hours=72)
-    )
+    target_end = reference_time + pd.Timedelta(hours=72)
 
     selected_target_weather_df = (
         live_weather_df.loc[
-            live_weather_df[
-                "datetime_utc"
-            ].between(
+            live_weather_df["datetime_utc"].between(
                 target_start,
                 target_end,
             )
@@ -573,12 +444,8 @@ def run_live_inference(
     )
 
     validate_weather_inputs(
-        reference_weather_df=(
-            selected_reference_weather_df
-        ),
-        target_weather_df=(
-            selected_target_weather_df
-        ),
+        reference_weather_df=(selected_reference_weather_df),
+        target_weather_df=(selected_target_weather_df),
         reference_time=reference_time,
     )
 
@@ -588,13 +455,9 @@ def run_live_inference(
     ) = build_live_feature_matrix(
         pm25_history_df=selected_pm25_history_df,
         weather_df=live_weather_df,
-        target_weather_df=(
-            selected_target_weather_df
-        ),
+        target_weather_df=(selected_target_weather_df),
         reference_time=reference_time,
-        model_feature_columns=(
-            model_artifacts.feature_columns
-        ),
+        model_feature_columns=(model_artifacts.feature_columns),
     )
 
     validate_feature_matrix(
@@ -602,31 +465,24 @@ def run_live_inference(
         model_artifacts,
     )
 
-    prediction_result_df = (
-        generate_hybrid_predictions(
-            feature_matrix=(
-                model_feature_matrix_df
-            ),
-            artifacts=model_artifacts,
-        )
+    prediction_result_df = generate_hybrid_predictions(
+        feature_matrix=(model_feature_matrix_df),
+        artifacts=model_artifacts,
     )
 
     prediction_generated_at_utc = utc_now()
 
-    forecast_df = (
-        complete_feature_df[
-            [
-                "reference_time",
-                "target_time",
-                "forecast_horizon_hours",
-            ]
+    forecast_df = complete_feature_df[
+        [
+            "reference_time",
+            "target_time",
+            "forecast_horizon_hours",
         ]
-        .merge(
-            prediction_result_df,
-            on="forecast_horizon_hours",
-            how="left",
-            validate="one_to_one",
-        )
+    ].merge(
+        prediction_result_df,
+        on="forecast_horizon_hours",
+        how="left",
+        validate="one_to_one",
     )
 
     forecast_df.insert(
@@ -641,21 +497,13 @@ def run_live_inference(
         prediction_generated_at_utc,
     )
 
-    forecast_df["location_name"] = (
-        settings.location_name
-    )
+    forecast_df["location_name"] = settings.location_name
 
-    forecast_df["sensor_id"] = (
-        settings.openaq_sensor_id
-    )
+    forecast_df["sensor_id"] = settings.openaq_sensor_id
 
-    forecast_df["selected_strategy"] = (
-        model_artifacts.selected_strategy
-    )
+    forecast_df["selected_strategy"] = model_artifacts.selected_strategy
 
-    validate_forecast_output(
-        forecast_df
-    )
+    validate_forecast_output(forecast_df)
 
     weather_input_for_run_df = (
         pd.concat(
@@ -673,99 +521,46 @@ def run_live_inference(
         LOGGER,
         pipeline_name="live_inference",
         pipeline_run_id=pipeline_run_id,
-        duration_seconds=(
-            time.monotonic()
-            - started_monotonic
-        ),
+        duration_seconds=(time.monotonic() - started_monotonic),
         row_count=len(forecast_df),
-        model_version=(
-            model_artifacts
-            .model_registry_version
-        ),
+        model_version=(model_artifacts.model_registry_version),
     )
 
     validation_report = {
         "status": "PASSED",
-        "input_quality": (
-            pm25_input_quality
-        ),
+        "input_quality": (pm25_input_quality),
         "pipeline_run_id": pipeline_run_id,
         "validated_at_utc": utc_now(),
-        "reference_selection_status": (
-            reference_selection.status
-        ),
+        "reference_selection_status": (reference_selection.status),
         "checks": {
             "reference_ready": True,
             "pm25_history_rows_expected": 25,
-            "pm25_history_rows_actual": len(
-                selected_pm25_history_df
-            ),
+            "pm25_history_rows_actual": len(selected_pm25_history_df),
             "reference_weather_rows_expected": 1,
-            "reference_weather_rows_actual": len(
-                selected_reference_weather_df
-            ),
+            "reference_weather_rows_actual": len(selected_reference_weather_df),
             "target_weather_rows_expected": 72,
-            "target_weather_rows_actual": len(
-                selected_target_weather_df
-            ),
-
-            "pm25_imputation_used": bool(
-                pm25_input_quality[
-                    "pm25_imputation_used"
-                ]
-            ),
-            "pm25_imputed_hours": int(
-                pm25_input_quality[
-                    "imputed_hours"
-                ]
-            ),
+            "target_weather_rows_actual": len(selected_target_weather_df),
+            "pm25_imputation_used": bool(pm25_input_quality["pm25_imputation_used"]),
+            "pm25_imputed_hours": int(pm25_input_quality["imputed_hours"]),
             "feature_rows_expected": 72,
-            "feature_rows_actual": len(
-                model_feature_matrix_df
-            ),
-            "feature_columns_expected": len(
-                model_artifacts.feature_columns
-            ),
-            "feature_columns_actual": len(
-                model_feature_matrix_df.columns
-            ),
-            "feature_missing_values": int(
-                model_feature_matrix_df
-                .isna()
-                .sum()
-                .sum()
-            ),
+            "feature_rows_actual": len(model_feature_matrix_df),
+            "feature_columns_expected": len(model_artifacts.feature_columns),
+            "feature_columns_actual": len(model_feature_matrix_df.columns),
+            "feature_missing_values": int(model_feature_matrix_df.isna().sum().sum()),
             "forecast_rows_expected": 72,
-            "forecast_rows_actual": len(
-                forecast_df
-            ),
+            "forecast_rows_actual": len(forecast_df),
             "forecast_missing_values": int(
-                forecast_df[
-                    "predicted_pm25_ug_m3"
-                ].isna().sum()
+                forecast_df["predicted_pm25_ug_m3"].isna().sum()
             ),
             "negative_operational_predictions": int(
-                forecast_df[
-                    "predicted_pm25_ug_m3"
-                ].lt(0).sum()
+                forecast_df["predicted_pm25_ug_m3"].lt(0).sum()
             ),
             "persistence_prediction_rows": int(
-                forecast_df[
-                    "prediction_source"
-                ]
-                .eq(
-                    "current_pm25_persistence"
-                )
-                .sum()
+                forecast_df["prediction_source"].eq("current_pm25_persistence").sum()
             ),
             "model_prediction_rows": int(
-                forecast_df[
-                    "forecast_horizon_hours"
-                ]
-                .gt(
-                    model_artifacts
-                    .persistence_max_horizon
-                )
+                forecast_df["forecast_horizon_hours"]
+                .gt(model_artifacts.persistence_max_horizon)
                 .sum()
             ),
         },
@@ -774,15 +569,9 @@ def run_live_inference(
     run_metadata = {
         "pipeline_run_id": pipeline_run_id,
         "project_name": settings.project_name,
-        "forecast_description": (
-            settings.forecast_description
-        ),
-        "prediction_generated_at_utc": (
-            prediction_generated_at_utc
-        ),
-        "input_quality": (
-            pm25_input_quality
-        ),
+        "forecast_description": (settings.forecast_description),
+        "prediction_generated_at_utc": (prediction_generated_at_utc),
+        "input_quality": (pm25_input_quality),
         "location": {
             "name": settings.location_name,
             "latitude": settings.latitude,
@@ -791,85 +580,38 @@ def run_live_inference(
         },
         "pollution_source": {
             "provider": "OpenAQ",
-            "location_id": (
-                settings.openaq_location_id
-            ),
-            "sensor_id": (
-                settings.openaq_sensor_id
-            ),
+            "location_id": (settings.openaq_location_id),
+            "sensor_id": (settings.openaq_sensor_id),
             "parameter": settings.pollutant,
             "unit": settings.pollution_unit,
         },
         "weather_source": {
             "provider": "Open-Meteo",
-            "variables": list(
-                OPEN_METEO_HOURLY_VARIABLES
-            ),
+            "variables": list(OPEN_METEO_HOURLY_VARIABLES),
         },
         "model": {
-            "model_name": (
-                model_artifacts.model_name
-            ),
-            "model_type": (
-                model_artifacts.model_type
-            ),
-            "selected_strategy": (
-                model_artifacts.selected_strategy
-            ),
-            "feature_count": len(
-                model_artifacts.feature_columns
-            ),
-            "persistence_max_horizon": (
-                model_artifacts
-                .persistence_max_horizon
-            ),
-            "model_source": (
-                model_artifacts.model_source
-            ),
-            "model_registry_version": (
-                model_artifacts
-                .model_registry_version
-            ),
-            "model_checksum_sha256": (
-                model_artifacts
-                .model_checksum_sha256
-            ),
-            "model_fallback_used": (
-                model_artifacts
-                .model_fallback_used
-            ),
+            "model_name": (model_artifacts.model_name),
+            "model_type": (model_artifacts.model_type),
+            "selected_strategy": (model_artifacts.selected_strategy),
+            "feature_count": len(model_artifacts.feature_columns),
+            "persistence_max_horizon": (model_artifacts.persistence_max_horizon),
+            "model_source": (model_artifacts.model_source),
+            "model_registry_version": (model_artifacts.model_registry_version),
+            "model_checksum_sha256": (model_artifacts.model_checksum_sha256),
+            "model_fallback_used": (model_artifacts.model_fallback_used),
         },
         "forecast": {
             "reference_time": reference_time,
-            "target_start": (
-                forecast_df["target_time"].min()
-            ),
-            "target_end": (
-                forecast_df["target_time"].max()
-            ),
+            "target_start": (forecast_df["target_time"].min()),
+            "target_end": (forecast_df["target_time"].max()),
             "forecast_rows": len(forecast_df),
         },
         "inputs": {
-            "pm25_history_start": (
-                selected_pm25_history_df[
-                    "datetime_utc"
-                ].min()
-            ),
-            "pm25_history_end": (
-                selected_pm25_history_df[
-                    "datetime_utc"
-                ].max()
-            ),
-            "pm25_history_rows": len(
-                selected_pm25_history_df
-            ),
-            "weather_rows": len(
-                weather_input_for_run_df
-            ),
-            "latest_pm25_age_hours": (
-                reference_selection
-                .latest_pm25_age_hours
-            ),
+            "pm25_history_start": (selected_pm25_history_df["datetime_utc"].min()),
+            "pm25_history_end": (selected_pm25_history_df["datetime_utc"].max()),
+            "pm25_history_rows": len(selected_pm25_history_df),
+            "weather_rows": len(weather_input_for_run_df),
+            "latest_pm25_age_hours": (reference_selection.latest_pm25_age_hours),
         },
     }
 
@@ -878,9 +620,7 @@ def run_live_inference(
         forecast_df=forecast_df,
         feature_matrix_df=complete_feature_df,
         pm25_input_df=selected_pm25_history_df,
-        weather_input_df=(
-            weather_input_for_run_df
-        ),
+        weather_input_df=(weather_input_for_run_df),
         run_metadata=run_metadata,
         validation_report=validation_report,
         app_settings=settings,
@@ -892,50 +632,22 @@ def run_live_inference(
         "phase": "5",
         "pipeline_name": "live_inference",
         "pipeline_run_id": pipeline_run_id,
-        "input_quality": (
-            pm25_input_quality
-        ),
+        "input_quality": (pm25_input_quality),
         "status": "LIVE_INFERENCE_COMPLETED",
         "started_at_utc": started_at.isoformat(),
         "completed_at_utc": completed_at.isoformat(),
-        "duration_seconds": (
-            completed_at - started_at
-        ).total_seconds(),
-        "reference_time": (
-            reference_time.isoformat()
-        ),
-        "forecast_start": (
-            forecast_df[
-                "target_time"
-            ].min().isoformat()
-        ),
-        "forecast_end": (
-            forecast_df[
-                "target_time"
-            ].max().isoformat()
-        ),
+        "duration_seconds": (completed_at - started_at).total_seconds(),
+        "reference_time": (reference_time.isoformat()),
+        "forecast_start": (forecast_df["target_time"].min().isoformat()),
+        "forecast_end": (forecast_df["target_time"].max().isoformat()),
         "forecast_rows": len(forecast_df),
-        "feature_count": len(
-            model_artifacts.feature_columns
-        ),
-        "model_name": (
-            model_artifacts.model_name
-        ),
-        "model_source": (
-            model_artifacts.model_source
-        ),
-        "model_registry_version": (
-            model_artifacts.model_registry_version
-        ),
-        "model_fallback_used": (
-            model_artifacts.model_fallback_used
-        ),
-        "run_directory": str(
-            saved_run.run_directory
-        ),
-        "validation_status": (
-            validation_report["status"]
-        ),
+        "feature_count": len(model_artifacts.feature_columns),
+        "model_name": (model_artifacts.model_name),
+        "model_source": (model_artifacts.model_source),
+        "model_registry_version": (model_artifacts.model_registry_version),
+        "model_fallback_used": (model_artifacts.model_fallback_used),
+        "run_directory": str(saved_run.run_directory),
+        "validation_status": (validation_report["status"]),
     }
 
 
@@ -965,10 +677,7 @@ def main() -> int:
     """CLI entry point."""
 
     parser = argparse.ArgumentParser(
-        description=(
-            "Run the live 72-hour PM2.5 "
-            "inference pipeline."
-        )
+        description=("Run the live 72-hour PM2.5 inference pipeline.")
     )
     parser.parse_args()
 
@@ -994,18 +703,14 @@ def main() -> int:
             "pipeline_name": "live_inference",
             "pipeline_run_id": pipeline_run_id,
             "status": "LIVE_INFERENCE_FAILED",
-            "failed_at_utc": datetime.now(
-                timezone.utc
-            ).isoformat(),
+            "failed_at_utc": datetime.now(timezone.utc).isoformat(),
             "error_type": type(error).__name__,
             "error_message": str(error),
         }
 
         exit_code = 1
 
-    report_path = save_pipeline_report(
-        report
-    )
+    report_path = save_pipeline_report(report)
 
     print(
         json.dumps(
@@ -1018,6 +723,7 @@ def main() -> int:
     print("Report saved:", report_path)
 
     return exit_code
+
 
 if __name__ == "__main__":
     raise SystemExit(main())

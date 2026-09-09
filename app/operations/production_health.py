@@ -54,40 +54,21 @@ from azure.identity import (
     DefaultAzureCredential,
 )
 
-REPORT_PATH = (
-    PROJECT_ROOT
-    / "reports"
-    / "phase_10"
-    / "production_health_report.json"
-)
+REPORT_PATH = PROJECT_ROOT / "reports" / "phase_10" / "production_health_report.json"
 
-DEFAULT_RESOURCE_GROUP = (
-    "rg-pearls-aqi-staging"
-)
+DEFAULT_RESOURCE_GROUP = "rg-pearls-aqi-staging"
 
-DEFAULT_FEATURE_JOB = (
-    "job-pearls-aqi-features"
-)
+DEFAULT_FEATURE_JOB = "job-pearls-aqi-features"
 
-DEFAULT_FORECAST_JOB = (
-    "job-pearls-aqi-forecast"
-)
+DEFAULT_FORECAST_JOB = "job-pearls-aqi-forecast"
 
-DEFAULT_RETRAINING_JOB = (
-    "job-pearls-aqi-retraining"
-)
+DEFAULT_RETRAINING_JOB = "job-pearls-aqi-retraining"
 
-AZURE_MANAGEMENT_SCOPE = (
-    "https://management.azure.com/.default"
-)
+AZURE_MANAGEMENT_SCOPE = "https://management.azure.com/.default"
 
-AZURE_MANAGEMENT_ENDPOINT = (
-    "https://management.azure.com"
-)
+AZURE_MANAGEMENT_ENDPOINT = "https://management.azure.com"
 
-AZURE_CONTAINER_APPS_API_VERSION = (
-    "2026-01-01"
-)
+AZURE_CONTAINER_APPS_API_VERSION = "2026-01-01"
 
 AQI_ARTIFACT_TYPE = "aqi"
 
@@ -110,17 +91,11 @@ class FreshnessThreshold:
 
     def __post_init__(self) -> None:
         if self.warning_after_hours < 0:
-            raise ValueError(
-                "warning_after_hours cannot be negative."
-            )
+            raise ValueError("warning_after_hours cannot be negative.")
 
-        if (
-            self.critical_after_hours
-            <= self.warning_after_hours
-        ):
+        if self.critical_after_hours <= self.warning_after_hours:
             raise ValueError(
-                "critical_after_hours must be greater "
-                "than warning_after_hours."
+                "critical_after_hours must be greater than warning_after_hours."
             )
 
 
@@ -153,9 +128,7 @@ RETRAINING_JOB_THRESHOLD = FreshnessThreshold(
 def utc_now() -> datetime:
     """Return the current timezone-aware UTC time."""
 
-    return datetime.now(
-        timezone.utc
-    )
+    return datetime.now(timezone.utc)
 
 
 def parse_utc_timestamp(
@@ -178,13 +151,9 @@ def parse_utc_timestamp(
         return None
 
     if timestamp.tzinfo is None:
-        timestamp = timestamp.tz_localize(
-            "UTC"
-        )
+        timestamp = timestamp.tz_localize("UTC")
     else:
-        timestamp = timestamp.tz_convert(
-            "UTC"
-        )
+        timestamp = timestamp.tz_convert("UTC")
 
     return timestamp.to_pydatetime()
 
@@ -196,9 +165,7 @@ def calculate_age_hours(
 ) -> float:
     """Return non-negative age in hours."""
 
-    age_seconds = (
-        now - timestamp
-    ).total_seconds()
+    age_seconds = (now - timestamp).total_seconds()
 
     return round(
         max(
@@ -220,16 +187,10 @@ def classify_age(
     if age_hours is None:
         return UNKNOWN
 
-    if (
-        age_hours
-        > threshold.critical_after_hours
-    ):
+    if age_hours > threshold.critical_after_hours:
         return CRITICAL
 
-    if (
-        age_hours
-        > threshold.warning_after_hours
-    ):
+    if age_hours > threshold.warning_after_hours:
         return WARNING
 
     return HEALTHY
@@ -260,22 +221,15 @@ def build_freshness_result(
     return {
         "status": status,
         "latest_timestamp_utc": (
-            latest_timestamp.isoformat()
-            if latest_timestamp is not None
-            else None
+            latest_timestamp.isoformat() if latest_timestamp is not None else None
         ),
         "age_hours": age_hours,
         "thresholds": {
-            "warning_after_hours": (
-                threshold
-                .warning_after_hours
-            ),
-            "critical_after_hours": (
-                threshold
-                .critical_after_hours
-            ),
+            "warning_after_hours": (threshold.warning_after_hours),
+            "critical_after_hours": (threshold.critical_after_hours),
         },
     }
+
 
 def read_environment_value(
     name: str,
@@ -314,8 +268,7 @@ def should_use_azure_resource_manager() -> bool:
         "arm",
     }:
         raise ProductionHealthError(
-            "AZURE_JOB_QUERY_BACKEND must be "
-            "'auto', 'cli', or 'arm'."
+            "AZURE_JOB_QUERY_BACKEND must be 'auto', 'cli', or 'arm'."
         )
 
     if backend == "arm":
@@ -324,11 +277,8 @@ def should_use_azure_resource_manager() -> bool:
     if backend == "cli":
         return False
 
-    return bool(
-        read_environment_value(
-            "AZURE_SUBSCRIPTION_ID"
-        )
-    )
+    return bool(read_environment_value("AZURE_SUBSCRIPTION_ID"))
+
 
 def run_azure_arm_get(
     *,
@@ -336,40 +286,23 @@ def run_azure_arm_get(
 ) -> Any:
     """Perform one authenticated Azure Resource Manager GET request."""
 
-    subscription_id = (
-        read_environment_value(
-            "AZURE_SUBSCRIPTION_ID"
-        )
-    )
+    subscription_id = read_environment_value("AZURE_SUBSCRIPTION_ID")
 
     if subscription_id is None:
         raise ProductionHealthError(
-            "AZURE_SUBSCRIPTION_ID is required "
-            "for ARM-based job inspection."
+            "AZURE_SUBSCRIPTION_ID is required for ARM-based job inspection."
         )
 
-    managed_identity_client_id = (
-        read_environment_value(
-            "AZURE_CLIENT_ID"
-        )
-    )
+    managed_identity_client_id = read_environment_value("AZURE_CLIENT_ID")
 
     credential = DefaultAzureCredential(
-        managed_identity_client_id=(
-            managed_identity_client_id
-        ),
+        managed_identity_client_id=(managed_identity_client_id),
         exclude_interactive_browser_credential=True,
     )
 
-    token = credential.get_token(
-        AZURE_MANAGEMENT_SCOPE
-    )
+    token = credential.get_token(AZURE_MANAGEMENT_SCOPE)
 
-    separator = (
-        "&"
-        if "?" in resource_path
-        else "?"
-    )
+    separator = "&" if "?" in resource_path else "?"
 
     url = (
         f"{AZURE_MANAGEMENT_ENDPOINT}"
@@ -384,9 +317,7 @@ def run_azure_arm_get(
         url=url,
         method="GET",
         headers={
-            "Authorization": (
-                f"Bearer {token.token}"
-            ),
+            "Authorization": (f"Bearer {token.token}"),
             "Accept": "application/json",
         },
     )
@@ -396,9 +327,7 @@ def run_azure_arm_get(
             request,
             timeout=30,
         ) as response:
-            payload = response.read().decode(
-                "utf-8"
-            )
+            payload = response.read().decode("utf-8")
 
     except urllib.error.HTTPError as error:
         response_body = error.read().decode(
@@ -425,6 +354,7 @@ def run_azure_arm_get(
         raise ProductionHealthError(
             "Azure Resource Manager returned invalid JSON."
         ) from error
+
 
 def run_azure_cli(
     arguments: list[str],
@@ -454,13 +384,9 @@ def run_azure_cli(
         )
 
     try:
-        return json.loads(
-            completed.stdout
-        )
+        return json.loads(completed.stdout)
     except json.JSONDecodeError as error:
-        raise ProductionHealthError(
-            "Azure CLI did not return valid JSON."
-        ) from error
+        raise ProductionHealthError("Azure CLI did not return valid JSON.") from error
 
 
 def load_job_executions(
@@ -471,18 +397,14 @@ def load_job_executions(
     """Load recent executions through ARM or the local Azure CLI."""
 
     if should_use_azure_resource_manager():
-        encoded_resource_group = (
-            urllib.parse.quote(
-                resource_group,
-                safe="",
-            )
+        encoded_resource_group = urllib.parse.quote(
+            resource_group,
+            safe="",
         )
 
-        encoded_job_name = (
-            urllib.parse.quote(
-                job_name,
-                safe="",
-            )
+        encoded_job_name = urllib.parse.quote(
+            job_name,
+            safe="",
         )
 
         payload = run_azure_arm_get(
@@ -496,14 +418,9 @@ def load_job_executions(
         )
 
         if not isinstance(payload, dict):
-            raise ProductionHealthError(
-                "Azure execution response is not an object."
-            )
+            raise ProductionHealthError("Azure execution response is not an object.")
 
-        raw_executions = payload.get(
-            "value",
-            []
-        )
+        raw_executions = payload.get("value", [])
 
     else:
         raw_executions = run_azure_cli(
@@ -523,15 +440,9 @@ def load_job_executions(
         raw_executions,
         list,
     ):
-        raise ProductionHealthError(
-            f"Execution response is not a list: {job_name}"
-        )
+        raise ProductionHealthError(f"Execution response is not a list: {job_name}")
 
-    executions = [
-        item
-        for item in raw_executions
-        if isinstance(item, dict)
-    ]
+    executions = [item for item in raw_executions if isinstance(item, dict)]
 
     executions.sort(
         key=lambda item: str(
@@ -547,6 +458,7 @@ def load_job_executions(
     )
 
     return executions
+
 
 def inspect_azure_job(
     *,
@@ -568,18 +480,10 @@ def inspect_azure_job(
                 "status": UNKNOWN,
                 "job_name": job_name,
                 "latest_execution": None,
-                "reason": (
-                    "No job executions were found."
-                ),
+                "reason": ("No job executions were found."),
                 "thresholds": {
-                    "warning_after_hours": (
-                        threshold
-                        .warning_after_hours
-                    ),
-                    "critical_after_hours": (
-                        threshold
-                        .critical_after_hours
-                    ),
+                    "warning_after_hours": (threshold.warning_after_hours),
+                    "critical_after_hours": (threshold.critical_after_hours),
                 },
             }
 
@@ -597,22 +501,11 @@ def inspect_azure_job(
             )
         )
 
-        start_time = parse_utc_timestamp(
-            properties.get(
-                "startTime"
-            )
-        )
+        start_time = parse_utc_timestamp(properties.get("startTime"))
 
-        end_time = parse_utc_timestamp(
-            properties.get(
-                "endTime"
-            )
-        )
+        end_time = parse_utc_timestamp(properties.get("endTime"))
 
-        freshness_time = (
-            end_time
-            or start_time
-        )
+        freshness_time = end_time or start_time
 
         freshness = build_freshness_result(
             latest_timestamp=freshness_time,
@@ -622,48 +515,28 @@ def inspect_azure_job(
 
         if execution_status != "Succeeded":
             component_status = CRITICAL
-            reason = (
-                "Latest execution did not succeed."
-            )
+            reason = "Latest execution did not succeed."
         else:
-            component_status = freshness[
-                "status"
-            ]
-            reason = (
-                "Latest execution succeeded."
-            )
+            component_status = freshness["status"]
+            reason = "Latest execution succeeded."
 
         return {
             "status": component_status,
             "job_name": job_name,
             "reason": reason,
             "latest_execution": {
-                "name": execution.get(
-                    "name"
-                ),
+                "name": execution.get("name"),
                 "status": execution_status,
                 "start_time_utc": (
-                    start_time.isoformat()
-                    if start_time is not None
-                    else None
+                    start_time.isoformat() if start_time is not None else None
                 ),
                 "end_time_utc": (
-                    end_time.isoformat()
-                    if end_time is not None
-                    else None
+                    end_time.isoformat() if end_time is not None else None
                 ),
-                "age_hours": (
-                    freshness[
-                        "age_hours"
-                    ]
-                ),
+                "age_hours": (freshness["age_hours"]),
             },
-            "thresholds": (
-                freshness["thresholds"]
-            ),
-            "execution_count_returned": len(
-                executions
-            ),
+            "thresholds": (freshness["thresholds"]),
+            "execution_count_returned": len(executions),
         }
 
     except Exception as error:
@@ -671,22 +544,12 @@ def inspect_azure_job(
             "status": UNKNOWN,
             "job_name": job_name,
             "latest_execution": None,
-            "reason": (
-                "Azure job health could not be inspected."
-            ),
-            "error_type": (
-                type(error).__name__
-            ),
+            "reason": ("Azure job health could not be inspected."),
+            "error_type": (type(error).__name__),
             "error_message": str(error),
             "thresholds": {
-                "warning_after_hours": (
-                    threshold
-                    .warning_after_hours
-                ),
-                "critical_after_hours": (
-                    threshold
-                    .critical_after_hours
-                ),
+                "warning_after_hours": (threshold.warning_after_hours),
+                "critical_after_hours": (threshold.critical_after_hours),
             },
         }
 
@@ -697,39 +560,17 @@ def build_feature_contracts(
     """Build the configured feature-group contracts."""
 
     feature_columns = load_feature_columns(
-        PROJECT_ROOT
-        / "models"
-        / "model_feature_columns.json"
+        PROJECT_ROOT / "models" / "model_feature_columns.json"
     )
 
     return build_feature_group_contracts(
-        pm25_version=(
-            settings
-            .hopsworks_pm25_feature_group_version
-        ),
-        weather_version=(
-            settings
-            .hopsworks_weather_feature_group_version
-        ),
-        engineered_version=(
-            settings
-            .hopsworks_engineered_feature_group_version
-        ),
-        pm25_name=(
-            settings
-            .hopsworks_pm25_feature_group_name
-        ),
-        weather_name=(
-            settings
-            .hopsworks_weather_feature_group_name
-        ),
-        engineered_name=(
-            settings
-            .hopsworks_engineered_feature_group_name
-        ),
-        model_feature_columns=(
-            feature_columns
-        ),
+        pm25_version=(settings.hopsworks_pm25_feature_group_version),
+        weather_version=(settings.hopsworks_weather_feature_group_version),
+        engineered_version=(settings.hopsworks_engineered_feature_group_version),
+        pm25_name=(settings.hopsworks_pm25_feature_group_name),
+        weather_name=(settings.hopsworks_weather_feature_group_name),
+        engineered_name=(settings.hopsworks_engineered_feature_group_name),
+        model_feature_columns=(feature_columns),
     )
 
 
@@ -740,17 +581,13 @@ def inspect_feature_repository_freshness(
 ) -> dict[str, Any]:
     """Inspect freshness through the configured feature repository."""
 
-    contracts = build_feature_contracts(
-        settings
-    )
+    contracts = build_feature_contracts(settings)
 
     try:
-        repository = (
-            create_feature_repository(
-                settings=settings,
-                contracts=contracts,
-                create_if_missing=False,
-            )
+        repository = create_feature_repository(
+            settings=settings,
+            contracts=contracts,
+            create_if_missing=False,
         )
 
         groups: dict[
@@ -763,125 +600,58 @@ def inspect_feature_repository_freshness(
             contract,
         ) in contracts.items():
             try:
-                latest_timestamp_value = (
-                    repository
-                    .latest_event_time(
-                        contract=contract
-                    )
-                )
+                latest_timestamp_value = repository.latest_event_time(contract=contract)
 
                 latest_timestamp = (
-                    latest_timestamp_value
-                    .to_pydatetime()
-                    if latest_timestamp_value
-                    is not None
+                    latest_timestamp_value.to_pydatetime()
+                    if latest_timestamp_value is not None
                     else None
                 )
 
-                freshness = (
-                    build_freshness_result(
-                        latest_timestamp=(
-                            latest_timestamp
-                        ),
-                        threshold=(
-                            FEATURE_DATA_THRESHOLD
-                        ),
-                        now=now,
-                    )
+                freshness = build_freshness_result(
+                    latest_timestamp=(latest_timestamp),
+                    threshold=(FEATURE_DATA_THRESHOLD),
+                    now=now,
                 )
 
-                groups[
-                    logical_name
-                ] = {
-                    "status": (
-                        freshness[
-                            "status"
-                        ]
-                    ),
-                    "name": (
-                        contract.name
-                    ),
-                    "version": (
-                        contract.version
-                    ),
-                    "event_time_column": (
-                        contract.event_time
-                    ),
-                    "primary_key": list(
-                        contract.primary_key
-                    ),
-                    "latest_timestamp_utc": (
-                        freshness[
-                            "latest_timestamp_utc"
-                        ]
-                    ),
-                    "age_hours": (
-                        freshness[
-                            "age_hours"
-                        ]
-                    ),
-                    "thresholds": (
-                        freshness[
-                            "thresholds"
-                        ]
-                    ),
+                groups[logical_name] = {
+                    "status": (freshness["status"]),
+                    "name": (contract.name),
+                    "version": (contract.version),
+                    "event_time_column": (contract.event_time),
+                    "primary_key": list(contract.primary_key),
+                    "latest_timestamp_utc": (freshness["latest_timestamp_utc"]),
+                    "age_hours": (freshness["age_hours"]),
+                    "thresholds": (freshness["thresholds"]),
                 }
 
             except Exception as error:
-                groups[
-                    logical_name
-                ] = {
+                groups[logical_name] = {
                     "status": UNKNOWN,
                     "name": contract.name,
-                    "version": (
-                        contract.version
-                    ),
-                    "event_time_column": (
-                        contract.event_time
-                    ),
-                    "primary_key": list(
-                        contract.primary_key
-                    ),
+                    "version": (contract.version),
+                    "event_time_column": (contract.event_time),
+                    "primary_key": list(contract.primary_key),
                     "latest_timestamp_utc": None,
                     "age_hours": None,
-                    "error_type": (
-                        type(error).__name__
-                    ),
-                    "error_message": str(
-                        error
-                    ),
+                    "error_type": (type(error).__name__),
+                    "error_message": str(error),
                     "thresholds": {
                         "warning_after_hours": (
-                            FEATURE_DATA_THRESHOLD
-                            .warning_after_hours
+                            FEATURE_DATA_THRESHOLD.warning_after_hours
                         ),
                         "critical_after_hours": (
-                            FEATURE_DATA_THRESHOLD
-                            .critical_after_hours
+                            FEATURE_DATA_THRESHOLD.critical_after_hours
                         ),
                     },
                 }
 
-        overall_status = (
-            worst_status(
-                [
-                    value["status"]
-                    for value
-                    in groups.values()
-                ]
-            )
-        )
+        overall_status = worst_status([value["status"] for value in groups.values()])
 
         return {
-            "status": (
-                overall_status
-            ),
-            "backend": (
-                repository.backend_name
-            ),
-            "source": (
-                repository.source_label
-            ),
+            "status": (overall_status),
+            "backend": (repository.backend_name),
+            "source": (repository.source_label),
             "groups": groups,
         }
 
@@ -891,24 +661,14 @@ def inspect_feature_repository_freshness(
     ) as error:
         return {
             "status": UNKNOWN,
-            "backend": (
-                settings
-                .feature_store_backend
-                .value
-            ),
+            "backend": (settings.feature_store_backend.value),
             "source": None,
-            "reason": (
-                "Feature repository freshness "
-                "could not be inspected."
-            ),
-            "error_type": (
-                type(error).__name__
-            ),
-            "error_message": str(
-                error
-            ),
+            "reason": ("Feature repository freshness could not be inspected."),
+            "error_type": (type(error).__name__),
+            "error_message": str(error),
             "groups": {},
         }
+
 
 def inspect_aqi_artifact(
     *,
@@ -917,117 +677,53 @@ def inspect_aqi_artifact(
     """Inspect the latest durable AQI artifact pointer."""
 
     try:
-        repository = (
-            create_configured_repository()
+        repository = create_configured_repository()
+
+        pointer = repository.get_latest_pointer(AQI_ARTIFACT_TYPE)
+
+        published_at = parse_utc_timestamp(pointer.get("published_at_utc"))
+
+        freshness = build_freshness_result(
+            latest_timestamp=(published_at),
+            threshold=(AQI_ARTIFACT_THRESHOLD),
+            now=now,
         )
 
-        pointer = (
-            repository.get_latest_pointer(
-                AQI_ARTIFACT_TYPE
-            )
-        )
+        validation_status = pointer.get("validation_status")
 
-        published_at = (
-            parse_utc_timestamp(
-                pointer.get(
-                    "published_at_utc"
-                )
-            )
-        )
+        component_status = freshness["status"]
 
-        freshness = (
-            build_freshness_result(
-                latest_timestamp=(
-                    published_at
-                ),
-                threshold=(
-                    AQI_ARTIFACT_THRESHOLD
-                ),
-                now=now,
-            )
-        )
+        reason = "Latest AQI artifact is valid."
 
-        validation_status = pointer.get(
-            "validation_status"
-        )
-
-        component_status = (
-            freshness["status"]
-        )
-
-        reason = (
-            "Latest AQI artifact is valid."
-        )
-
-        if (
-            validation_status
-            != "AQI_ALERT_PIPELINE_APPROVED"
-        ):
+        if validation_status != "AQI_ALERT_PIPELINE_APPROVED":
             component_status = CRITICAL
-            reason = (
-                "Latest AQI artifact does not have "
-                "the approved validation status."
-            )
+            reason = "Latest AQI artifact does not have the approved validation status."
 
         return {
             "status": component_status,
             "reason": reason,
-            "artifact_type": (
-                AQI_ARTIFACT_TYPE
-            ),
-            "run_id": pointer.get(
-                "run_id"
-            ),
-            "artifact_prefix": (
-                pointer.get(
-                    "artifact_prefix"
-                )
-            ),
-            "manifest_path": (
-                pointer.get(
-                    "manifest_path"
-                )
-            ),
-            "validation_status": (
-                validation_status
-            ),
-            "published_at_utc": (
-                freshness[
-                    "latest_timestamp_utc"
-                ]
-            ),
-            "age_hours": (
-                freshness["age_hours"]
-            ),
-            "thresholds": (
-                freshness["thresholds"]
-            ),
+            "artifact_type": (AQI_ARTIFACT_TYPE),
+            "run_id": pointer.get("run_id"),
+            "artifact_prefix": (pointer.get("artifact_prefix")),
+            "manifest_path": (pointer.get("manifest_path")),
+            "validation_status": (validation_status),
+            "published_at_utc": (freshness["latest_timestamp_utc"]),
+            "age_hours": (freshness["age_hours"]),
+            "thresholds": (freshness["thresholds"]),
         }
 
     except Exception as error:
         return {
             "status": UNKNOWN,
-            "reason": (
-                "Latest AQI artifact could not be inspected."
-            ),
-            "artifact_type": (
-                AQI_ARTIFACT_TYPE
-            ),
-            "error_type": (
-                type(error).__name__
-            ),
+            "reason": ("Latest AQI artifact could not be inspected."),
+            "artifact_type": (AQI_ARTIFACT_TYPE),
+            "error_type": (type(error).__name__),
             "error_message": str(error),
             "published_at_utc": None,
             "age_hours": None,
             "thresholds": {
-                "warning_after_hours": (
-                    AQI_ARTIFACT_THRESHOLD
-                    .warning_after_hours
-                ),
-                "critical_after_hours": (
-                    AQI_ARTIFACT_THRESHOLD
-                    .critical_after_hours
-                ),
+                "warning_after_hours": (AQI_ARTIFACT_THRESHOLD.warning_after_hours),
+                "critical_after_hours": (AQI_ARTIFACT_THRESHOLD.critical_after_hours),
             },
         }
 
@@ -1044,21 +740,14 @@ def worst_status(
         CRITICAL: 3,
     }
 
-    normalized = [
-        status
-        if status in severity
-        else UNKNOWN
-        for status in statuses
-    ]
+    normalized = [status if status in severity else UNKNOWN for status in statuses]
 
     if not normalized:
         return UNKNOWN
 
     return max(
         normalized,
-        key=lambda status: severity[
-            status
-        ],
+        key=lambda status: severity[status],
     )
 
 
@@ -1073,9 +762,7 @@ def build_recommendations(
     recommendations: list[str] = []
 
     for logical_name, result in jobs.items():
-        status = result.get(
-            "status"
-        )
+        status = result.get("status")
 
         if status == CRITICAL:
             recommendations.append(
@@ -1085,69 +772,49 @@ def build_recommendations(
 
         elif status == WARNING:
             recommendations.append(
-                "Watch the next scheduled "
-                f"{logical_name} execution."
+                f"Watch the next scheduled {logical_name} execution."
             )
 
         elif status == UNKNOWN:
             recommendations.append(
-                "Restore visibility into the "
-                f"{logical_name} Azure job."
+                f"Restore visibility into the {logical_name} Azure job."
             )
 
-    for logical_name, result in (
-        feature_store.get(
-            "groups",
-            {}
-        ).items()
-    ):
-        status = result.get(
-            "status"
-        )
+    for logical_name, result in feature_store.get("groups", {}).items():
+        status = result.get("status")
 
         if status == CRITICAL:
             recommendations.append(
-                "Investigate stale feature data for "
-                f"{logical_name}."
+                f"Investigate stale feature data for {logical_name}."
             )
 
         elif status == WARNING:
             recommendations.append(
-                "Verify the next hourly synchronization "
-                f"updates {logical_name}."
+                f"Verify the next hourly synchronization updates {logical_name}."
             )
 
         elif status == UNKNOWN:
             recommendations.append(
-                "Restore feature repository visibility for "
-                f"{logical_name}."
+                f"Restore feature repository visibility for {logical_name}."
             )
 
-    artifact_status = artifact.get(
-        "status"
-    )
+    artifact_status = artifact.get("status")
 
     if artifact_status == CRITICAL:
         recommendations.append(
-            "Inspect the forecast publication job and "
-            "the AQI Blob latest pointer."
+            "Inspect the forecast publication job and the AQI Blob latest pointer."
         )
 
     elif artifact_status == WARNING:
         recommendations.append(
-            "Verify the next six-hour forecast "
-            "publication updates the AQI pointer."
+            "Verify the next six-hour forecast publication updates the AQI pointer."
         )
 
     elif artifact_status == UNKNOWN:
-        recommendations.append(
-            "Restore access to the AQI artifact repository."
-        )
+        recommendations.append("Restore access to the AQI artifact repository.")
 
     if not recommendations:
-        recommendations.append(
-            "No immediate operational action is required."
-        )
+        recommendations.append("No immediate operational action is required.")
 
     return recommendations
 
@@ -1187,9 +854,7 @@ def run_production_health(
             inspect_azure_job(
                 resource_group=resource_group,
                 job_name=feature_job_name,
-                threshold=(
-                    FEATURE_JOB_THRESHOLD
-                ),
+                threshold=(FEATURE_JOB_THRESHOLD),
                 now=started_at,
             )
         ),
@@ -1197,9 +862,7 @@ def run_production_health(
             inspect_azure_job(
                 resource_group=resource_group,
                 job_name=forecast_job_name,
-                threshold=(
-                    FORECAST_JOB_THRESHOLD
-                ),
+                threshold=(FORECAST_JOB_THRESHOLD),
                 now=started_at,
             )
         ),
@@ -1207,9 +870,7 @@ def run_production_health(
             inspect_azure_job(
                 resource_group=resource_group,
                 job_name=retraining_job_name,
-                threshold=(
-                    RETRAINING_JOB_THRESHOLD
-                ),
+                threshold=(RETRAINING_JOB_THRESHOLD),
                 now=started_at,
             )
         ),
@@ -1217,21 +878,14 @@ def run_production_health(
 
     settings = get_mlops_settings()
 
-    feature_store = (
-        inspect_feature_repository_freshness(
-            settings=settings,
-            now=started_at,
-        )
+    feature_store = inspect_feature_repository_freshness(
+        settings=settings,
+        now=started_at,
     )
 
-    artifact = inspect_aqi_artifact(
-        now=started_at
-    )
+    artifact = inspect_aqi_artifact(now=started_at)
 
-    component_statuses = [
-        result["status"]
-        for result in jobs.values()
-    ]
+    component_statuses = [result["status"] for result in jobs.values()]
 
     component_statuses.extend(
         [
@@ -1240,34 +894,19 @@ def run_production_health(
         ]
     )
 
-    overall_component_status = (
-        worst_status(
-            component_statuses
-        )
-    )
+    overall_component_status = worst_status(component_statuses)
 
     completed_at = utc_now()
 
     return {
         "phase": "10L",
         "subphase": "10L-A",
-        "pipeline_name": (
-            "production_health"
-        ),
-        "generated_at_utc": (
-            completed_at.isoformat()
-        ),
-        "status": (
-            map_overall_report_status(
-                overall_component_status
-            )
-        ),
-        "overall_component_status": (
-            overall_component_status
-        ),
+        "pipeline_name": ("production_health"),
+        "generated_at_utc": (completed_at.isoformat()),
+        "status": (map_overall_report_status(overall_component_status)),
+        "overall_component_status": (overall_component_status),
         "duration_seconds": round(
-            time.monotonic()
-            - started_monotonic,
+            time.monotonic() - started_monotonic,
             3,
         ),
         "read_only": True,
@@ -1299,11 +938,7 @@ def save_report(
         exist_ok=True,
     )
 
-    temporary_path = (
-        REPORT_PATH.with_suffix(
-            ".json.tmp"
-        )
-    )
+    temporary_path = REPORT_PATH.with_suffix(".json.tmp")
 
     temporary_path.write_text(
         json.dumps(
@@ -1314,9 +949,7 @@ def save_report(
         encoding="utf-8",
     )
 
-    temporary_path.replace(
-        REPORT_PATH
-    )
+    temporary_path.replace(REPORT_PATH)
 
     return REPORT_PATH
 
@@ -1326,8 +959,7 @@ def main() -> int:
 
     parser = argparse.ArgumentParser(
         description=(
-            "Inspect production jobs, feature freshness, "
-            "and AQI artifact freshness."
+            "Inspect production jobs, feature freshness, and AQI artifact freshness."
         )
     )
 
@@ -1355,18 +987,10 @@ def main() -> int:
 
     try:
         report = run_production_health(
-            resource_group=(
-                arguments.resource_group
-            ),
-            feature_job_name=(
-                arguments.feature_job_name
-            ),
-            forecast_job_name=(
-                arguments.forecast_job_name
-            ),
-            retraining_job_name=(
-                arguments.retraining_job_name
-            ),
+            resource_group=(arguments.resource_group),
+            feature_job_name=(arguments.feature_job_name),
+            forecast_job_name=(arguments.forecast_job_name),
+            retraining_job_name=(arguments.retraining_job_name),
         )
 
         # Warnings are observable operational states but do not fail
@@ -1385,21 +1009,11 @@ def main() -> int:
         report = {
             "phase": "10L",
             "subphase": "10L-A",
-            "pipeline_name": (
-                "production_health"
-            ),
-            "generated_at_utc": (
-                utc_now().isoformat()
-            ),
-            "status": (
-                "PRODUCTION_HEALTH_CHECK_FAILED"
-            ),
-            "overall_component_status": (
-                UNKNOWN
-            ),
-            "error_type": (
-                type(error).__name__
-            ),
+            "pipeline_name": ("production_health"),
+            "generated_at_utc": (utc_now().isoformat()),
+            "status": ("PRODUCTION_HEALTH_CHECK_FAILED"),
+            "overall_component_status": (UNKNOWN),
+            "error_type": (type(error).__name__),
             "error_message": str(error),
             "read_only": True,
             "production_data_changed": False,
@@ -1410,9 +1024,7 @@ def main() -> int:
 
         exit_code = 1
 
-    report_path = save_report(
-        report
-    )
+    report_path = save_report(report)
 
     print(
         json.dumps(

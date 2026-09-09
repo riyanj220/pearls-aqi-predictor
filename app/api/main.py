@@ -48,12 +48,7 @@ def configure_logging(
             logging,
             settings.log_level,
         ),
-        format=(
-            "%(asctime)s "
-            "%(levelname)s "
-            "%(name)s "
-            "%(message)s"
-        ),
+        format=("%(asctime)s %(levelname)s %(name)s %(message)s"),
     )
 
 
@@ -68,39 +63,26 @@ def create_application() -> FastAPI:
     async def lifespan(
         app: FastAPI,
     ) -> AsyncIterator[None]:
-        repository = ArtifactRepository(
-            settings
-        )
+        repository = ArtifactRepository(settings)
 
-        app.state.artifact_repository = (
-            repository
-        )
+        app.state.artifact_repository = repository
 
         app.state.forecast_ready = False
 
         try:
-            bundle = repository.load_latest(
-                force_reload=True
-            )
+            bundle = repository.load_latest(force_reload=True)
 
             app.state.forecast_ready = True
 
             LOGGER.info(
-                (
-                    "artifact_cache_warmed "
-                    "phase_6_run_id=%s "
-                    "forecast_rows=%s"
-                ),
+                ("artifact_cache_warmed phase_6_run_id=%s forecast_rows=%s"),
                 bundle.phase_6_run_id,
                 len(bundle.forecast_df),
             )
 
         except ArtifactRepositoryError:
             LOGGER.exception(
-                (
-                    "artifact_cache_warm_failed "
-                    "service_will_start_not_ready"
-                )
+                ("artifact_cache_warm_failed service_will_start_not_ready")
             )
 
         yield
@@ -109,12 +91,8 @@ def create_application() -> FastAPI:
 
     app = FastAPI(
         title=settings.application_name,
-        description=(
-            settings.application_description
-        ),
-        version=(
-            settings.application_version
-        ),
+        description=(settings.application_description),
+        version=(settings.application_version),
         docs_url="/docs",
         redoc_url="/redoc",
         openapi_url="/openapi.json",
@@ -123,15 +101,11 @@ def create_application() -> FastAPI:
             "name": "Pearls AQI Predictor",
         },
         license_info={
-            "name": (
-                "Project demonstration service"
-            ),
+            "name": ("Project demonstration service"),
         },
     )
 
-    app.add_middleware(
-        RequestContextMiddleware
-    )
+    app.add_middleware(RequestContextMiddleware)
 
     app.add_middleware(
         GZipMiddleware,
@@ -140,9 +114,7 @@ def create_application() -> FastAPI:
 
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=list(
-            settings.allowed_cors_origins
-        ),
+        allow_origins=list(settings.allowed_cors_origins),
         allow_credentials=False,
         allow_methods=["GET"],
         allow_headers=[
@@ -186,16 +158,10 @@ def create_application() -> FastAPI:
         """Provide a small service-discovery response."""
 
         return {
-            "service": (
-                settings.application_name
-            ),
-            "version": (
-                settings.application_version
-            ),
+            "service": (settings.application_name),
+            "version": (settings.application_version),
             "documentation": "/docs",
-            "api_prefix": (
-                settings.api_prefix
-            ),
+            "api_prefix": (settings.api_prefix),
         }
 
     return app

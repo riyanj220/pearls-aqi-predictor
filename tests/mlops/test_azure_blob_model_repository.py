@@ -22,9 +22,7 @@ def create_candidate(
     *,
     value: int,
 ) -> Path:
-    directory = (
-        root / f"candidate-{value}"
-    )
+    directory = root / f"candidate-{value}"
 
     directory.mkdir()
 
@@ -32,14 +30,10 @@ def create_candidate(
         {
             "model_value": value,
         },
-        directory
-        / "best_model.joblib",
+        directory / "best_model.joblib",
     )
 
-    (
-        directory
-        / "model_feature_columns.json"
-    ).write_text(
+    (directory / "model_feature_columns.json").write_text(
         json.dumps(
             {
                 "feature_columns": [
@@ -51,15 +45,8 @@ def create_candidate(
         encoding="utf-8",
     )
 
-    (
-        directory
-        / "candidate_metadata.json"
-    ).write_text(
-        json.dumps(
-            {
-                "candidate": value
-            }
-        ),
+    (directory / "candidate_metadata.json").write_text(
+        json.dumps({"candidate": value}),
         encoding="utf-8",
     )
 
@@ -70,35 +57,15 @@ def create_repository(
     tmp_path: Path,
 ) -> AzureBlobModelRepository:
 
-    transport = (
-        LocalArtifactRepository(
-            root_directory=(
-                tmp_path / "blob"
-            )
-        )
-    )
+    transport = LocalArtifactRepository(root_directory=(tmp_path / "blob"))
 
     settings = MLOpsSettings(
-        model_registry_backend=(
-            "azure_blob"
-        ),
-        azure_storage_account=(
-            "testaccount"
-        ),
-        azure_storage_container=(
-            "testcontainer"
-        ),
-        azure_model_registry_prefix=(
-            "model-registry"
-        ),
-        hopsworks_model_name=(
-            "pearls_aqi_pm25_forecaster"
-        ),
-        model_cache_directory=(
-            str(
-                tmp_path / "cache"
-            )
-        ),
+        model_registry_backend=("azure_blob"),
+        azure_storage_account=("testaccount"),
+        azure_storage_container=("testcontainer"),
+        azure_model_registry_prefix=("model-registry"),
+        hopsworks_model_name=("pearls_aqi_pm25_forecaster"),
+        model_cache_directory=(str(tmp_path / "cache")),
     )
 
     return AzureBlobModelRepository(
@@ -111,9 +78,7 @@ def test_candidate_registration_is_versioned(
     tmp_path: Path,
 ) -> None:
 
-    repository = create_repository(
-        tmp_path
-    )
+    repository = create_repository(tmp_path)
 
     candidate_1 = create_candidate(
         tmp_path,
@@ -125,28 +90,14 @@ def test_candidate_registration_is_versioned(
         value=2,
     )
 
-    first = (
-        repository
-        .register_candidate_model(
-            candidate_directory=(
-                candidate_1
-            ),
-            metrics={
-                "test_mae": 10.0
-            },
-        )
+    first = repository.register_candidate_model(
+        candidate_directory=(candidate_1),
+        metrics={"test_mae": 10.0},
     )
 
-    second = (
-        repository
-        .register_candidate_model(
-            candidate_directory=(
-                candidate_2
-            ),
-            metrics={
-                "test_mae": 9.0
-            },
-        )
+    second = repository.register_candidate_model(
+        candidate_directory=(candidate_2),
+        metrics={"test_mae": 9.0},
     )
 
     assert first.version == 1
@@ -160,9 +111,7 @@ def test_candidate_registration_does_not_promote(
     tmp_path: Path,
 ) -> None:
 
-    repository = create_repository(
-        tmp_path
-    )
+    repository = create_repository(tmp_path)
 
     candidate = create_candidate(
         tmp_path,
@@ -170,77 +119,45 @@ def test_candidate_registration_does_not_promote(
     )
 
     repository.register_candidate_model(
-        candidate_directory=(
-            candidate
-        ),
-        metrics={
-            "test_mae": 10.0
-        },
+        candidate_directory=(candidate),
+        metrics={"test_mae": 10.0},
     )
 
-    assert not repository.repository.exists(
-        repository.production_pointer_path
-    )
+    assert not repository.repository.exists(repository.production_pointer_path)
 
 
 def test_production_pointer_can_select_version(
     tmp_path: Path,
 ) -> None:
 
-    repository = create_repository(
-        tmp_path
-    )
+    repository = create_repository(tmp_path)
 
     candidate = create_candidate(
         tmp_path,
         value=1,
     )
 
-    registered = (
-        repository
-        .register_candidate_model(
-            candidate_directory=(
-                candidate
-            ),
-            metrics={
-                "test_mae": 10.0
-            },
-        )
+    registered = repository.register_candidate_model(
+        candidate_directory=(candidate),
+        metrics={"test_mae": 10.0},
     )
 
-    pointer = (
-        repository
-        .set_production_version(
-            version=(
-                registered.version
-            )
-        )
-    )
+    pointer = repository.set_production_version(version=(registered.version))
 
     assert pointer["version"] == 1
 
-    assert (
-        pointer["production_status"]
-        == "PRODUCTION"
-    )
+    assert pointer["production_status"] == "PRODUCTION"
 
 
 def test_missing_version_cannot_be_promoted(
     tmp_path: Path,
 ) -> None:
 
-    repository = create_repository(
-        tmp_path
-    )
+    repository = create_repository(tmp_path)
 
     try:
-        repository.set_production_version(
-            version=99
-        )
+        repository.set_production_version(version=99)
     except ModelRepositoryError:
         pass
     else:
-        raise AssertionError(
-            "Missing model version "
-            "was unexpectedly promoted."
-        )
+        raise AssertionError("Missing model version was unexpectedly promoted.")

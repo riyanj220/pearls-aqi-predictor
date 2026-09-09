@@ -35,26 +35,16 @@ class ReadinessService:
     def evaluate(self) -> ReadinessResponse:
         """Build readiness without raising artifact errors."""
 
-        checked_at_utc = datetime.now(
-            timezone.utc
-        )
+        checked_at_utc = datetime.now(timezone.utc)
 
         try:
-            bundle = (
-                self._repository.load_latest()
-            )
+            bundle = self._repository.load_latest()
 
         except ArtifactRepositoryError:
             return ReadinessResponse(
-                status=(
-                    ReadinessStatus.INVALID_ARTIFACTS
-                ),
-                service=(
-                    self._settings.application_name
-                ),
-                version=(
-                    self._settings.application_version
-                ),
+                status=(ReadinessStatus.INVALID_ARTIFACTS),
+                service=(self._settings.application_name),
+                version=(self._settings.application_version),
                 timestamp_utc=checked_at_utc,
                 forecast_available=False,
                 artifacts_valid=False,
@@ -83,11 +73,9 @@ class ReadinessService:
             )
         )
 
-        input_quality = (
-            bundle.metadata.get(
-                "input_quality",
-                {},
-            )
+        input_quality = bundle.metadata.get(
+            "input_quality",
+            {},
         )
 
         if not isinstance(
@@ -103,18 +91,10 @@ class ReadinessService:
             )
         ).upper()
 
-        source_degraded = (
-            data_quality_status
-            == "DEGRADED"
-        )
+        source_degraded = data_quality_status == "DEGRADED"
 
-        if (
-            bundle.freshness.status
-            == FreshnessStatus.STALE
-        ):
-            readiness_status = (
-                ReadinessStatus.STALE_FORECAST
-            )
+        if bundle.freshness.status == FreshnessStatus.STALE:
+            readiness_status = ReadinessStatus.STALE_FORECAST
 
             message = (
                 "Fresh sensor data is temporarily delayed. "
@@ -123,10 +103,7 @@ class ReadinessService:
             )
 
         elif source_degraded:
-            readiness_status = (
-                ReadinessStatus
-                .READY_WITH_LIMITATIONS
-            )
+            readiness_status = ReadinessStatus.READY_WITH_LIMITATIONS
 
             message = (
                 "The forecast is available. A short gap in "
@@ -135,10 +112,7 @@ class ReadinessService:
             )
 
         elif limitations:
-            readiness_status = (
-                ReadinessStatus
-                .READY_WITH_LIMITATIONS
-            )
+            readiness_status = ReadinessStatus.READY_WITH_LIMITATIONS
 
             message = (
                 "The latest validated forecast is ready "
@@ -146,36 +120,22 @@ class ReadinessService:
             )
 
         else:
-            readiness_status = (
-                ReadinessStatus.READY
-            )
+            readiness_status = ReadinessStatus.READY
 
-            message = (
-                "The latest validated forecast is ready."
-            )
+            message = "The latest validated forecast is ready."
 
         return ReadinessResponse(
             status=readiness_status,
             service=self._settings.application_name,
-            version=(
-                self._settings.application_version
-            ),
+            version=(self._settings.application_version),
             timestamp_utc=checked_at_utc,
             forecast_available=True,
             artifacts_valid=True,
-            pipeline_run_id=(
-                bundle.phase_6_run_id
-            ),
-            forecast_rows=len(
-                bundle.forecast_df
-            ),
+            pipeline_run_id=(bundle.phase_6_run_id),
+            forecast_rows=len(bundle.forecast_df),
             freshness=freshness,
-            data_quality_status=(
-                data_quality_status
-            ),
-            source_degraded=(
-                source_degraded
-            ),
+            data_quality_status=(data_quality_status),
+            source_degraded=(source_degraded),
             limitations=limitations,
             message=message,
         )
@@ -191,18 +151,10 @@ def freshness_response(
     freshness = bundle.freshness
 
     return FreshnessResponse(
-        generated_at_utc=(
-            freshness.generated_at_utc
-        ),
+        generated_at_utc=(freshness.generated_at_utc),
         age_minutes=freshness.age_minutes,
         age_hours=freshness.age_hours,
         status=freshness.status,
-        aging_threshold_hours=(
-            settings
-            .forecast_aging_threshold_hours
-        ),
-        staleness_threshold_hours=(
-            settings
-            .forecast_staleness_threshold_hours
-        ),
+        aging_threshold_hours=(settings.forecast_aging_threshold_hours),
+        staleness_threshold_hours=(settings.forecast_staleness_threshold_hours),
     )

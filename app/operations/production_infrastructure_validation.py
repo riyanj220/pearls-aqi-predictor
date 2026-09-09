@@ -20,9 +20,7 @@ REPORT_PATH = (
 )
 
 
-class ProductionInfrastructureValidationError(
-    RuntimeError
-):
+class ProductionInfrastructureValidationError(RuntimeError):
     """Raised when production infrastructure validation fails."""
 
 
@@ -63,9 +61,7 @@ def run_json_command(
     )
 
     try:
-        return json.loads(
-            output
-        )
+        return json.loads(output)
     except json.JSONDecodeError as error:
         raise ProductionInfrastructureValidationError(
             "Command did not return valid JSON."
@@ -151,14 +147,7 @@ def validate_infrastructure(
             "Role-assignment response is invalid."
         )
 
-    role_names = {
-        str(
-            role.get(
-                "roleDefinitionName"
-            )
-        )
-        for role in roles
-    }
+    role_names = {str(role.get("roleDefinitionName")) for role in roles}
 
     container_exists_output = run_command(
         [
@@ -211,10 +200,7 @@ def validate_infrastructure(
             "--container-name",
             storage_container,
             "--name",
-            (
-                "production-health/"
-                "latest/pointer.json"
-            ),
+            ("production-health/latest/pointer.json"),
             "--auth-mode",
             "login",
             "--query",
@@ -235,148 +221,75 @@ def validate_infrastructure(
     )
 
     checks = {
-        "resource_group_exists": (
-            group.get(
-                "name"
-            )
-            == resource_group
-        ),
+        "resource_group_exists": (group.get("name") == resource_group),
         "resource_group_is_production": (
             group.get(
                 "tags",
                 {},
-            ).get(
-                "environment"
-            )
+            ).get("environment")
             == "production"
         ),
         "shared_environment_provisioned": (
             environment.get(
                 "properties",
                 {},
-            ).get(
-                "provisioningState"
-            )
+            ).get("provisioningState")
             == "Succeeded"
         ),
         "shared_environment_is_staging_environment": (
-            environment.get(
-                "name"
-            )
-            == "cae-pearls-aqi-staging"
+            environment.get("name") == "cae-pearls-aqi-staging"
         ),
-        "production_identity_exists": (
-            identity.get(
-                "name"
-            )
-            == identity_name
-        ),
-        "identity_has_client_id": bool(
-            identity.get(
-                "clientId"
-            )
-        ),
-        "identity_has_principal_id": bool(
-            principal_id
-        ),
-        "acr_exists": (
-            acr.get(
-                "name"
-            )
-            == acr_name
-        ),
-        "identity_has_acr_pull": (
-            "AcrPull"
-            in role_names
-        ),
+        "production_identity_exists": (identity.get("name") == identity_name),
+        "identity_has_client_id": bool(identity.get("clientId")),
+        "identity_has_principal_id": bool(principal_id),
+        "acr_exists": (acr.get("name") == acr_name),
+        "identity_has_acr_pull": ("AcrPull" in role_names),
         "identity_has_blob_contributor": (
-            "Storage Blob Data Contributor"
-            in role_names
+            "Storage Blob Data Contributor" in role_names
         ),
-        "identity_has_resource_group_reader": (
-            "Reader"
-            in role_names
-        ),
-        "production_container_exists": (
-            container_exists_output.lower()
-            == "true"
-        ),
+        "identity_has_resource_group_reader": ("Reader" in role_names),
+        "production_container_exists": (container_exists_output.lower() == "true"),
         "production_aqi_pointer_not_created_yet": (
-            aqi_pointer_exists_output.lower()
-            == "false"
+            aqi_pointer_exists_output.lower() == "false"
         ),
         "production_monitoring_pointer_not_created_yet": (
-            monitoring_pointer_exists_output.lower()
-            == "false"
+            monitoring_pointer_exists_output.lower() == "false"
         ),
     }
 
     return {
-        "valid": all(
-            checks.values()
-        ),
+        "valid": all(checks.values()),
         "checks": checks,
         "resource_group": {
             "name": resource_group,
-            "location": (
-                group.get(
-                    "location"
-                )
-            ),
+            "location": (group.get("location")),
         },
         "container_apps_environment": {
             "name": environment_name,
-            "resource_group": (
-                environment_resource_group
-            ),
-            "shared_between_staging_and_production": (
-                True
-            ),
+            "resource_group": (environment_resource_group),
+            "shared_between_staging_and_production": (True),
             "provisioning_state": (
                 environment.get(
                     "properties",
                     {},
-                ).get(
-                    "provisioningState"
-                )
+                ).get("provisioningState")
             ),
         },
         "identity": {
             "name": identity_name,
-            "client_id_present": bool(
-                identity.get(
-                    "clientId"
-                )
-            ),
-            "principal_id_present": bool(
-                identity.get(
-                    "principalId"
-                )
-            ),
+            "client_id_present": bool(identity.get("clientId")),
+            "principal_id_present": bool(identity.get("principalId")),
         },
         "storage": {
-            "account_name": (
-                storage_account
-            ),
-            "container_name": (
-                storage_container
-            ),
-            "container_exists": (
-                container_exists_output.lower()
-                == "true"
-            ),
-            "aqi_pointer_exists": (
-                aqi_pointer_exists_output.lower()
-                == "true"
-            ),
+            "account_name": (storage_account),
+            "container_name": (storage_container),
+            "container_exists": (container_exists_output.lower() == "true"),
+            "aqi_pointer_exists": (aqi_pointer_exists_output.lower() == "true"),
             "monitoring_pointer_exists": (
-                monitoring_pointer_exists_output.lower()
-                == "true"
+                monitoring_pointer_exists_output.lower() == "true"
             ),
         },
-        "role_names": sorted(
-            role_names
-        ),
+        "role_names": sorted(role_names),
     }
 
 
@@ -390,11 +303,7 @@ def save_report(
         exist_ok=True,
     )
 
-    temporary_path = (
-        REPORT_PATH.with_suffix(
-            ".json.tmp"
-        )
-    )
+    temporary_path = REPORT_PATH.with_suffix(".json.tmp")
 
     temporary_path.write_text(
         json.dumps(
@@ -405,9 +314,7 @@ def save_report(
         encoding="utf-8",
     )
 
-    temporary_path.replace(
-        REPORT_PATH
-    )
+    temporary_path.replace(REPORT_PATH)
 
     return REPORT_PATH
 
@@ -416,10 +323,7 @@ def main() -> int:
     """CLI entry point."""
 
     parser = argparse.ArgumentParser(
-        description=(
-            "Validate Azure production "
-            "infrastructure."
-        )
+        description=("Validate Azure production infrastructure.")
     )
 
     parser.add_argument(
@@ -461,91 +365,47 @@ def main() -> int:
 
     try:
         validation = validate_infrastructure(
-            resource_group=(
-                arguments.resource_group
-            ),
-            environment_name=(
-                arguments.environment
-            ),
-            environment_resource_group=(
-                arguments.environment_resource_group
-            ),
-            identity_name=(
-                arguments.identity
-            ),
-            acr_name=(
-                arguments.acr
-            ),
-            storage_account=(
-                arguments.storage_account
-            ),
-            storage_container=(
-                arguments.storage_container
-            ),
+            resource_group=(arguments.resource_group),
+            environment_name=(arguments.environment),
+            environment_resource_group=(arguments.environment_resource_group),
+            identity_name=(arguments.identity),
+            acr_name=(arguments.acr),
+            storage_account=(arguments.storage_account),
+            storage_container=(arguments.storage_container),
         )
 
         report = {
             "phase": "10M",
             "subphase": "10M-B",
-            "generated_at_utc": (
-                datetime.now(
-                    timezone.utc
-                ).isoformat()
-            ),
+            "generated_at_utc": (datetime.now(timezone.utc).isoformat()),
             "status": (
                 "PRODUCTION_INFRASTRUCTURE_VALIDATED"
                 if validation["valid"]
-                else (
-                    "PRODUCTION_INFRASTRUCTURE_INVALID"
-                )
+                else ("PRODUCTION_INFRASTRUCTURE_INVALID")
             ),
-            "production_resources_created": (
-                True
-            ),
-            "shared_container_apps_environment": (
-                True
-            ),
-            "application_services_deployed": (
-                False
-            ),
-            "scheduled_jobs_deployed": (
-                False
-            ),
+            "production_resources_created": (True),
+            "shared_container_apps_environment": (True),
+            "application_services_deployed": (False),
+            "scheduled_jobs_deployed": (False),
             **validation,
         }
 
-        exit_code = (
-            0
-            if validation["valid"]
-            else 1
-        )
+        exit_code = 0 if validation["valid"] else 1
 
     except Exception as error:
         report = {
             "phase": "10M",
             "subphase": "10M-B",
-            "generated_at_utc": (
-                datetime.now(
-                    timezone.utc
-                ).isoformat()
-            ),
-            "status": (
-                "PRODUCTION_INFRASTRUCTURE_VALIDATION_FAILED"
-            ),
+            "generated_at_utc": (datetime.now(timezone.utc).isoformat()),
+            "status": ("PRODUCTION_INFRASTRUCTURE_VALIDATION_FAILED"),
             "valid": False,
-            "error_type": (
-                type(error).__name__
-            ),
-            "error_message": str(
-                error
-            ),
+            "error_type": (type(error).__name__),
+            "error_message": str(error),
         }
 
         exit_code = 1
 
-    report_path = save_report(
-        report
-    )
+    report_path = save_report(report)
 
     print(
         json.dumps(

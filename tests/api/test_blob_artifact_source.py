@@ -18,27 +18,16 @@ def test_materializes_latest_package(
 ) -> None:
     """A published durable package should materialize locally."""
 
-    durable_root = (
-        tmp_path / "durable"
-    )
+    durable_root = tmp_path / "durable"
 
-    source_directory = (
-        tmp_path / "source"
-    )
+    source_directory = tmp_path / "source"
 
-    cache_directory = (
-        tmp_path / "cache" / "latest"
-    )
+    cache_directory = tmp_path / "cache" / "latest"
 
-    source_directory.mkdir(
-        parents=True
-    )
+    source_directory.mkdir(parents=True)
 
     fixture_directory = (
-        Path(__file__).resolve().parents[1]
-        / "fixtures"
-        / "aqi"
-        / "latest"
+        Path(__file__).resolve().parents[1] / "fixtures" / "aqi" / "latest"
     )
 
     required_names = [
@@ -50,42 +39,25 @@ def test_materializes_latest_package(
     ]
 
     for filename in required_names:
-        (
-            source_directory / filename
-        ).write_bytes(
-            (
-                fixture_directory
-                / filename
-            ).read_bytes()
+        (source_directory / filename).write_bytes(
+            (fixture_directory / filename).read_bytes()
         )
 
-    durable_repository = (
-        LocalArtifactRepository(
-            durable_root
-        )
-    )
+    durable_repository = LocalArtifactRepository(durable_root)
 
     durable_repository.publish_run(
         artifact_type="aqi",
         run_id="test-aqi-run",
-        source_directory=(
-            source_directory
-        ),
-        validation_status=(
-            "AQI_ALERT_PIPELINE_APPROVED"
-        ),
-        source_run_id=(
-            "test-inference-run"
-        ),
+        source_directory=(source_directory),
+        validation_status=("AQI_ALERT_PIPELINE_APPROVED"),
+        source_run_id=("test-inference-run"),
     )
 
     settings = APISettings(
         artifact_backend="azure_blob",
         azure_storage_account="testaccount",
         azure_storage_container="artifacts",
-        phase_6_blob_cache_directory=(
-            cache_directory
-        ),
+        phase_6_blob_cache_directory=(cache_directory),
         artifact_cache_seconds=0,
     )
 
@@ -94,15 +66,11 @@ def test_materializes_latest_package(
         repository=durable_repository,
     )
 
-    result = source.refresh(
-        force=True
-    )
+    result = source.refresh(force=True)
 
     assert result.refreshed
     assert result.run_id == "test-aqi-run"
 
-    assert {
-        path.name
-        for path in cache_directory.iterdir()
-        if path.is_file()
-    } == set(required_names)
+    assert {path.name for path in cache_directory.iterdir() if path.is_file()} == set(
+        required_names
+    )

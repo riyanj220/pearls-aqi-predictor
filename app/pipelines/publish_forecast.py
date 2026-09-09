@@ -41,20 +41,12 @@ from app.pipelines.live_inference import (
 )
 
 
-REPORT_PATH = (
-    PROJECT_ROOT
-    / "reports"
-    / "phase_10"
-    / "forecast_publication_report.json"
-)
+REPORT_PATH = PROJECT_ROOT / "reports" / "phase_10" / "forecast_publication_report.json"
 
-DEFAULT_LOCAL_ARTIFACT_ROOT = (
-    PROJECT_ROOT
-    / "artifacts"
-    / "repository"
-)
+DEFAULT_LOCAL_ARTIFACT_ROOT = PROJECT_ROOT / "artifacts" / "repository"
 
 ARTIFACT_TYPE = "aqi"
+
 
 def resolve_subphase(
     artifact_backend: str,
@@ -65,6 +57,7 @@ def resolve_subphase(
         return "10J-B"
 
     return "10J-A"
+
 
 class ForecastPublicationError(RuntimeError):
     """Raised when the combined publication workflow fails."""
@@ -95,17 +88,13 @@ def resolve_local_artifact_root() -> Path:
 
     configured_value = read_environment_value(
         "LOCAL_ARTIFACT_ROOT",
-        default=str(
-            DEFAULT_LOCAL_ARTIFACT_ROOT
-        ),
+        default=str(DEFAULT_LOCAL_ARTIFACT_ROOT),
     )
 
     if configured_value is None:
         return DEFAULT_LOCAL_ARTIFACT_ROOT.resolve()
 
-    path = Path(
-        configured_value
-    ).expanduser()
+    path = Path(configured_value).expanduser()
 
     if not path.is_absolute():
         path = PROJECT_ROOT / path
@@ -138,38 +127,25 @@ def create_configured_repository() -> ArtifactRepository:
     if backend == "local":
         return create_artifact_repository(
             backend="local",
-            local_root=(
-                resolve_local_artifact_root()
-            ),
+            local_root=(resolve_local_artifact_root()),
         )
 
     if backend == "azure_blob":
-        storage_account = (
-            read_environment_value(
-                "AZURE_STORAGE_ACCOUNT"
-            )
-        )
+        storage_account = read_environment_value("AZURE_STORAGE_ACCOUNT")
 
-        storage_container = (
-            read_environment_value(
-                "AZURE_STORAGE_CONTAINER",
-                default="artifacts",
-            )
+        storage_container = read_environment_value(
+            "AZURE_STORAGE_CONTAINER",
+            default="artifacts",
         )
 
         return create_artifact_repository(
             backend="azure_blob",
-            azure_storage_account=(
-                storage_account
-            ),
-            azure_storage_container=(
-                storage_container
-            ),
+            azure_storage_account=(storage_account),
+            azure_storage_container=(storage_container),
         )
 
     raise ForecastPublicationError(
-        "ARTIFACT_BACKEND must be either "
-        "'local' or 'azure_blob'."
+        "ARTIFACT_BACKEND must be either 'local' or 'azure_blob'."
     )
 
 
@@ -196,19 +172,12 @@ def validate_phase_5_report(
 ) -> None:
     """Validate the returned Phase 5 operational report."""
 
-    if (
-        report.get("status")
-        != "LIVE_INFERENCE_COMPLETED"
-    ):
+    if report.get("status") != "LIVE_INFERENCE_COMPLETED":
         raise ForecastPublicationError(
-            "Phase 5 did not complete successfully. "
-            f"Status={report.get('status')!r}"
+            f"Phase 5 did not complete successfully. Status={report.get('status')!r}"
         )
 
-    if (
-        report.get("validation_status")
-        != "PASSED"
-    ):
+    if report.get("validation_status") != "PASSED":
         raise ForecastPublicationError(
             "Phase 5 validation did not pass. "
             f"Status={report.get('validation_status')!r}"
@@ -228,15 +197,16 @@ def validate_phase_5_report(
             f"actual={actual_run_id}"
         )
 
-    if int(
-        require_report_value(
-            report,
-            "forecast_rows",
+    if (
+        int(
+            require_report_value(
+                report,
+                "forecast_rows",
+            )
         )
-    ) != 72:
-        raise ForecastPublicationError(
-            "Phase 5 did not produce exactly 72 rows."
-        )
+        != 72
+    ):
+        raise ForecastPublicationError("Phase 5 did not produce exactly 72 rows.")
 
     run_directory = Path(
         str(
@@ -249,8 +219,7 @@ def validate_phase_5_report(
 
     if not run_directory.exists():
         raise ForecastPublicationError(
-            "Phase 5 run directory does not exist: "
-            f"{run_directory}"
+            f"Phase 5 run directory does not exist: {run_directory}"
         )
 
 
@@ -261,13 +230,9 @@ def validate_phase_6_report(
 ) -> Path:
     """Validate Phase 6 and return its immutable run directory."""
 
-    if (
-        report.get("status")
-        != "AQI_ALERT_PIPELINE_COMPLETED"
-    ):
+    if report.get("status") != "AQI_ALERT_PIPELINE_COMPLETED":
         raise ForecastPublicationError(
-            "Phase 6 did not complete successfully. "
-            f"Status={report.get('status')!r}"
+            f"Phase 6 did not complete successfully. Status={report.get('status')!r}"
         )
 
     validation_status = str(
@@ -277,13 +242,9 @@ def validate_phase_6_report(
         )
     )
 
-    if (
-        validation_status
-        != "AQI_ALERT_PIPELINE_APPROVED"
-    ):
+    if validation_status != "AQI_ALERT_PIPELINE_APPROVED":
         raise ForecastPublicationError(
-            "Phase 6 did not receive approval. "
-            f"Status={validation_status}"
+            f"Phase 6 did not receive approval. Status={validation_status}"
         )
 
     source_run_id = str(
@@ -300,15 +261,16 @@ def validate_phase_6_report(
             f"actual={source_run_id}"
         )
 
-    if int(
-        require_report_value(
-            report,
-            "forecast_rows",
+    if (
+        int(
+            require_report_value(
+                report,
+                "forecast_rows",
+            )
         )
-    ) != 72:
-        raise ForecastPublicationError(
-            "Phase 6 did not produce exactly 72 rows."
-        )
+        != 72
+    ):
+        raise ForecastPublicationError("Phase 6 did not produce exactly 72 rows.")
 
     run_directory = Path(
         str(
@@ -321,14 +283,12 @@ def validate_phase_6_report(
 
     if not run_directory.exists():
         raise ForecastPublicationError(
-            "Phase 6 run directory does not exist: "
-            f"{run_directory}"
+            f"Phase 6 run directory does not exist: {run_directory}"
         )
 
     if not run_directory.is_dir():
         raise ForecastPublicationError(
-            "Phase 6 run path is not a directory: "
-            f"{run_directory}"
+            f"Phase 6 run path is not a directory: {run_directory}"
         )
 
     return run_directory
@@ -343,52 +303,34 @@ def validate_publication(
 ) -> dict[str, Any]:
     """Verify the manifest and latest pointer after publication."""
 
-    pointer = repository.get_latest_pointer(
-        ARTIFACT_TYPE
-    )
+    pointer = repository.get_latest_pointer(ARTIFACT_TYPE)
 
-    manifest = repository.get_latest_manifest(
-        ARTIFACT_TYPE
-    )
+    manifest = repository.get_latest_manifest(ARTIFACT_TYPE)
 
     checks = {
-        "pointer_run_id_matches": (
-            pointer.get("run_id")
-            == expected_phase_6_run_id
-        ),
-        "manifest_run_id_matches": (
-            manifest.get("run_id")
-            == expected_phase_6_run_id
-        ),
+        "pointer_run_id_matches": (pointer.get("run_id") == expected_phase_6_run_id),
+        "manifest_run_id_matches": (manifest.get("run_id") == expected_phase_6_run_id),
         "pointer_source_run_id_matches": (
-            pointer.get("source_run_id")
-            == expected_source_run_id
+            pointer.get("source_run_id") == expected_source_run_id
         ),
         "manifest_source_run_id_matches": (
-            manifest.get("source_run_id")
-            == expected_source_run_id
+            manifest.get("source_run_id") == expected_source_run_id
         ),
         "pointer_validation_passed": (
-            pointer.get("validation_status")
-            == "AQI_ALERT_PIPELINE_APPROVED"
+            pointer.get("validation_status") == "AQI_ALERT_PIPELINE_APPROVED"
         ),
         "manifest_validation_passed": (
-            manifest.get("validation_status")
-            == "AQI_ALERT_PIPELINE_APPROVED"
+            manifest.get("validation_status") == "AQI_ALERT_PIPELINE_APPROVED"
         ),
-        "manifest_has_files": bool(
-            manifest.get("files")
-        ),
+        "manifest_has_files": bool(manifest.get("files")),
         "publication_pointer_matches": (
-            publication.latest_pointer.run_id
-            == expected_phase_6_run_id
+            publication.latest_pointer.run_id == expected_phase_6_run_id
         ),
     }
 
     if not all(checks.values()):
         raise ForecastPublicationError(
-            "Published artifact verification failed: "
-            f"{checks}"
+            f"Published artifact verification failed: {checks}"
         )
 
     return {
@@ -409,19 +351,13 @@ def run_forecast_publication() -> dict[str, Any]:
         or "local"
     ).lower()
 
-    subphase = resolve_subphase(
-        artifact_backend
-    )
+    subphase = resolve_subphase(artifact_backend)
 
-    started_at = datetime.now(
-        timezone.utc
-    )
+    started_at = datetime.now(timezone.utc)
 
     started_monotonic = time.monotonic()
 
-    phase_5_run_id = (
-        generate_pipeline_run_id()
-    )
+    phase_5_run_id = generate_pipeline_run_id()
 
     phase_5_report = run_live_inference(
         pipeline_run_id=phase_5_run_id,
@@ -432,19 +368,11 @@ def run_forecast_publication() -> dict[str, Any]:
         expected_run_id=phase_5_run_id,
     )
 
-    phase_6_report = (
-        run_aqi_alert_pipeline(
-            source_run_id=phase_5_run_id
-        )
-    )
+    phase_6_report = run_aqi_alert_pipeline(source_run_id=phase_5_run_id)
 
-    phase_6_run_directory = (
-        validate_phase_6_report(
-            phase_6_report,
-            expected_source_run_id=(
-                phase_5_run_id
-            ),
-        )
+    phase_6_run_directory = validate_phase_6_report(
+        phase_6_report,
+        expected_source_run_id=(phase_5_run_id),
     )
 
     phase_6_run_id = str(
@@ -454,152 +382,62 @@ def run_forecast_publication() -> dict[str, Any]:
         )
     )
 
-    repository = (
-        create_configured_repository()
-    )
+    repository = create_configured_repository()
 
     publication = repository.publish_run(
         artifact_type=ARTIFACT_TYPE,
         run_id=phase_6_run_id,
-        source_directory=(
-            phase_6_run_directory
-        ),
-        validation_status=(
-            "AQI_ALERT_PIPELINE_APPROVED"
-        ),
+        source_directory=(phase_6_run_directory),
+        validation_status=("AQI_ALERT_PIPELINE_APPROVED"),
         source_run_id=phase_5_run_id,
     )
 
-    publication_validation = (
-        validate_publication(
-            repository=repository,
-            publication=publication,
-            expected_phase_6_run_id=(
-                phase_6_run_id
-            ),
-            expected_source_run_id=(
-                phase_5_run_id
-            ),
-        )
+    publication_validation = validate_publication(
+        repository=repository,
+        publication=publication,
+        expected_phase_6_run_id=(phase_6_run_id),
+        expected_source_run_id=(phase_5_run_id),
     )
 
-    completed_at = datetime.now(
-        timezone.utc
-    )
+    completed_at = datetime.now(timezone.utc)
 
     return {
         "phase": "10J",
         "subphase": subphase,
-        "pipeline_name": (
-            "forecast_publication"
-        ),
-        "status": (
-            "FORECAST_PUBLICATION_COMPLETED"
-        ),
-        "started_at_utc": (
-            started_at.isoformat()
-        ),
-        "completed_at_utc": (
-            completed_at.isoformat()
-        ),
+        "pipeline_name": ("forecast_publication"),
+        "status": ("FORECAST_PUBLICATION_COMPLETED"),
+        "started_at_utc": (started_at.isoformat()),
+        "completed_at_utc": (completed_at.isoformat()),
         "duration_seconds": round(
-            time.monotonic()
-            - started_monotonic,
+            time.monotonic() - started_monotonic,
             3,
         ),
         "artifact_backend": artifact_backend,
-
         "phase_5": {
-            "pipeline_run_id": (
-                phase_5_run_id
-            ),
-            "status": (
-                phase_5_report["status"]
-            ),
-            "validation_status": (
-                phase_5_report[
-                    "validation_status"
-                ]
-            ),
-            "forecast_rows": (
-                phase_5_report[
-                    "forecast_rows"
-                ]
-            ),
-            "model_source": (
-                phase_5_report.get(
-                    "model_source"
-                )
-            ),
-            "model_registry_version": (
-                phase_5_report.get(
-                    "model_registry_version"
-                )
-            ),
+            "pipeline_run_id": (phase_5_run_id),
+            "status": (phase_5_report["status"]),
+            "validation_status": (phase_5_report["validation_status"]),
+            "forecast_rows": (phase_5_report["forecast_rows"]),
+            "model_source": (phase_5_report.get("model_source")),
+            "model_registry_version": (phase_5_report.get("model_registry_version")),
         },
         "phase_6": {
-            "phase_6_run_id": (
-                phase_6_run_id
-            ),
-            "source_phase_5_run_id": (
-                phase_5_run_id
-            ),
-            "status": (
-                phase_6_report["status"]
-            ),
-            "validation_status": (
-                phase_6_report[
-                    "validation_status"
-                ]
-            ),
-            "forecast_rows": (
-                phase_6_report[
-                    "forecast_rows"
-                ]
-            ),
-            "active_alert_rows": (
-                phase_6_report.get(
-                    "active_alert_rows"
-                )
-            ),
-            "alert_episode_count": (
-                phase_6_report.get(
-                    "alert_episode_count"
-                )
-            ),
+            "phase_6_run_id": (phase_6_run_id),
+            "source_phase_5_run_id": (phase_5_run_id),
+            "status": (phase_6_report["status"]),
+            "validation_status": (phase_6_report["validation_status"]),
+            "forecast_rows": (phase_6_report["forecast_rows"]),
+            "active_alert_rows": (phase_6_report.get("active_alert_rows")),
+            "alert_episode_count": (phase_6_report.get("alert_episode_count")),
         },
         "publication": {
-            "artifact_type": (
-                ARTIFACT_TYPE
-            ),
-            "run_id": (
-                publication
-                .latest_pointer
-                .run_id
-            ),
-            "artifact_prefix": (
-                publication
-                .latest_pointer
-                .artifact_prefix
-            ),
-            "manifest_path": (
-                publication
-                .latest_pointer
-                .manifest_path
-            ),
-            "published_at_utc": (
-                publication
-                .latest_pointer
-                .published_at_utc
-            ),
-            "file_count": len(
-                publication.manifest.files
-            ),
-            "validation": (
-                publication_validation[
-                    "checks"
-                ]
-            ),
+            "artifact_type": (ARTIFACT_TYPE),
+            "run_id": (publication.latest_pointer.run_id),
+            "artifact_prefix": (publication.latest_pointer.artifact_prefix),
+            "manifest_path": (publication.latest_pointer.manifest_path),
+            "published_at_utc": (publication.latest_pointer.published_at_utc),
+            "file_count": len(publication.manifest.files),
+            "validation": (publication_validation["checks"]),
         },
         "api_updated": False,
         "azure_job_created": False,
@@ -617,9 +455,7 @@ def save_report(
         exist_ok=True,
     )
 
-    temporary_path = REPORT_PATH.with_suffix(
-        ".json.tmp"
-    )
+    temporary_path = REPORT_PATH.with_suffix(".json.tmp")
 
     temporary_path.write_text(
         json.dumps(
@@ -630,9 +466,7 @@ def save_report(
         encoding="utf-8",
     )
 
-    temporary_path.replace(
-        REPORT_PATH
-    )
+    temporary_path.replace(REPORT_PATH)
 
     return REPORT_PATH
 
@@ -642,8 +476,7 @@ def main() -> int:
 
     parser = argparse.ArgumentParser(
         description=(
-            "Run live inference, AQI processing, "
-            "and durable artifact publication."
+            "Run live inference, AQI processing, and durable artifact publication."
         )
     )
 
@@ -657,14 +490,10 @@ def main() -> int:
         or "local"
     ).lower()
 
-    subphase = resolve_subphase(
-        artifact_backend
-    )
+    subphase = resolve_subphase(artifact_backend)
 
     try:
-        report = (
-            run_forecast_publication()
-        )
+        report = run_forecast_publication()
 
         exit_code = 0
 
@@ -673,18 +502,10 @@ def main() -> int:
             "phase": "10J",
             "subphase": subphase,
             "artifact_backend": artifact_backend,
-            "pipeline_name": (
-                "forecast_publication"
-            ),
-            "status": (
-                "FORECAST_PUBLICATION_FAILED"
-            ),
-            "failed_at_utc": datetime.now(
-                timezone.utc
-            ).isoformat(),
-            "error_type": (
-                type(error).__name__
-            ),
+            "pipeline_name": ("forecast_publication"),
+            "status": ("FORECAST_PUBLICATION_FAILED"),
+            "failed_at_utc": datetime.now(timezone.utc).isoformat(),
+            "error_type": (type(error).__name__),
             "error_message": str(error),
             "api_updated": False,
             "azure_job_created": False,
@@ -693,9 +514,7 @@ def main() -> int:
 
         exit_code = 1
 
-    report_path = save_report(
-        report
-    )
+    report_path = save_report(report)
 
     print(
         json.dumps(

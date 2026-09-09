@@ -13,16 +13,11 @@ from typing import Any
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 REPORT_PATH = (
-    PROJECT_ROOT
-    / "reports"
-    / "phase_10"
-    / "production_release_declaration.json"
+    PROJECT_ROOT / "reports" / "phase_10" / "production_release_declaration.json"
 )
 
 
-class ProductionReleaseDeclarationError(
-    RuntimeError
-):
+class ProductionReleaseDeclarationError(RuntimeError):
     """Raised when final production declaration cannot be built."""
 
 
@@ -89,19 +84,13 @@ def download_json_blob(
         ]
     )
 
-    payload = json.loads(
-        destination.read_text(
-            encoding="utf-8"
-        )
-    )
+    payload = json.loads(destination.read_text(encoding="utf-8"))
 
     if not isinstance(
         payload,
         dict,
     ):
-        raise ProductionReleaseDeclarationError(
-            f"Blob is not a JSON object: {name}"
-        )
+        raise ProductionReleaseDeclarationError(f"Blob is not a JSON object: {name}")
 
     return payload
 
@@ -140,9 +129,7 @@ def active_revision(
         and revision.get(
             "properties",
             {},
-        ).get(
-            "active"
-        )
+        ).get("active")
         is True
     ]
 
@@ -159,11 +146,7 @@ def active_revision(
         reverse=True,
     )
 
-    return (
-        active[0]
-        if active
-        else None
-    )
+    return active[0] if active else None
 
 
 def current_image(
@@ -187,9 +170,7 @@ def current_image(
     if not containers:
         return None
 
-    return containers[0].get(
-        "image"
-    )
+    return containers[0].get("image")
 
 
 def build_declaration(
@@ -225,28 +206,15 @@ def build_declaration(
         ]
     )
 
-    expected_api_image = (
-        "walpole.azurecr.io/"
-        f"pearls-aqi/api:{release_sha}"
-    )
+    expected_api_image = f"walpole.azurecr.io/pearls-aqi/api:{release_sha}"
 
-    expected_dashboard_image = (
-        "walpole.azurecr.io/"
-        f"pearls-aqi/dashboard:{release_sha}"
-    )
+    expected_dashboard_image = f"walpole.azurecr.io/pearls-aqi/dashboard:{release_sha}"
 
-    expected_pipeline_image = (
-        "walpole.azurecr.io/"
-        f"pearls-aqi/pipeline:{release_sha}"
-    )
+    expected_pipeline_image = f"walpole.azurecr.io/pearls-aqi/pipeline:{release_sha}"
 
-    api_image = current_image(
-        api
-    )
+    api_image = current_image(api)
 
-    dashboard_image = current_image(
-        dashboard
-    )
+    dashboard_image = current_image(dashboard)
 
     api_fqdn = (
         api.get(
@@ -261,9 +229,7 @@ def build_declaration(
             "ingress",
             {},
         )
-        .get(
-            "fqdn"
-        )
+        .get("fqdn")
     )
 
     dashboard_fqdn = (
@@ -279,42 +245,28 @@ def build_declaration(
             "ingress",
             {},
         )
-        .get(
-            "fqdn"
-        )
+        .get("fqdn")
     )
 
     aqi_pointer = download_json_blob(
         account=storage_account,
         container=storage_container,
         name="aqi/latest/pointer.json",
-        destination=Path(
-            "/tmp/final-release-aqi-pointer.json"
-        ),
+        destination=Path("/tmp/final-release-aqi-pointer.json"),
     )
 
     health_pointer = download_json_blob(
         account=storage_account,
         container=storage_container,
-        name=(
-            "production-health/"
-            "latest/pointer.json"
-        ),
-        destination=Path(
-            "/tmp/final-release-health-pointer.json"
-        ),
+        name=("production-health/latest/pointer.json"),
+        destination=Path("/tmp/final-release-health-pointer.json"),
     )
 
     outbox = download_json_blob(
         account=storage_account,
         container=storage_container,
-        name=(
-            "production-health/"
-            "notifications/outbox.json"
-        ),
-        destination=Path(
-            "/tmp/final-release-outbox.json"
-        ),
+        name=("production-health/notifications/outbox.json"),
+        destination=Path("/tmp/final-release-outbox.json"),
     )
 
     pending_count = int(
@@ -327,18 +279,10 @@ def build_declaration(
     jobs = {}
 
     for logical_name, job_name in {
-        "features": (
-            "job-pearls-aqi-features-prod"
-        ),
-        "forecast": (
-            "job-pearls-aqi-forecast-prod"
-        ),
-        "retraining": (
-            "job-pearls-aqi-retraining-prod"
-        ),
-        "monitoring": (
-            "job-pearls-aqi-monitoring-prod"
-        ),
+        "features": ("job-pearls-aqi-features-prod"),
+        "forecast": ("job-pearls-aqi-forecast-prod"),
+        "retraining": ("job-pearls-aqi-retraining-prod"),
+        "monitoring": ("job-pearls-aqi-monitoring-prod"),
     }.items():
         job = run_json(
             [
@@ -368,23 +312,12 @@ def build_declaration(
             )
         )
 
-        image = (
-            containers[0].get(
-                "image"
-            )
-            if containers
-            else None
-        )
+        image = containers[0].get("image") if containers else None
 
-        jobs[
-            logical_name
-        ] = {
+        jobs[logical_name] = {
             "name": job_name,
             "image": image,
-            "release_matches": (
-                image
-                == expected_pipeline_image
-            ),
+            "release_matches": (image == expected_pipeline_image),
         }
 
     api_revision = active_revision(
@@ -398,157 +331,68 @@ def build_declaration(
     )
 
     release_images_match = (
-        api_image
-        == expected_api_image
-        and dashboard_image
-        == expected_dashboard_image
-        and all(
-            job[
-                "release_matches"
-            ]
-            for job in jobs.values()
-        )
+        api_image == expected_api_image
+        and dashboard_image == expected_dashboard_image
+        and all(job["release_matches"] for job in jobs.values())
     )
 
     core_release_ready = (
         release_images_match
-        and aqi_pointer.get(
-            "validation_status"
-        )
-        == "AQI_ALERT_PIPELINE_APPROVED"
-        and health_pointer.get(
-            "validation_status"
-        )
-        == "PRODUCTION_HEALTH_RECORDED"
+        and aqi_pointer.get("validation_status") == "AQI_ALERT_PIPELINE_APPROVED"
+        and health_pointer.get("validation_status") == "PRODUCTION_HEALTH_RECORDED"
         and bool(api_fqdn)
-        and bool(
-            dashboard_fqdn
-        )
+        and bool(dashboard_fqdn)
     )
 
     if not core_release_ready:
-        declaration_status = (
-            "PRODUCTION_RELEASE_NOT_DECLARED"
-        )
+        declaration_status = "PRODUCTION_RELEASE_NOT_DECLARED"
 
     elif pending_count > 0:
-        declaration_status = (
-            "PRODUCTION_RELEASE_"
-            "DECLARED_WITH_LIMITATIONS"
-        )
+        declaration_status = "PRODUCTION_RELEASE_DECLARED_WITH_LIMITATIONS"
 
     else:
-        declaration_status = (
-            "PRODUCTION_RELEASE_DECLARED"
-        )
+        declaration_status = "PRODUCTION_RELEASE_DECLARED"
 
     return {
         "phase": "10M",
         "subphase": "10M-J",
-        "declared_at_utc": (
-            datetime.now(
-                timezone.utc
-            ).isoformat()
-        ),
-        "status": (
-            declaration_status
-        ),
-        "production_live": (
-            core_release_ready
-        ),
+        "declared_at_utc": (datetime.now(timezone.utc).isoformat()),
+        "status": (declaration_status),
+        "production_live": (core_release_ready),
         "release": {
-            "release_sha": (
-                release_sha
-            ),
-            "api_image": (
-                api_image
-            ),
-            "dashboard_image": (
-                dashboard_image
-            ),
-            "pipeline_image": (
-                expected_pipeline_image
-            ),
-            "all_images_match_release": (
-                release_images_match
-            ),
+            "release_sha": (release_sha),
+            "api_image": (api_image),
+            "dashboard_image": (dashboard_image),
+            "pipeline_image": (expected_pipeline_image),
+            "all_images_match_release": (release_images_match),
         },
         "public_endpoints": {
-            "api": (
-                f"https://{api_fqdn}"
-                if api_fqdn
-                else None
-            ),
-            "dashboard": (
-                f"https://{dashboard_fqdn}"
-                if dashboard_fqdn
-                else None
-            ),
+            "api": (f"https://{api_fqdn}" if api_fqdn else None),
+            "dashboard": (f"https://{dashboard_fqdn}" if dashboard_fqdn else None),
         },
         "artifacts": {
-            "container": (
-                storage_container
-            ),
-            "aqi_run_id": (
-                aqi_pointer.get(
-                    "run_id"
-                )
-            ),
-            "aqi_validation_status": (
-                aqi_pointer.get(
-                    "validation_status"
-                )
-            ),
-            "health_run_id": (
-                health_pointer.get(
-                    "run_id"
-                )
-            ),
-            "health_validation_status": (
-                health_pointer.get(
-                    "validation_status"
-                )
-            ),
+            "container": (storage_container),
+            "aqi_run_id": (aqi_pointer.get("run_id")),
+            "aqi_validation_status": (aqi_pointer.get("validation_status")),
+            "health_run_id": (health_pointer.get("run_id")),
+            "health_validation_status": (health_pointer.get("validation_status")),
         },
         "jobs": jobs,
         "rollback_anchors": {
-            "api_revision": (
-                api_revision.get(
-                    "name"
-                )
-                if api_revision
-                else None
-            ),
+            "api_revision": (api_revision.get("name") if api_revision else None),
             "dashboard_revision": (
-                dashboard_revision.get(
-                    "name"
-                )
-                if dashboard_revision
-                else None
+                dashboard_revision.get("name") if dashboard_revision else None
             ),
-            "release_sha": (
-                release_sha
-            ),
-            "images_retained_in_acr": (
-                True
-            ),
+            "release_sha": (release_sha),
+            "images_retained_in_acr": (True),
         },
         "operational_limitations": {
-            "notification_delivery_permanent": (
-                False
-            ),
-            "notification_pending_count": (
-                pending_count
-            ),
-            "notification_backlog_accepted": (
-                pending_count > 0
-            ),
-            "shared_container_apps_environment": (
-                True
-            ),
+            "notification_delivery_permanent": (False),
+            "notification_pending_count": (pending_count),
+            "notification_backlog_accepted": (pending_count > 0),
+            "shared_container_apps_environment": (True),
             "shared_environment_reason": (
-                "Azure subscription allows only "
-                "one Container Apps environment."
+                "Azure subscription allows only one Container Apps environment."
             ),
         },
         "cutover": {
@@ -569,11 +413,7 @@ def save_report(
         exist_ok=True,
     )
 
-    temporary = (
-        REPORT_PATH.with_suffix(
-            ".json.tmp"
-        )
-    )
+    temporary = REPORT_PATH.with_suffix(".json.tmp")
 
     temporary.write_text(
         json.dumps(
@@ -584,9 +424,7 @@ def save_report(
         encoding="utf-8",
     )
 
-    temporary.replace(
-        REPORT_PATH
-    )
+    temporary.replace(REPORT_PATH)
 
     return REPORT_PATH
 
@@ -616,9 +454,7 @@ def main() -> int:
 
     parser.add_argument(
         "--dashboard-name",
-        default=(
-            "ca-pearls-aqi-dashboard-prod"
-        ),
+        default=("ca-pearls-aqi-dashboard-prod"),
     )
 
     parser.add_argument(
@@ -630,60 +466,30 @@ def main() -> int:
 
     try:
         report = build_declaration(
-            resource_group=(
-                arguments.resource_group
-            ),
-            storage_account=(
-                arguments.storage_account
-            ),
-            storage_container=(
-                arguments.storage_container
-            ),
-            api_name=(
-                arguments.api_name
-            ),
-            dashboard_name=(
-                arguments.dashboard_name
-            ),
-            release_sha=(
-                arguments.release_sha
-            ),
+            resource_group=(arguments.resource_group),
+            storage_account=(arguments.storage_account),
+            storage_container=(arguments.storage_container),
+            api_name=(arguments.api_name),
+            dashboard_name=(arguments.dashboard_name),
+            release_sha=(arguments.release_sha),
         )
 
-        exit_code = (
-            0
-            if report[
-                "production_live"
-            ]
-            else 1
-        )
+        exit_code = 0 if report["production_live"] else 1
 
     except Exception as error:
         report = {
             "phase": "10M",
             "subphase": "10M-J",
-            "declared_at_utc": (
-                datetime.now(
-                    timezone.utc
-                ).isoformat()
-            ),
-            "status": (
-                "PRODUCTION_RELEASE_DECLARATION_FAILED"
-            ),
+            "declared_at_utc": (datetime.now(timezone.utc).isoformat()),
+            "status": ("PRODUCTION_RELEASE_DECLARATION_FAILED"),
             "production_live": False,
-            "error_type": (
-                type(error).__name__
-            ),
-            "error_message": str(
-                error
-            ),
+            "error_type": (type(error).__name__),
+            "error_message": str(error),
         }
 
         exit_code = 1
 
-    path = save_report(
-        report
-    )
+    path = save_report(report)
 
     print(
         json.dumps(

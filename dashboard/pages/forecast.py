@@ -69,24 +69,18 @@ def _render_sidebar() -> dict[str, Any]:
         unsafe_allow_html=True,
     )
 
-    st.sidebar.caption(
-        "Adjust how the current forecast is displayed."
-    )
+    st.sidebar.caption("Adjust how the current forecast is displayed.")
 
     range_hours = st.sidebar.selectbox(
         "Forecast range",
         options=FORECAST_RANGES,
         index=1,
-        format_func=lambda value: (
-            f"Next {value} hours"
-        ),
+        format_func=lambda value: f"Next {value} hours",
     )
 
     timezone_label = st.sidebar.selectbox(
         "Display timezone",
-        options=list(
-            SUPPORTED_TIMEZONES.keys()
-        ),
+        options=list(SUPPORTED_TIMEZONES.keys()),
         index=0,
     )
 
@@ -128,15 +122,11 @@ def _render_sidebar() -> dict[str, Any]:
     if refresh_clicked:
         clear_dashboard_api_cache()
 
-        st.session_state[
-            "last_manual_refresh_utc"
-        ] = utc_now()
+        st.session_state["last_manual_refresh_utc"] = utc_now()
 
         st.rerun()
 
-    last_refresh = st.session_state.get(
-        "last_manual_refresh_utc"
-    )
+    last_refresh = st.session_state.get("last_manual_refresh_utc")
 
     if isinstance(
         last_refresh,
@@ -146,37 +136,18 @@ def _render_sidebar() -> dict[str, Any]:
             "Manually refreshed "
             + format_timestamp(
                 last_refresh,
-                timezone_name=(
-                    SUPPORTED_TIMEZONES[
-                        timezone_label
-                    ]
-                ),
+                timezone_name=(SUPPORTED_TIMEZONES[timezone_label]),
             )
         )
     else:
-        st.sidebar.caption(
-            "Forecast data is cached briefly "
-            "for responsive browsing."
-        )
+        st.sidebar.caption("Forecast data is cached briefly for responsive browsing.")
 
     return {
-        "range_hours": int(
-            range_hours
-        ),
-        "timezone_name": (
-            SUPPORTED_TIMEZONES[
-                timezone_label
-            ]
-        ),
-        "categories": list(
-            categories
-        ),
-        "alert_levels": list(
-            alert_levels
-        ),
-        "alerts_only": bool(
-            alerts_only
-        ),
+        "range_hours": int(range_hours),
+        "timezone_name": (SUPPORTED_TIMEZONES[timezone_label]),
+        "categories": list(categories),
+        "alert_levels": list(alert_levels),
+        "alerts_only": bool(alerts_only),
     }
 
 
@@ -222,26 +193,16 @@ def _render_selected_hour(
         ),
     )
 
-    horizon_options = (
-        forecast_df[
-            "forecast_horizon_hours"
-        ]
-        .astype(int)
-        .tolist()
-    )
+    horizon_options = forecast_df["forecast_horizon_hours"].astype(int).tolist()
 
     selected_horizon = st.selectbox(
         "Forecast hour",
         options=horizon_options,
-        format_func=lambda horizon: (
-            f"Hour {horizon}"
-        ),
+        format_func=lambda horizon: f"Hour {horizon}",
     )
 
     selected_row = forecast_df.loc[
-        forecast_df[
-            "forecast_horizon_hours"
-        ].eq(selected_horizon)
+        forecast_df["forecast_horizon_hours"].eq(selected_horizon)
     ].iloc[0]
 
     detail_columns = st.columns(4)
@@ -250,9 +211,7 @@ def _render_selected_hour(
         st.metric(
             "Target time",
             format_timestamp(
-                selected_row[
-                    "target_time_utc"
-                ],
+                selected_row["target_time_utc"],
                 timezone_name=timezone_name,
             ),
         )
@@ -260,46 +219,30 @@ def _render_selected_hour(
     with detail_columns[1]:
         st.metric(
             "PM2.5",
-            format_pm25(
-                selected_row[
-                    "predicted_pm25_ug_m3"
-                ]
-            ),
+            format_pm25(selected_row["predicted_pm25_ug_m3"]),
         )
 
     with detail_columns[2]:
         st.metric(
             "Indicative AQI",
-            format_aqi(
-                selected_row[
-                    "indicative_hourly_pm25_aqi"
-                ]
-            ),
+            format_aqi(selected_row["indicative_hourly_pm25_aqi"]),
         )
 
     with detail_columns[3]:
         st.metric(
             "Rolling AQI",
-            format_aqi(
-                selected_row[
-                    "rolling_24h_pm25_aqi"
-                ]
-            ),
+            format_aqi(selected_row["rolling_24h_pm25_aqi"]),
         )
 
     st.markdown("")
 
-    interpretation_column, guidance_column = (
-        st.columns(
-            [1, 1.35],
-            gap="large",
-        )
+    interpretation_column, guidance_column = st.columns(
+        [1, 1.35],
+        gap="large",
     )
 
     with interpretation_column:
-        st.markdown(
-            "#### AQI interpretation"
-        )
+        st.markdown("#### AQI interpretation")
 
         st.write(
             "Indicative category  \n"
@@ -311,36 +254,19 @@ def _render_selected_hour(
             f"**{selected_row['rolling_24h_aqi_category'] or 'Not available'}**"
         )
 
-        st.write(
-            "Alert level  \n"
-            f"**{selected_row['alert_level']}**"
-        )
+        st.write(f"Alert level  \n**{selected_row['alert_level']}**")
 
-        st.caption(
-            "Alert basis · "
-            f"{selected_row['alert_basis']}"
-        )
+        st.caption(f"Alert basis · {selected_row['alert_basis']}")
 
     with guidance_column:
-        st.markdown(
-            "#### Health guidance"
-        )
+        st.markdown("#### Health guidance")
 
-        st.write(
-            selected_row[
-                "health_message"
-            ]
-        )
+        st.write(selected_row["health_message"])
 
-        st.info(
-            selected_row[
-                "recommended_action"
-            ]
-        )
+        st.info(selected_row["recommended_action"])
 
         st.caption(
-            "Official local guidance and professional "
-            "medical advice take priority."
+            "Official local guidance and professional medical advice take priority."
         )
 
 
@@ -354,83 +280,44 @@ def _render_hourly_table(
     _render_section_heading(
         kicker="Raw forecast view",
         title="Hourly forecast data",
-        description=(
-            "Detailed hourly values behind the visual forecast."
-        ),
+        description=("Detailed hourly values behind the visual forecast."),
     )
 
     table_df = forecast_df.copy()
 
-    table_df["Forecast time"] = (
-        table_df[
-            "target_time_utc"
-        ].apply(
-            lambda value: format_timestamp(
-                value,
-                timezone_name=timezone_name,
-                include_timezone=True,
-            )
+    table_df["Forecast time"] = table_df["target_time_utc"].apply(
+        lambda value: format_timestamp(
+            value,
+            timezone_name=timezone_name,
+            include_timezone=True,
         )
     )
 
-    table_df["PM2.5"] = (
-        table_df[
-            "predicted_pm25_ug_m3"
-        ].apply(
-            format_pm25
-        )
+    table_df["PM2.5"] = table_df["predicted_pm25_ug_m3"].apply(format_pm25)
+
+    table_df["Indicative AQI"] = table_df["indicative_hourly_pm25_aqi"].apply(
+        format_aqi
     )
 
-    table_df["Indicative AQI"] = (
-        table_df[
-            "indicative_hourly_pm25_aqi"
-        ].apply(
-            format_aqi
-        )
-    )
+    table_df["Rolling AQI"] = table_df["rolling_24h_pm25_aqi"].apply(format_aqi)
 
-    table_df["Rolling AQI"] = (
-        table_df[
-            "rolling_24h_pm25_aqi"
-        ].apply(
-            format_aqi
-        )
-    )
-
-    table_df["Alert active"] = (
-        table_df[
-            "alert_is_active"
-        ].apply(
-            format_boolean_status
-        )
-    )
+    table_df["Alert active"] = table_df["alert_is_active"].apply(format_boolean_status)
 
     display_columns = {
         "forecast_horizon_hours": "Horizon",
         "Forecast time": "Forecast time",
         "PM2.5": "PM2.5",
         "Indicative AQI": "Indicative AQI",
-        "indicative_hourly_aqi_category": (
-            "Indicative category"
-        ),
+        "indicative_hourly_aqi_category": ("Indicative category"),
         "Rolling AQI": "Rolling AQI",
-        "rolling_24h_aqi_category": (
-            "Rolling category"
-        ),
+        "rolling_24h_aqi_category": ("Rolling category"),
         "alert_level": "Alert level",
         "Alert active": "Alert active",
         "health_message": "Health guidance",
     }
 
-    final_table_df = (
-        table_df[
-            list(
-                display_columns.keys()
-            )
-        ]
-        .rename(
-            columns=display_columns
-        )
+    final_table_df = table_df[list(display_columns.keys())].rename(
+        columns=display_columns
     )
 
     st.dataframe(
@@ -456,10 +343,7 @@ def _render_methodology(
             {},
         )
 
-        st.write(
-            f"**Reference location:** "
-            f"{location.get('name', 'Zafar Memon DHA')}"
-        )
+        st.write(f"**Reference location:** {location.get('name', 'Zafar Memon DHA')}")
 
         st.write(
             f"**Coordinates:** "
@@ -472,10 +356,7 @@ def _render_methodology(
             "location rather than all of Karachi."
         )
 
-        st.write(
-            "**Forecast horizon:** "
-            "72 hourly PM2.5 predictions."
-        )
+        st.write("**Forecast horizon:** 72 hourly PM2.5 predictions.")
 
         st.write(
             "**AQI interpretation:** "
@@ -489,29 +370,17 @@ def render_forecast_page() -> None:
 
     apply_dashboard_theme()
 
-    settings = (
-        get_dashboard_settings()
-    )
+    settings = get_dashboard_settings()
 
     controls = _render_sidebar()
 
     try:
-        with st.spinner(
-            "Loading the latest forecast..."
-        ):
-            readiness_payload = (
-                cached_readiness()
-            )
+        with st.spinner("Loading the latest forecast..."):
+            readiness_payload = cached_readiness()
 
-            forecast_payload = (
-                cached_forecast()
-            )
+            forecast_payload = cached_forecast()
 
-            full_forecast_df = (
-                prepare_hourly_forecast(
-                    forecast_payload
-                )
-            )
+            full_forecast_df = prepare_hourly_forecast(forecast_payload)
 
     except (
         DashboardAPIError,
@@ -525,62 +394,28 @@ def render_forecast_page() -> None:
         {},
     )
 
-    prepared_df = (
-        add_display_timezone(
-            full_forecast_df,
-            timezone_name=(
-                controls[
-                    "timezone_name"
-                ]
-            ),
-        )
+    prepared_df = add_display_timezone(
+        full_forecast_df,
+        timezone_name=(controls["timezone_name"]),
     )
 
-    filtered_df = (
-        filter_hourly_forecast(
-            prepared_df,
-            maximum_horizon=(
-                controls[
-                    "range_hours"
-                ]
-            ),
-            categories=(
-                controls[
-                    "categories"
-                ]
-            ),
-            alert_levels=(
-                controls[
-                    "alert_levels"
-                ]
-            ),
-            alerts_only=(
-                controls[
-                    "alerts_only"
-                ]
-            ),
-        )
+    filtered_df = filter_hourly_forecast(
+        prepared_df,
+        maximum_horizon=(controls["range_hours"]),
+        categories=(controls["categories"]),
+        alert_levels=(controls["alert_levels"]),
+        alerts_only=(controls["alerts_only"]),
     )
 
     render_dashboard_header(
         title=settings.dashboard_title,
-        forecast_payload=(
-            forecast_payload
-        ),
-        readiness_payload=(
-            readiness_payload
-        ),
+        forecast_payload=(forecast_payload),
+        readiness_payload=(readiness_payload),
         forecast_df=prepared_df,
-        timezone_name=(
-            controls[
-                "timezone_name"
-            ]
-        ),
+        timezone_name=(controls["timezone_name"]),
     )
 
-    render_forecast_status_notice(
-        readiness_payload
-    )
+    render_forecast_status_notice(readiness_payload)
 
     if filtered_df.empty:
         render_empty_forecast()
@@ -592,23 +427,17 @@ def render_forecast_page() -> None:
             {},
         ),
         forecast_df=filtered_df,
-        timezone_name=(
-            controls[
-                "timezone_name"
-            ]
-        ),
+        timezone_name=(controls["timezone_name"]),
     )
 
     st.markdown("")
 
-    overview_tab, analysis_tab, data_tab = (
-        st.tabs(
-            [
-                "Overview",
-                "AQI analysis",
-                "Hourly data",
-            ]
-        )
+    overview_tab, analysis_tab, data_tab = st.tabs(
+        [
+            "Overview",
+            "AQI analysis",
+            "Hourly data",
+        ]
     )
 
     with overview_tab:
@@ -618,15 +447,12 @@ def render_forecast_page() -> None:
             kicker="Forecast trajectory",
             title="PM2.5 outlook",
             description=(
-                "Expected PM2.5 concentration across "
-                "the selected forecast horizon."
+                "Expected PM2.5 concentration across the selected forecast horizon."
             ),
         )
 
         st.plotly_chart(
-            build_pm25_chart(
-                filtered_df
-            ),
+            build_pm25_chart(filtered_df),
             width="stretch",
             config=PLOT_CONFIG,
         )
@@ -637,15 +463,12 @@ def render_forecast_page() -> None:
             kicker="Air-quality outlook",
             title="AQI category timeline",
             description=(
-                "A compact view of how expected "
-                "air-quality conditions change by hour."
+                "A compact view of how expected air-quality conditions change by hour."
             ),
         )
 
         st.plotly_chart(
-            build_category_timeline(
-                filtered_df
-            ),
+            build_category_timeline(filtered_df),
             width="stretch",
             config=PLOT_CONFIG,
         )
@@ -653,9 +476,7 @@ def render_forecast_page() -> None:
         st.markdown("")
 
         _render_methodology(
-            forecast_payload=(
-                forecast_payload
-            ),
+            forecast_payload=(forecast_payload),
         )
 
     with analysis_tab:
@@ -665,15 +486,12 @@ def render_forecast_page() -> None:
             kicker="Indicative AQI",
             title="Hourly AQI outlook",
             description=(
-                "Indicative hourly AQI derived from "
-                "each PM2.5 forecast value."
+                "Indicative hourly AQI derived from each PM2.5 forecast value."
             ),
         )
 
         st.plotly_chart(
-            build_indicative_aqi_chart(
-                filtered_df
-            ),
+            build_indicative_aqi_chart(filtered_df),
             width="stretch",
             config=PLOT_CONFIG,
         )
@@ -686,18 +504,13 @@ def render_forecast_page() -> None:
 
         st.markdown("")
 
-        rolling_figure = (
-            build_rolling_aqi_chart(
-                filtered_df
-            )
-        )
+        rolling_figure = build_rolling_aqi_chart(filtered_df)
 
         _render_section_heading(
             kicker="Rolling exposure",
             title="Rolling 24-hour AQI",
             description=(
-                "Trailing 24-hour PM2.5 exposure "
-                "using observed and forecast values."
+                "Trailing 24-hour PM2.5 exposure using observed and forecast values."
             ),
         )
 
@@ -710,30 +523,19 @@ def render_forecast_page() -> None:
                 config=PLOT_CONFIG,
             )
 
-            st.caption(
-                "Rolling AQI summarizes the trailing "
-                "24-hour PM2.5 window."
-            )
+            st.caption("Rolling AQI summarizes the trailing 24-hour PM2.5 window.")
 
     with data_tab:
         st.markdown("")
 
         _render_selected_hour(
             forecast_df=filtered_df,
-            timezone_name=(
-                controls[
-                    "timezone_name"
-                ]
-            ),
+            timezone_name=(controls["timezone_name"]),
         )
 
         st.divider()
 
         _render_hourly_table(
             forecast_df=filtered_df,
-            timezone_name=(
-                controls[
-                    "timezone_name"
-                ]
-            ),
+            timezone_name=(controls["timezone_name"]),
         )

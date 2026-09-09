@@ -104,7 +104,6 @@ __all__ = [
     "create_or_get_reference_feature_view",
     "read_hopsworks_reference_features",
     "save_versioned_training_snapshot",
-
     "ModelRegistryError",
     "RegisteredModelResult",
     "ResolvedProductionModel",
@@ -112,16 +111,13 @@ __all__ = [
     "prepare_model_package",
     "register_initial_production_model",
     "resolve_production_model",
-
     "ModelLoadingMode",
-
     "HORIZON_GROUPS",
     "RetrainingEligibility",
     "RetrainingError",
     "evaluate_candidate",
     "evaluate_retraining_eligibility",
     "train_candidate_model",
-
     "ChampionChallengerError",
     "PromotionDecision",
     "evaluate_promotion_gates",

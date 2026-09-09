@@ -19,12 +19,8 @@ class MissingInterval:
         """Return a JSON-safe representation."""
 
         return {
-            "start_time_utc": (
-                self.start_time_utc.isoformat()
-            ),
-            "end_time_utc": (
-                self.end_time_utc.isoformat()
-            ),
+            "start_time_utc": (self.start_time_utc.isoformat()),
+            "end_time_utc": (self.end_time_utc.isoformat()),
             "missing_hours": self.missing_hours,
         }
 
@@ -41,13 +37,9 @@ def normalize_utc_hourly_series(
     )
 
     if timestamps.isna().any():
-        raise ValueError(
-            "Timestamp series contains invalid values."
-        )
+        raise ValueError("Timestamp series contains invalid values.")
 
-    return pd.DatetimeIndex(
-        timestamps.dt.floor("h").drop_duplicates().sort_values()
-    )
+    return pd.DatetimeIndex(timestamps.dt.floor("h").drop_duplicates().sort_values())
 
 
 def detect_hourly_gaps(
@@ -76,9 +68,7 @@ def detect_hourly_gaps(
     end = end.floor("h")
 
     if start > end:
-        raise ValueError(
-            "Backfill start time must not be after end time."
-        )
+        raise ValueError("Backfill start time must not be after end time.")
 
     expected = pd.date_range(
         start=start,
@@ -87,13 +77,9 @@ def detect_hourly_gaps(
         tz="UTC",
     )
 
-    available = normalize_utc_hourly_series(
-        timestamps
-    )
+    available = normalize_utc_hourly_series(timestamps)
 
-    missing = expected.difference(
-        available
-    )
+    missing = expected.difference(available)
 
     if missing.empty:
         return []
@@ -104,9 +90,7 @@ def detect_hourly_gaps(
     previous = missing[0]
 
     for timestamp in missing[1:]:
-        if timestamp - previous == pd.Timedelta(
-            hours=1
-        ):
+        if timestamp - previous == pd.Timedelta(hours=1):
             previous = timestamp
             continue
 
@@ -114,14 +98,7 @@ def detect_hourly_gaps(
             MissingInterval(
                 start_time_utc=group_start,
                 end_time_utc=previous,
-                missing_hours=int(
-                    (
-                        previous
-                        - group_start
-                    )
-                    / pd.Timedelta(hours=1)
-                )
-                + 1,
+                missing_hours=int((previous - group_start) / pd.Timedelta(hours=1)) + 1,
             )
         )
 
@@ -132,14 +109,7 @@ def detect_hourly_gaps(
         MissingInterval(
             start_time_utc=group_start,
             end_time_utc=previous,
-            missing_hours=int(
-                (
-                    previous
-                    - group_start
-                )
-                / pd.Timedelta(hours=1)
-            )
-            + 1,
+            missing_hours=int((previous - group_start) / pd.Timedelta(hours=1)) + 1,
         )
     )
 

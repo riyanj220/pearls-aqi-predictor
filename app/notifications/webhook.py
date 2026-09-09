@@ -41,42 +41,25 @@ class JsonWebhookClient:
         normalized_url = url.strip()
 
         if not normalized_url:
-            raise WebhookConfigurationError(
-                "Webhook URL cannot be empty."
-            )
+            raise WebhookConfigurationError("Webhook URL cannot be empty.")
 
-        parsed = urllib.parse.urlparse(
-            normalized_url
-        )
+        parsed = urllib.parse.urlparse(normalized_url)
 
-        allowed_schemes = (
-            {"https", "http"}
-            if allow_insecure_http
-            else {"https"}
-        )
+        allowed_schemes = {"https", "http"} if allow_insecure_http else {"https"}
 
         if parsed.scheme.lower() not in allowed_schemes:
-            raise WebhookConfigurationError(
-                "Webhook URL must use HTTPS."
-            )
+            raise WebhookConfigurationError("Webhook URL must use HTTPS.")
 
         if not parsed.netloc:
-            raise WebhookConfigurationError(
-                "Webhook URL must contain a host."
-            )
+            raise WebhookConfigurationError("Webhook URL must contain a host.")
 
         if timeout_seconds <= 0:
-            raise WebhookConfigurationError(
-                "Webhook timeout must be positive."
-            )
+            raise WebhookConfigurationError("Webhook timeout must be positive.")
 
         self.url = normalized_url
         self.timeout_seconds = timeout_seconds
         self.bearer_token = (
-            bearer_token.strip()
-            if bearer_token
-            and bearer_token.strip()
-            else None
+            bearer_token.strip() if bearer_token and bearer_token.strip() else None
         )
 
     def send(
@@ -87,14 +70,10 @@ class JsonWebhookClient:
     ) -> WebhookDeliveryResult:
         """POST one JSON document."""
 
-        normalized_key = (
-            idempotency_key.strip()
-        )
+        normalized_key = idempotency_key.strip()
 
         if not normalized_key:
-            raise WebhookConfigurationError(
-                "Webhook idempotency key cannot be empty."
-            )
+            raise WebhookConfigurationError("Webhook idempotency key cannot be empty.")
 
         request_body = json.dumps(
             payload,
@@ -106,16 +85,12 @@ class JsonWebhookClient:
         headers = {
             "Accept": "application/json",
             "Content-Type": "application/json",
-            "User-Agent": (
-                "pearls-aqi-production-monitor/1.0"
-            ),
+            "User-Agent": ("pearls-aqi-production-monitor/1.0"),
             "Idempotency-Key": normalized_key,
         }
 
         if self.bearer_token is not None:
-            headers["Authorization"] = (
-                f"Bearer {self.bearer_token}"
-            )
+            headers["Authorization"] = f"Bearer {self.bearer_token}"
 
         request = urllib.request.Request(
             url=self.url,
@@ -129,25 +104,17 @@ class JsonWebhookClient:
                 request,
                 timeout=self.timeout_seconds,
             ) as response:
-                status_code = int(
-                    response.status
-                )
+                status_code = int(response.status)
 
-                response_body = (
-                    response.read(4096)
-                    .decode(
-                        "utf-8",
-                        errors="replace",
-                    )
-                )
-
-        except urllib.error.HTTPError as error:
-            response_body = (
-                error.read(4096)
-                .decode(
+                response_body = response.read(4096).decode(
                     "utf-8",
                     errors="replace",
                 )
+
+        except urllib.error.HTTPError as error:
+            response_body = error.read(4096).decode(
+                "utf-8",
+                errors="replace",
             )
 
             raise WebhookDeliveryError(
@@ -162,14 +129,11 @@ class JsonWebhookClient:
             ) from error
 
         except TimeoutError as error:
-            raise WebhookDeliveryError(
-                "Webhook request timed out."
-            ) from error
+            raise WebhookDeliveryError("Webhook request timed out.") from error
 
         if not 200 <= status_code < 300:
             raise WebhookDeliveryError(
-                "Webhook returned an unsuccessful "
-                f"HTTP response: {status_code}."
+                f"Webhook returned an unsuccessful HTTP response: {status_code}."
             )
 
         return WebhookDeliveryResult(

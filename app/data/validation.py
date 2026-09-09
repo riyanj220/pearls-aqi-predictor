@@ -11,12 +11,8 @@ from app.core.config import Settings, settings
 
 REFERENCE_READY = "READY"
 REFERENCE_STALE_PM25 = "STALE_PM25_DATA"
-REFERENCE_INSUFFICIENT_HISTORY = (
-    "NOT_READY_INSUFFICIENT_PM25_HISTORY"
-)
-REFERENCE_WEATHER_INCOMPLETE = (
-    "WEATHER_FORECAST_INCOMPLETE"
-)
+REFERENCE_INSUFFICIENT_HISTORY = "NOT_READY_INSUFFICIENT_PM25_HISTORY"
+REFERENCE_WEATHER_INCOMPLETE = "WEATHER_FORECAST_INCOMPLETE"
 
 
 @dataclass(frozen=True)
@@ -29,9 +25,7 @@ class ReferenceSelectionResult:
     latest_valid_pm25_time: pd.Timestamp | None
     latest_pm25_age_hours: float | None
     inspected_candidates: int
-    candidate_checks: list[dict[str, object]] = field(
-        default_factory=list
-    )
+    candidate_checks: list[dict[str, object]] = field(default_factory=list)
 
     @property
     def is_ready(self) -> bool:
@@ -50,9 +44,7 @@ def _normalize_utc_timestamp(
     timestamp = pd.Timestamp(value)
 
     if timestamp.tzinfo is None:
-        raise ValueError(
-            f"{name} must be timezone-aware."
-        )
+        raise ValueError(f"{name} must be timezone-aware.")
 
     return timestamp.tz_convert("UTC")
 
@@ -86,22 +78,15 @@ def select_latest_safe_reference_time(
         "pm25_ug_m3",
     }
 
-    missing_pm25_columns = sorted(
-        required_pm25_columns.difference(
-            pm25_df.columns
-        )
-    )
+    missing_pm25_columns = sorted(required_pm25_columns.difference(pm25_df.columns))
 
     if missing_pm25_columns:
         raise ValueError(
-            "PM2.5 data is missing required columns: "
-            f"{missing_pm25_columns}"
+            f"PM2.5 data is missing required columns: {missing_pm25_columns}"
         )
 
     if "datetime_utc" not in weather_df.columns:
-        raise ValueError(
-            "Weather data is missing datetime_utc."
-        )
+        raise ValueError("Weather data is missing datetime_utc.")
 
     pollution_df = pm25_df[
         [
@@ -128,43 +113,27 @@ def select_latest_safe_reference_time(
     )
 
     if pollution_df["datetime_utc"].isna().any():
-        raise ValueError(
-            "PM2.5 data contains invalid timestamps."
-        )
+        raise ValueError("PM2.5 data contains invalid timestamps.")
 
     if weather_timestamps.isna().any():
-        raise ValueError(
-            "Weather data contains invalid timestamps."
-        )
+        raise ValueError("Weather data contains invalid timestamps.")
 
     if pollution_df["datetime_utc"].duplicated().any():
-        raise ValueError(
-            "PM2.5 data contains duplicate timestamps."
-        )
+        raise ValueError("PM2.5 data contains duplicate timestamps.")
 
     if weather_timestamps.duplicated().any():
-        raise ValueError(
-            "Weather data contains duplicate timestamps."
-        )
+        raise ValueError("Weather data contains duplicate timestamps.")
 
-    pollution_df = (
-        pollution_df
-        .sort_values("datetime_utc")
-        .reset_index(drop=True)
-    )
+    pollution_df = pollution_df.sort_values("datetime_utc").reset_index(drop=True)
 
     valid_pm25_df = pollution_df.loc[
-        pollution_df["pm25_ug_m3"].notna()
-        & pollution_df["pm25_ug_m3"].gt(0)
+        pollution_df["pm25_ug_m3"].notna() & pollution_df["pm25_ug_m3"].gt(0)
     ].copy()
 
     if valid_pm25_df.empty:
         return ReferenceSelectionResult(
             status=REFERENCE_INSUFFICIENT_HISTORY,
-            message=(
-                "No valid positive PM2.5 observation is "
-                "available."
-            ),
+            message=("No valid positive PM2.5 observation is available."),
             selected_reference_time=None,
             latest_valid_pm25_time=None,
             latest_pm25_age_hours=None,
@@ -180,18 +149,13 @@ def select_latest_safe_reference_time(
         )
     )
 
-    latest_valid_pm25_time = valid_pm25_df[
-        "datetime_utc"
-    ].max()
+    latest_valid_pm25_time = valid_pm25_df["datetime_utc"].max()
 
     latest_pm25_age_hours = (
         current_time - latest_valid_pm25_time
     ).total_seconds() / 3_600
 
-    if (
-        latest_pm25_age_hours
-        > app_settings.pm25_freshness_threshold_hours
-    ):
+    if latest_pm25_age_hours > app_settings.pm25_freshness_threshold_hours:
         return ReferenceSelectionResult(
             status=REFERENCE_STALE_PM25,
             message=(
@@ -200,38 +164,25 @@ def select_latest_safe_reference_time(
             ),
             selected_reference_time=None,
             latest_valid_pm25_time=latest_valid_pm25_time,
-            latest_pm25_age_hours=float(
-                latest_pm25_age_hours
-            ),
+            latest_pm25_age_hours=float(latest_pm25_age_hours),
             inspected_candidates=0,
         )
 
-    pollution_indexed = pollution_df.set_index(
-        "datetime_utc"
-    )
+    pollution_indexed = pollution_df.set_index("datetime_utc")
 
-    weather_timestamp_index = pd.DatetimeIndex(
-        weather_timestamps
-    )
+    weather_timestamp_index = pd.DatetimeIndex(weather_timestamps)
 
     candidate_times = (
-        valid_pm25_df["datetime_utc"]
-        .sort_values(ascending=False)
-        .tolist()
+        valid_pm25_df["datetime_utc"].sort_values(ascending=False).tolist()
     )
 
     candidate_checks: list[dict[str, object]] = []
     history_ready_candidate_found = False
 
     for candidate_time in candidate_times:
-        candidate_age_hours = (
-            current_time - candidate_time
-        ).total_seconds() / 3_600
+        candidate_age_hours = (current_time - candidate_time).total_seconds() / 3_600
 
-        if (
-            candidate_age_hours
-            > app_settings.pm25_freshness_threshold_hours
-        ):
+        if candidate_age_hours > app_settings.pm25_freshness_threshold_hours:
             break
 
         # A 24-hour lag requires t-24, while the 24-hour
@@ -240,33 +191,20 @@ def select_latest_safe_reference_time(
         required_history_timeline = pd.date_range(
             start=(
                 candidate_time
-                - pd.Timedelta(
-                    hours=app_settings.minimum_pm25_history_hours
-                )
+                - pd.Timedelta(hours=app_settings.minimum_pm25_history_hours)
             ),
             end=candidate_time,
             freq="h",
             tz="UTC",
         )
 
-        candidate_history = pollution_indexed.reindex(
-            required_history_timeline
-        )
+        candidate_history = pollution_indexed.reindex(required_history_timeline)
 
-        missing_history_timestamps = int(
-            candidate_history[
-                "pm25_ug_m3"
-            ].isna().sum()
-        )
+        missing_history_timestamps = int(candidate_history["pm25_ug_m3"].isna().sum())
 
-        history_complete = (
-            missing_history_timestamps == 0
-        )
+        history_complete = missing_history_timestamps == 0
 
-        reference_weather_available = (
-            candidate_time
-            in weather_timestamp_index
-        )
+        reference_weather_available = candidate_time in weather_timestamp_index
 
         target_timeline = pd.date_range(
             start=candidate_time + pd.Timedelta(hours=1),
@@ -275,40 +213,20 @@ def select_latest_safe_reference_time(
             tz="UTC",
         )
 
-        missing_target_weather = (
-            target_timeline.difference(
-                weather_timestamp_index
-            )
-        )
+        missing_target_weather = target_timeline.difference(weather_timestamp_index)
 
-        target_weather_complete = (
-            len(missing_target_weather) == 0
-        )
+        target_weather_complete = len(missing_target_weather) == 0
 
         candidate_check = {
             "candidate_reference_time": candidate_time,
-            "candidate_age_hours": float(
-                candidate_age_hours
-            ),
-            "required_pm25_history_rows": len(
-                required_history_timeline
-            ),
-            "missing_pm25_history_hours": (
-                missing_history_timestamps
-            ),
+            "candidate_age_hours": float(candidate_age_hours),
+            "required_pm25_history_rows": len(required_history_timeline),
+            "missing_pm25_history_hours": (missing_history_timestamps),
             "pm25_history_complete": history_complete,
-            "reference_weather_available": (
-                reference_weather_available
-            ),
-            "required_target_weather_hours": len(
-                target_timeline
-            ),
-            "missing_target_weather_hours": len(
-                missing_target_weather
-            ),
-            "target_weather_complete": (
-                target_weather_complete
-            ),
+            "reference_weather_available": (reference_weather_available),
+            "required_target_weather_hours": len(target_timeline),
+            "missing_target_weather_hours": len(missing_target_weather),
+            "target_weather_complete": (target_weather_complete),
         }
 
         candidate_checks.append(candidate_check)
@@ -332,9 +250,7 @@ def select_latest_safe_reference_time(
             ),
             selected_reference_time=candidate_time,
             latest_valid_pm25_time=latest_valid_pm25_time,
-            latest_pm25_age_hours=float(
-                latest_pm25_age_hours
-            ),
+            latest_pm25_age_hours=float(latest_pm25_age_hours),
             inspected_candidates=len(candidate_checks),
             candidate_checks=candidate_checks,
         )
@@ -359,9 +275,7 @@ def select_latest_safe_reference_time(
         message=final_message,
         selected_reference_time=None,
         latest_valid_pm25_time=latest_valid_pm25_time,
-        latest_pm25_age_hours=float(
-            latest_pm25_age_hours
-        ),
+        latest_pm25_age_hours=float(latest_pm25_age_hours),
         inspected_candidates=len(candidate_checks),
         candidate_checks=candidate_checks,
     )

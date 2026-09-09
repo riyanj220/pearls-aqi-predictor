@@ -67,9 +67,7 @@ def test_build_freshness_result() -> None:
     """Freshness output should contain age and thresholds."""
 
     result = build_freshness_result(
-        latest_timestamp=(
-            NOW - timedelta(hours=4)
-        ),
+        latest_timestamp=(NOW - timedelta(hours=4)),
         threshold=THRESHOLD,
         now=NOW,
     )
@@ -129,10 +127,7 @@ def test_worst_status(
 ) -> None:
     """The most severe component should determine health."""
 
-    assert (
-        worst_status(statuses)
-        == expected_status
-    )
+    assert worst_status(statuses) == expected_status
 
 
 @pytest.mark.parametrize(
@@ -165,12 +160,7 @@ def test_map_overall_report_status(
 ) -> None:
     """Internal severity should map to public report status."""
 
-    assert (
-        map_overall_report_status(
-            component_status
-        )
-        == expected_report_status
-    )
+    assert map_overall_report_status(component_status) == expected_report_status
 
 
 def test_threshold_rejects_negative_warning() -> None:
@@ -203,9 +193,7 @@ def test_future_timestamp_has_zero_age() -> None:
     """Clock skew must not produce a negative age."""
 
     result = build_freshness_result(
-        latest_timestamp=(
-            NOW + timedelta(minutes=10)
-        ),
+        latest_timestamp=(NOW + timedelta(minutes=10)),
         threshold=THRESHOLD,
         now=NOW,
     )

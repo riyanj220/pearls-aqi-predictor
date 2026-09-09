@@ -38,37 +38,24 @@ def prepare_hourly_forecast(
 ) -> pd.DataFrame:
     """Convert the complete forecast response into a validated DataFrame."""
 
-    records = forecast_payload.get(
-        "hourly_forecast"
-    )
+    records = forecast_payload.get("hourly_forecast")
 
     if not isinstance(records, list):
-        raise DashboardDataError(
-            "Forecast response has no hourly forecast list."
-        )
+        raise DashboardDataError("Forecast response has no hourly forecast list.")
 
     if not records:
-        raise DashboardDataError(
-            "Forecast response contains no hourly records."
-        )
+        raise DashboardDataError("Forecast response contains no hourly records.")
 
     dataframe = pd.DataFrame(records)
 
-    missing_columns = sorted(
-        REQUIRED_HOURLY_FIELDS.difference(
-            dataframe.columns
-        )
-    )
+    missing_columns = sorted(REQUIRED_HOURLY_FIELDS.difference(dataframe.columns))
 
     if missing_columns:
         raise DashboardDataError(
-            "Forecast records are missing fields: "
-            f"{missing_columns}"
+            f"Forecast records are missing fields: {missing_columns}"
         )
 
-    dataframe[
-        "target_time_utc"
-    ] = pd.to_datetime(
+    dataframe["target_time_utc"] = pd.to_datetime(
         dataframe["target_time_utc"],
         utc=True,
         errors="coerce",
@@ -90,59 +77,33 @@ def prepare_hourly_forecast(
                 errors="coerce",
             )
 
-    if dataframe[
-        "target_time_utc"
-    ].isna().any():
-        raise DashboardDataError(
-            "Forecast contains invalid target timestamps."
-        )
+    if dataframe["target_time_utc"].isna().any():
+        raise DashboardDataError("Forecast contains invalid target timestamps.")
 
-    if dataframe[
-        "forecast_horizon_hours"
-    ].isna().any():
-        raise DashboardDataError(
-            "Forecast contains invalid horizons."
-        )
+    if dataframe["forecast_horizon_hours"].isna().any():
+        raise DashboardDataError("Forecast contains invalid horizons.")
 
-    dataframe = (
-        dataframe
-        .sort_values(
-            "forecast_horizon_hours"
-        )
-        .reset_index(drop=True)
-    )
+    dataframe = dataframe.sort_values("forecast_horizon_hours").reset_index(drop=True)
 
-    horizons = dataframe[
-        "forecast_horizon_hours"
-    ].astype(int).tolist()
+    horizons = dataframe["forecast_horizon_hours"].astype(int).tolist()
 
     if horizons != sorted(horizons):
-        raise DashboardDataError(
-            "Forecast horizons are not ordered."
-        )
+        raise DashboardDataError("Forecast horizons are not ordered.")
 
     unsupported_categories = set(
-        dataframe[
-            "indicative_hourly_aqi_category"
-        ].dropna()
+        dataframe["indicative_hourly_aqi_category"].dropna()
     ).difference(AQI_CATEGORIES)
 
     if unsupported_categories:
         raise DashboardDataError(
-            "Unsupported AQI categories: "
-            f"{sorted(unsupported_categories)}"
+            f"Unsupported AQI categories: {sorted(unsupported_categories)}"
         )
 
-    unsupported_levels = set(
-        dataframe[
-            "alert_level"
-        ].dropna()
-    ).difference(ALERT_LEVELS)
+    unsupported_levels = set(dataframe["alert_level"].dropna()).difference(ALERT_LEVELS)
 
     if unsupported_levels:
         raise DashboardDataError(
-            "Unsupported alert levels: "
-            f"{sorted(unsupported_levels)}"
+            f"Unsupported alert levels: {sorted(unsupported_levels)}"
         )
 
     return dataframe
@@ -159,35 +120,19 @@ def filter_hourly_forecast(
     """Apply dashboard-side display filters."""
 
     filtered = dataframe.loc[
-        dataframe[
-            "forecast_horizon_hours"
-        ].le(maximum_horizon)
+        dataframe["forecast_horizon_hours"].le(maximum_horizon)
     ].copy()
 
     if categories:
-        filtered = filtered.loc[
-            filtered[
-                "alert_trigger_category"
-            ].isin(categories)
-        ]
+        filtered = filtered.loc[filtered["alert_trigger_category"].isin(categories)]
 
     if alert_levels:
-        filtered = filtered.loc[
-            filtered[
-                "alert_level"
-            ].isin(alert_levels)
-        ]
+        filtered = filtered.loc[filtered["alert_level"].isin(alert_levels)]
 
     if alerts_only:
-        filtered = filtered.loc[
-            filtered[
-                "alert_is_active"
-            ].astype(bool)
-        ]
+        filtered = filtered.loc[filtered["alert_is_active"].astype(bool)]
 
-    return filtered.reset_index(
-        drop=True
-    )
+    return filtered.reset_index(drop=True)
 
 
 def add_display_timezone(
@@ -199,11 +144,7 @@ def add_display_timezone(
 
     converted = dataframe.copy()
 
-    converted[
-        "display_time"
-    ] = converted[
-        "target_time_utc"
-    ].dt.tz_convert(
+    converted["display_time"] = converted["target_time_utc"].dt.tz_convert(
         timezone_name
     )
 

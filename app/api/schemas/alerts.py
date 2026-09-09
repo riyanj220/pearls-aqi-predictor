@@ -68,9 +68,7 @@ class AlertEpisodeCollectionResponse(PublicSchema):
     episodes: list[AlertEpisodeResponse]
 
 
-class ActiveAlertEpisodeResponse(
-    AlertEpisodeResponse
-):
+class ActiveAlertEpisodeResponse(AlertEpisodeResponse):
     """Alert episode classified relative to current UTC."""
 
     currently_active: bool

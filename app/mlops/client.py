@@ -59,10 +59,7 @@ def connect_to_hopsworks(
 ) -> HopsworksResources:
     """Connect and resolve configured Hopsworks resources."""
 
-    resolved_settings = (
-        settings
-        or get_mlops_settings()
-    )
+    resolved_settings = settings or get_mlops_settings()
 
     if not resolved_settings.uses_hopsworks:
         raise HopsworksConfigurationError(
@@ -71,14 +68,10 @@ def connect_to_hopsworks(
         )
 
     if resolved_settings.hopsworks_api_key is None:
-        raise HopsworksConfigurationError(
-            "HOPSWORKS_API_KEY is required."
-        )
+        raise HopsworksConfigurationError("HOPSWORKS_API_KEY is required.")
 
     if not resolved_settings.hopsworks_project:
-        raise HopsworksConfigurationError(
-            "HOPSWORKS_PROJECT is required."
-        )
+        raise HopsworksConfigurationError("HOPSWORKS_PROJECT is required.")
 
     sdk_version = get_hopsworks_sdk_version()
 
@@ -87,48 +80,27 @@ def connect_to_hopsworks(
 
         login_arguments: dict[str, object] = {
             "port": resolved_settings.hopsworks_port,
-            "project": (
-                resolved_settings.hopsworks_project
-            ),
-            "api_key_value": (
-                resolved_settings
-                .hopsworks_api_key
-                .get_secret_value()
-            ),
+            "project": (resolved_settings.hopsworks_project),
+            "api_key_value": (resolved_settings.hopsworks_api_key.get_secret_value()),
             "hostname_verification": (
-                resolved_settings
-                .hopsworks_hostname_verification
+                resolved_settings.hopsworks_hostname_verification
             ),
             "engine": resolved_settings.hopsworks_engine,
         }
 
         if resolved_settings.hopsworks_host:
-            login_arguments["host"] = (
-                resolved_settings.hopsworks_host
-            )
+            login_arguments["host"] = resolved_settings.hopsworks_host
 
-        project = hopsworks.login(
-            **login_arguments
-        )
+        project = hopsworks.login(**login_arguments)
 
         feature_store = None
         model_registry = None
 
-        if (
-            resolved_settings.feature_store_backend
-            == FeatureStoreBackend.HOPSWORKS
-        ):
-            feature_store = (
-                project.get_feature_store()
-            )
+        if resolved_settings.feature_store_backend == FeatureStoreBackend.HOPSWORKS:
+            feature_store = project.get_feature_store()
 
-        if (
-            resolved_settings.model_registry_backend
-            == ModelRegistryBackend.HOPSWORKS
-        ):
-            model_registry = (
-                project.get_model_registry()
-            )
+        if resolved_settings.model_registry_backend == ModelRegistryBackend.HOPSWORKS:
+            model_registry = project.get_model_registry()
 
         project_name = str(
             getattr(
@@ -141,13 +113,16 @@ def connect_to_hopsworks(
         feature_store_name = None
 
         if feature_store is not None:
-            feature_store_name = str(
-                getattr(
-                    feature_store,
-                    "name",
-                    "",
+            feature_store_name = (
+                str(
+                    getattr(
+                        feature_store,
+                        "name",
+                        "",
+                    )
                 )
-            ) or None
+                or None
+            )
 
         return HopsworksResources(
             project=project,

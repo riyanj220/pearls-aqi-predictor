@@ -42,9 +42,7 @@ def client() -> FastAPIClient:
     """Create a dashboard client with test settings."""
 
     settings = DashboardSettings(
-        fastapi_base_url=(
-            "http://testserver/api/v1"
-        ),
+        fastapi_base_url=("http://testserver/api/v1"),
         dashboard_request_timeout_seconds=2,
         dashboard_cache_ttl_seconds=0,
     )
@@ -100,9 +98,7 @@ def test_structured_api_error(
             payload={
                 "error": {
                     "code": "FORECAST_STALE",
-                    "message": (
-                        "The forecast is stale."
-                    ),
+                    "message": ("The forecast is stale."),
                     "details": {
                         "age_hours": 13,
                     },
@@ -117,9 +113,7 @@ def test_structured_api_error(
         fake_get,
     )
 
-    with pytest.raises(
-        DashboardAPIResponseError
-    ) as error_info:
+    with pytest.raises(DashboardAPIResponseError) as error_info:
         client.get_forecast()
 
     error = error_info.value
@@ -139,9 +133,7 @@ def test_timeout_error(
         *_: Any,
         **__: Any,
     ) -> None:
-        raise requests.Timeout(
-            "Request timed out"
-        )
+        raise requests.Timeout("Request timed out")
 
     monkeypatch.setattr(
         client._session,
@@ -149,7 +141,5 @@ def test_timeout_error(
         raise_timeout,
     )
 
-    with pytest.raises(
-        DashboardAPITimeoutError
-    ):
+    with pytest.raises(DashboardAPITimeoutError):
         client.get_readiness()

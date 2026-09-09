@@ -14,12 +14,7 @@ from typing import Any
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
-REPORT_PATH = (
-    PROJECT_ROOT
-    / "reports"
-    / "phase_10"
-    / "staging_deployment_report.json"
-)
+REPORT_PATH = PROJECT_ROOT / "reports" / "phase_10" / "staging_deployment_report.json"
 
 
 class StagingDeploymentError(RuntimeError):
@@ -78,22 +73,16 @@ def request_json(
             url,
             timeout=timeout_seconds,
         ) as response:
-            payload = json.loads(
-                response.read().decode("utf-8")
-            )
+            payload = json.loads(response.read().decode("utf-8"))
     except (
         urllib.error.URLError,
         TimeoutError,
         json.JSONDecodeError,
     ) as error:
-        raise StagingDeploymentError(
-            f"Could not validate endpoint: {url}"
-        ) from error
+        raise StagingDeploymentError(f"Could not validate endpoint: {url}") from error
 
     if not isinstance(payload, dict):
-        raise StagingDeploymentError(
-            f"Expected JSON object from: {url}"
-        )
+        raise StagingDeploymentError(f"Expected JSON object from: {url}")
 
     return payload
 
@@ -117,31 +106,15 @@ def build_report(
         app_name=dashboard_app,
     )
 
-    api_fqdn = (
-        api["properties"]
-        ["configuration"]
-        ["ingress"]
-        ["fqdn"]
-    )
+    api_fqdn = api["properties"]["configuration"]["ingress"]["fqdn"]
 
-    dashboard_fqdn = (
-        dashboard["properties"]
-        ["configuration"]
-        ["ingress"]
-        ["fqdn"]
-    )
+    dashboard_fqdn = dashboard["properties"]["configuration"]["ingress"]["fqdn"]
 
-    live_payload = request_json(
-        f"https://{api_fqdn}/api/v1/health/live"
-    )
+    live_payload = request_json(f"https://{api_fqdn}/api/v1/health/live")
 
-    ready_payload = request_json(
-        f"https://{api_fqdn}/api/v1/health/ready"
-    )
+    ready_payload = request_json(f"https://{api_fqdn}/api/v1/health/ready")
 
-    forecast_payload = request_json(
-        f"https://{api_fqdn}/api/v1/forecast"
-    )
+    forecast_payload = request_json(f"https://{api_fqdn}/api/v1/forecast")
 
     forecast_rows = len(
         forecast_payload.get(
@@ -150,25 +123,12 @@ def build_report(
         )
     )
 
-    api_image = (
-        api["properties"]
-        ["template"]
-        ["containers"][0]
-        ["image"]
-    )
+    api_image = api["properties"]["template"]["containers"][0]["image"]
 
-    dashboard_image = (
-        dashboard["properties"]
-        ["template"]
-        ["containers"][0]
-        ["image"]
-    )
+    dashboard_image = dashboard["properties"]["template"]["containers"][0]["image"]
 
     checks = {
-        "api_live": (
-            live_payload.get("status")
-            == "ALIVE"
-        ),
+        "api_live": (live_payload.get("status") == "ALIVE"),
         "api_ready": (
             ready_payload.get("status")
             in {
@@ -176,32 +136,14 @@ def build_report(
                 "READY_WITH_LIMITATIONS",
             }
         ),
-        "forecast_has_72_rows": (
-            forecast_rows == 72
-        ),
-        "api_uses_expected_tag": (
-            api_image.endswith(
-                f":{image_tag}"
-            )
-        ),
-        "dashboard_uses_expected_tag": (
-            dashboard_image.endswith(
-                f":{image_tag}"
-            )
-        ),
+        "forecast_has_72_rows": (forecast_rows == 72),
+        "api_uses_expected_tag": (api_image.endswith(f":{image_tag}")),
+        "dashboard_uses_expected_tag": (dashboard_image.endswith(f":{image_tag}")),
         "api_external_ingress": (
-            api["properties"]
-            ["configuration"]
-            ["ingress"]
-            ["external"]
-            is True
+            api["properties"]["configuration"]["ingress"]["external"] is True
         ),
         "dashboard_external_ingress": (
-            dashboard["properties"]
-            ["configuration"]
-            ["ingress"]
-            ["external"]
-            is True
+            dashboard["properties"]["configuration"]["ingress"]["external"] is True
         ),
     }
 
@@ -209,13 +151,9 @@ def build_report(
 
     return {
         "phase": "10I",
-        "generated_at_utc": datetime.now(
-            timezone.utc
-        ).isoformat(),
+        "generated_at_utc": datetime.now(timezone.utc).isoformat(),
         "status": (
-            "STAGING_DEPLOYMENT_VALIDATED"
-            if approved
-            else "STAGING_DEPLOYMENT_INVALID"
+            "STAGING_DEPLOYMENT_VALIDATED" if approved else "STAGING_DEPLOYMENT_INVALID"
         ),
         "approved": approved,
         "resource_group": resource_group,
@@ -224,15 +162,9 @@ def build_report(
             "name": api_app,
             "fqdn": api_fqdn,
             "image": api_image,
-            "readiness_status": (
-                ready_payload.get("status")
-            ),
+            "readiness_status": (ready_payload.get("status")),
             "forecast_rows": forecast_rows,
-            "pipeline_run_id": (
-                forecast_payload.get(
-                    "pipeline_run_id"
-                )
-            ),
+            "pipeline_run_id": (forecast_payload.get("pipeline_run_id")),
         },
         "dashboard": {
             "name": dashboard_app,
@@ -255,9 +187,7 @@ def save_report(
         exist_ok=True,
     )
 
-    temporary_path = REPORT_PATH.with_suffix(
-        ".json.tmp"
-    )
+    temporary_path = REPORT_PATH.with_suffix(".json.tmp")
 
     temporary_path.write_text(
         json.dumps(
@@ -302,31 +232,19 @@ def main() -> int:
 
     try:
         report = build_report(
-            resource_group=(
-                arguments.resource_group
-            ),
+            resource_group=(arguments.resource_group),
             api_app=arguments.api_app,
-            dashboard_app=(
-                arguments.dashboard_app
-            ),
+            dashboard_app=(arguments.dashboard_app),
             image_tag=arguments.image_tag,
         )
 
-        exit_code = (
-            0
-            if report["approved"]
-            else 1
-        )
+        exit_code = 0 if report["approved"] else 1
 
     except Exception as error:
         report = {
             "phase": "10I",
-            "generated_at_utc": datetime.now(
-                timezone.utc
-            ).isoformat(),
-            "status": (
-                "STAGING_DEPLOYMENT_VALIDATION_FAILED"
-            ),
+            "generated_at_utc": datetime.now(timezone.utc).isoformat(),
+            "status": ("STAGING_DEPLOYMENT_VALIDATION_FAILED"),
             "approved": False,
             "error_type": type(error).__name__,
             "error_message": str(error),

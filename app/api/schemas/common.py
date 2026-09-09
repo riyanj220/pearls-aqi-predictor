@@ -15,9 +15,7 @@ class AQICategory(str, Enum):
     GOOD = "Good"
     MODERATE = "Moderate"
 
-    UNHEALTHY_FOR_SENSITIVE_GROUPS = (
-        "Unhealthy for Sensitive Groups"
-    )
+    UNHEALTHY_FOR_SENSITIVE_GROUPS = "Unhealthy for Sensitive Groups"
 
     UNHEALTHY = "Unhealthy"
     VERY_UNHEALTHY = "Very Unhealthy"
@@ -49,16 +47,12 @@ class ReadinessStatus(str, Enum):
 
     READY = "READY"
 
-    READY_WITH_LIMITATIONS = (
-        "READY_WITH_LIMITATIONS"
-    )
+    READY_WITH_LIMITATIONS = "READY_WITH_LIMITATIONS"
 
     NOT_READY = "NOT_READY"
     STALE_FORECAST = "STALE_FORECAST"
 
-    INVALID_ARTIFACTS = (
-        "INVALID_ARTIFACTS"
-    )
+    INVALID_ARTIFACTS = "INVALID_ARTIFACTS"
 
 
 class PipelineStatus(str, Enum):
@@ -66,9 +60,7 @@ class PipelineStatus(str, Enum):
 
     APPROVED = "AQI_ALERT_PIPELINE_APPROVED"
 
-    APPROVED_WITH_LIMITATIONS = (
-        "AQI_ALERT_PIPELINE_APPROVED_WITH_LIMITATIONS"
-    )
+    APPROVED_WITH_LIMITATIONS = "AQI_ALERT_PIPELINE_APPROVED_WITH_LIMITATIONS"
 
     NOT_READY = "AQI_ALERT_PIPELINE_NOT_READY"
 
@@ -122,9 +114,7 @@ class StandardErrorDetail(PublicSchema):
 
     code: str
     message: str
-    details: dict[str, Any] = Field(
-        default_factory=dict
-    )
+    details: dict[str, Any] = Field(default_factory=dict)
 
     request_id: str
     timestamp_utc: datetime

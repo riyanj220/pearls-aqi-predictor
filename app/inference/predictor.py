@@ -20,6 +20,7 @@ from app.mlops.config import (
     get_mlops_settings,
 )
 
+
 class ArtifactContractError(RuntimeError):
     """Raised when saved model artifacts are missing or inconsistent."""
 
@@ -50,22 +51,16 @@ def _load_json(path: Path) -> dict[str, Any]:
     """Load a JSON object from disk."""
 
     if not path.exists():
-        raise ArtifactContractError(
-            f"Required JSON artifact was not found: {path}"
-        )
+        raise ArtifactContractError(f"Required JSON artifact was not found: {path}")
 
     try:
         with path.open("r", encoding="utf-8") as file:
             payload = json.load(file)
     except json.JSONDecodeError as exc:
-        raise ArtifactContractError(
-            f"Artifact contains invalid JSON: {path}"
-        ) from exc
+        raise ArtifactContractError(f"Artifact contains invalid JSON: {path}") from exc
 
     if not isinstance(payload, dict):
-        raise ArtifactContractError(
-            f"Expected a JSON object in artifact: {path}"
-        )
+        raise ArtifactContractError(f"Expected a JSON object in artifact: {path}")
 
     return payload
 
@@ -73,7 +68,7 @@ def _load_json(path: Path) -> dict[str, Any]:
 def _validate_shared_contract_paths(
     app_settings: Settings,
 ) -> None:
-   """No additional external reports are required at runtime."""
+    """No additional external reports are required at runtime."""
 
 
 def load_model_artifacts_from_paths(
@@ -87,46 +82,30 @@ def load_model_artifacts_from_paths(
     remains unchanged.
     """
 
-    model_feature_contract = _load_json(
-        paths.feature_columns_path
-    )
+    model_feature_contract = _load_json(paths.feature_columns_path)
 
-    model_metadata = _load_json(
-        paths.model_metadata_path
-    )
+    model_metadata = _load_json(paths.model_metadata_path)
 
     try:
-        model = joblib.load(
-            paths.model_path
-        )
+        model = joblib.load(paths.model_path)
     except Exception as exc:
         raise ArtifactContractError(
-            "The resolved model could not be loaded from: "
-            f"{paths.model_path}"
+            f"The resolved model could not be loaded from: {paths.model_path}"
         ) from exc
 
-    feature_columns = model_feature_contract.get(
-        "feature_columns"
-    )
+    feature_columns = model_feature_contract.get("feature_columns")
 
-    target_column = model_feature_contract.get(
-        "target_column"
-    )
+    target_column = model_feature_contract.get("target_column")
 
-    identifier_columns = model_feature_contract.get(
-        "identifier_columns"
-    )
+    identifier_columns = model_feature_contract.get("identifier_columns")
 
     if not isinstance(feature_columns, list) or not feature_columns:
         raise ArtifactContractError(
-            "The model feature contract does not contain "
-            "a valid ordered feature list."
+            "The model feature contract does not contain a valid ordered feature list."
         )
 
     if not isinstance(target_column, str):
-        raise ArtifactContractError(
-            "The model target column is missing or invalid."
-        )
+        raise ArtifactContractError("The model target column is missing or invalid.")
 
     if not isinstance(identifier_columns, list):
         raise ArtifactContractError(
@@ -138,9 +117,7 @@ def load_model_artifacts_from_paths(
         *identifier_columns,
     }
 
-    forbidden_features = sorted(
-        forbidden_columns.intersection(feature_columns)
-    )
+    forbidden_features = sorted(forbidden_columns.intersection(feature_columns))
 
     if forbidden_features:
         raise ArtifactContractError(
@@ -150,8 +127,7 @@ def load_model_artifacts_from_paths(
 
     if "forecast_horizon_hours" not in feature_columns:
         raise ArtifactContractError(
-            "forecast_horizon_hours is missing from the "
-            "model feature contract."
+            "forecast_horizon_hours is missing from the model feature contract."
         )
 
     model_feature_count = getattr(
@@ -168,31 +144,21 @@ def load_model_artifacts_from_paths(
             f"contract={len(feature_columns)}."
         )
 
-    selected_strategy = model_metadata.get(
-        "selected_strategy"
-    )
+    selected_strategy = model_metadata.get("selected_strategy")
 
     model_name = model_metadata.get("model_name")
 
     routing = model_metadata.get("routing", {})
 
-    persistence_max_horizon = routing.get(
-        "persistence_max_horizon"
-    )
+    persistence_max_horizon = routing.get("persistence_max_horizon")
 
     if not isinstance(selected_strategy, str):
-        raise ArtifactContractError(
-            "Selected strategy is missing from model metadata."
-        )
+        raise ArtifactContractError("Selected strategy is missing from model metadata.")
 
     if not isinstance(model_name, str):
-        raise ArtifactContractError(
-            "Model name is missing from model metadata."
-        )
+        raise ArtifactContractError("Model name is missing from model metadata.")
 
-    if persistence_max_horizon != (
-        app_settings.persistence_max_horizon
-    ):
+    if persistence_max_horizon != (app_settings.persistence_max_horizon):
         raise ArtifactContractError(
             "Saved hybrid threshold does not match application "
             "configuration. "
@@ -209,30 +175,16 @@ def load_model_artifacts_from_paths(
         selected_strategy=selected_strategy,
         model_name=model_name,
         model_type=type(model).__name__,
-        persistence_max_horizon=int(
-            persistence_max_horizon
-        ),
+        persistence_max_horizon=int(persistence_max_horizon),
         model_metadata=model_metadata,
         model_source=paths.source,
         model_registry_name=(
-            paths.model_name
-            if paths.source.startswith(
-                "HOPSWORKS"
-            )
-            else None
+            paths.model_name if paths.source.startswith("HOPSWORKS") else None
         ),
-        model_registry_version=(
-            paths.model_version
-        ),
-        model_checksum_sha256=(
-            paths.checksum_sha256
-        ),
-        model_fallback_used=(
-            paths.fallback_used
-        ),
-        model_fallback_reason=(
-            paths.fallback_reason
-        ),
+        model_registry_version=(paths.model_version),
+        model_checksum_sha256=(paths.checksum_sha256),
+        model_fallback_used=(paths.fallback_used),
+        model_fallback_reason=(paths.fallback_reason),
     )
 
 
@@ -249,21 +201,17 @@ def load_model_artifacts(
     mlops_settings = get_mlops_settings()
 
     try:
-        resolved_paths = (
-            resolve_model_artifact_paths(
-                settings=mlops_settings
-            )
-        )
+        resolved_paths = resolve_model_artifact_paths(settings=mlops_settings)
     except Exception as exc:
         raise ArtifactContractError(
-            "No validated production-model source "
-            "could be resolved."
+            "No validated production-model source could be resolved."
         ) from exc
 
     return load_model_artifacts_from_paths(
         paths=resolved_paths,
         app_settings=app_settings,
     )
+
 
 def validate_feature_matrix(
     feature_matrix: pd.DataFrame,
@@ -280,15 +228,11 @@ def validate_feature_matrix(
 
     if actual_columns != expected_columns:
         missing_columns = [
-            column
-            for column in expected_columns
-            if column not in actual_columns
+            column for column in expected_columns if column not in actual_columns
         ]
 
         unexpected_columns = [
-            column
-            for column in actual_columns
-            if column not in expected_columns
+            column for column in actual_columns if column not in expected_columns
         ]
 
         raise ArtifactContractError(
@@ -299,14 +243,11 @@ def validate_feature_matrix(
             "or feature order differs."
         )
 
-    missing_value_count = int(
-        feature_matrix.isna().sum().sum()
-    )
+    missing_value_count = int(feature_matrix.isna().sum().sum())
 
     if missing_value_count > 0:
         raise ArtifactContractError(
-            "Feature matrix contains missing values: "
-            f"{missing_value_count}"
+            f"Feature matrix contains missing values: {missing_value_count}"
         )
 
 
@@ -336,36 +277,25 @@ def generate_hybrid_predictions(
         "pm25_current",
     }
 
-    missing_columns = sorted(
-        required_columns.difference(
-            feature_matrix.columns
-        )
-    )
+    missing_columns = sorted(required_columns.difference(feature_matrix.columns))
 
     if missing_columns:
         raise ArtifactContractError(
-            "Hybrid prediction inputs are missing required columns: "
-            f"{missing_columns}"
+            f"Hybrid prediction inputs are missing required columns: {missing_columns}"
         )
 
     prediction_input_df = feature_matrix.copy()
 
     horizons = pd.to_numeric(
-        prediction_input_df[
-            "forecast_horizon_hours"
-        ],
+        prediction_input_df["forecast_horizon_hours"],
         errors="coerce",
     )
 
     if horizons.isna().any():
-        raise ArtifactContractError(
-            "Forecast horizons contain invalid values."
-        )
+        raise ArtifactContractError("Forecast horizons contain invalid values.")
 
     if horizons.duplicated().any():
-        raise ArtifactContractError(
-            "Forecast horizons contain duplicates."
-        )
+        raise ArtifactContractError("Forecast horizons contain duplicates.")
 
     expected_horizons = list(
         range(
@@ -380,9 +310,7 @@ def generate_hybrid_predictions(
             f"from 1 through {int(horizons.max())}."
         )
 
-    persistence_mask = horizons.le(
-        artifacts.persistence_max_horizon
-    )
+    persistence_mask = horizons.le(artifacts.persistence_max_horizon)
 
     model_mask = ~persistence_mask
 
@@ -396,16 +324,12 @@ def generate_hybrid_predictions(
         dtype="string",
     )
 
-    raw_predictions.loc[persistence_mask] = (
-        prediction_input_df.loc[
-            persistence_mask,
-            "pm25_current",
-        ].astype(float)
-    )
+    raw_predictions.loc[persistence_mask] = prediction_input_df.loc[
+        persistence_mask,
+        "pm25_current",
+    ].astype(float)
 
-    prediction_sources.loc[persistence_mask] = (
-        "current_pm25_persistence"
-    )
+    prediction_sources.loc[persistence_mask] = "current_pm25_persistence"
 
     if model_mask.any():
         xgboost_predictions = artifacts.model.predict(
@@ -415,18 +339,12 @@ def generate_hybrid_predictions(
             ]
         )
 
-        raw_predictions.loc[model_mask] = (
-            xgboost_predictions
-        )
+        raw_predictions.loc[model_mask] = xgboost_predictions
 
-        prediction_sources.loc[model_mask] = (
-            artifacts.model_name
-        )
+        prediction_sources.loc[model_mask] = artifacts.model_name
 
     if raw_predictions.isna().any():
-        missing_prediction_count = int(
-            raw_predictions.isna().sum()
-        )
+        missing_prediction_count = int(raw_predictions.isna().sum())
 
         raise ArtifactContractError(
             "Hybrid prediction generation produced missing values: "
@@ -435,27 +353,19 @@ def generate_hybrid_predictions(
 
     prediction_df = pd.DataFrame(
         {
-            "forecast_horizon_hours": (
-                horizons.astype(int)
-            ),
-            "predicted_pm25_ug_m3_raw": (
-                raw_predictions.astype(float)
-            ),
+            "forecast_horizon_hours": (horizons.astype(int)),
+            "predicted_pm25_ug_m3_raw": (raw_predictions.astype(float)),
             "prediction_source": prediction_sources,
         }
     )
 
-    prediction_df["prediction_was_clipped"] = (
-        prediction_df[
-            "predicted_pm25_ug_m3_raw"
-        ].lt(0)
-    )
+    prediction_df["prediction_was_clipped"] = prediction_df[
+        "predicted_pm25_ug_m3_raw"
+    ].lt(0)
 
-    prediction_df["predicted_pm25_ug_m3"] = (
-        prediction_df[
-            "predicted_pm25_ug_m3_raw"
-        ].clip(lower=0)
-    )
+    prediction_df["predicted_pm25_ug_m3"] = prediction_df[
+        "predicted_pm25_ug_m3_raw"
+    ].clip(lower=0)
 
     return prediction_df[
         [

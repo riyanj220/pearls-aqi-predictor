@@ -52,17 +52,10 @@ def load_feature_columns(
 ) -> list[str]:
     """Load an ordered feature-column artifact."""
 
-    payload = json.loads(
-        path.read_text(
-            encoding="utf-8"
-        )
-    )
+    payload = json.loads(path.read_text(encoding="utf-8"))
 
     if isinstance(payload, list):
-        return [
-            str(value)
-            for value in payload
-        ]
+        return [str(value) for value in payload]
 
     for key in (
         "feature_columns",
@@ -73,14 +66,9 @@ def load_feature_columns(
         values = payload.get(key)
 
         if isinstance(values, list):
-            return [
-                str(value)
-                for value in values
-            ]
+            return [str(value) for value in values]
 
-    raise ValueError(
-        f"No feature-column list found in {path}."
-    )
+    raise ValueError(f"No feature-column list found in {path}.")
 
 
 def resolve_column(
@@ -93,10 +81,7 @@ def resolve_column(
         if candidate in dataframe.columns:
             return candidate
 
-    raise ValueError(
-        "None of the expected columns exist: "
-        f"{candidates}"
-    )
+    raise ValueError(f"None of the expected columns exist: {candidates}")
 
 
 def normalize_timestamp_column(
@@ -114,9 +99,7 @@ def normalize_timestamp_column(
     ).dt.floor("h")
 
     if result[column].isna().any():
-        raise ValueError(
-            f"{column} contains invalid timestamps."
-        )
+        raise ValueError(f"{column} contains invalid timestamps.")
 
     return result
 
@@ -182,25 +165,19 @@ def prepare_pm25_rows(
     result["location_id"] = OPENAQ_LOCATION_ID
     result["sensor_id"] = OPENAQ_SENSOR_ID
 
-    result["pm25_is_missing"] = (
-        result["pm25_ug_m3"].isna()
-    )
+    result["pm25_is_missing"] = result["pm25_ug_m3"].isna()
 
-    result["pm25_quality_status"] = (
-        result["pm25_is_missing"].map(
-            {
-                True: "MISSING",
-                False: "VALID",
-            }
-        )
+    result["pm25_quality_status"] = result["pm25_is_missing"].map(
+        {
+            True: "MISSING",
+            False: "VALID",
+        }
     )
 
     result["source"] = "OpenAQ"
     result["retrieved_at_utc"] = retrieved_at_utc
     result["pipeline_run_id"] = pipeline_run_id
-    result["source_data_version"] = (
-        source_data_version
-    )
+    result["source_data_version"] = source_data_version
 
     return result
 
@@ -273,23 +250,15 @@ def prepare_weather_rows(
     }
 
     for target_name, aliases in WEATHER_ALIASES.items():
-        selected_columns[target_name] = (
-            resolve_column(
-                canonical_df,
-                aliases,
-            )
+        selected_columns[target_name] = resolve_column(
+            canonical_df,
+            aliases,
         )
 
-    result = canonical_df[
-        list(selected_columns.values())
-    ].copy()
+    result = canonical_df[list(selected_columns.values())].copy()
 
     result = result.rename(
-        columns={
-            source: target
-            for target, source
-            in selected_columns.items()
-        }
+        columns={source: target for target, source in selected_columns.items()}
     )
 
     result = normalize_timestamp_column(
@@ -307,9 +276,7 @@ def prepare_weather_rows(
     result["source"] = "Open-Meteo"
     result["retrieved_at_utc"] = retrieved_at_utc
     result["pipeline_run_id"] = pipeline_run_id
-    result["source_data_version"] = (
-        source_data_version
-    )
+    result["source_data_version"] = source_data_version
 
     return result
 
@@ -334,7 +301,8 @@ def prepare_engineered_rows(
     required_feature_columns = [
         column
         for column in contract.feature_names
-        if column not in {
+        if column
+        not in {
             "location_key",
             "reference_time",
             "feature_pipeline_version",
@@ -350,8 +318,7 @@ def prepare_engineered_rows(
 
     if missing_features:
         raise ValueError(
-            "Training dataset is missing engineered "
-            f"features: {missing_features}"
+            f"Training dataset is missing engineered features: {missing_features}"
         )
 
     result = training_df[
@@ -382,9 +349,7 @@ def prepare_engineered_rows(
     )
 
     result["location_key"] = LOCATION_KEY
-    result["feature_pipeline_version"] = (
-        feature_pipeline_version
-    )
+    result["feature_pipeline_version"] = feature_pipeline_version
     result["pipeline_run_id"] = pipeline_run_id
 
     return result
@@ -440,19 +405,13 @@ def coerce_to_contract_types(
                     "null values but requires bigint."
                 )
 
-            result[column] = numeric_values.astype(
-                "int64"
-            )
+            result[column] = numeric_values.astype("int64")
 
         elif feature.offline_type == "boolean":
-            result[column] = result[column].astype(
-                "bool"
-            )
+            result[column] = result[column].astype("bool")
 
         elif feature.offline_type == "string":
-            result[column] = result[column].astype(
-                "string"
-            )
+            result[column] = result[column].astype("string")
 
         elif feature.offline_type == "timestamp":
             result[column] = pd.to_datetime(
@@ -482,13 +441,9 @@ def order_for_contract(
         contract,
     )
 
-    result = result[
-        contract.feature_names
-    ].copy()
+    result = result[contract.feature_names].copy()
 
-    contract.validate_dataframe(
-        result
-    )
+    contract.validate_dataframe(result)
 
     return result
 
@@ -498,9 +453,7 @@ def empty_existing_frame(
 ) -> pd.DataFrame:
     """Create an empty frame matching a contract."""
 
-    return pd.DataFrame(
-        columns=contract.feature_names
-    )
+    return pd.DataFrame(columns=contract.feature_names)
 
 
 def read_existing_rows(
@@ -513,32 +466,21 @@ def read_existing_rows(
     """Read existing feature-store rows for the period."""
 
     if feature_group is None:
-        return empty_existing_frame(
-            contract
-        )
+        return empty_existing_frame(contract)
 
     try:
         existing = feature_group.read(
             dataframe_type="pandas",
             start_time=start_time_utc.to_pydatetime(),
-            end_time=(
-                end_time_exclusive_utc.to_pydatetime()
-            ),
+            end_time=(end_time_exclusive_utc.to_pydatetime()),
         )
     except Exception:
-        return empty_existing_frame(
-            contract
-        )
+        return empty_existing_frame(contract)
 
     if existing is None or existing.empty:
-        return empty_existing_frame(
-            contract
-        )
+        return empty_existing_frame(contract)
 
-    existing.columns = [
-        str(column).lower()
-        for column in existing.columns
-    ]
+    existing.columns = [str(column).lower() for column in existing.columns]
 
     return existing
 
@@ -557,14 +499,12 @@ def values_equal(
         float,
     ):
         try:
-            return bool(
-                abs(float(left) - float(right))
-                <= 1e-9
-            )
+            return bool(abs(float(left) - float(right)) <= 1e-9)
         except (TypeError, ValueError):
             pass
 
     return left == right
+
 
 def normalize_logical_keys(
     dataframe: pd.DataFrame,
@@ -582,11 +522,7 @@ def normalize_logical_keys(
                     errors="raise",
                 ).astype("int64")
             else:
-                result[column] = (
-                    result[column]
-                    .astype("string")
-                    .str.strip()
-                )
+                result[column] = result[column].astype("string").str.strip()
 
     result[contract.event_time] = pd.to_datetime(
         result[contract.event_time],
@@ -595,6 +531,7 @@ def normalize_logical_keys(
     ).dt.floor("h")
 
     return result
+
 
 def classify_rows(
     *,
@@ -644,31 +581,23 @@ def classify_rows(
         column
         for column in contract.feature_names
         if column not in logical_key
-        and column not in {
+        and column
+        not in {
             "pipeline_run_id",
             "retrieved_at_utc",
         }
     ]
 
     for row_index, row in candidate.iterrows():
-        key_values = tuple(
-            row[column]
-            for column in logical_key
-        )
+        key_values = tuple(row[column] for column in logical_key)
 
-        lookup_key: object = (
-            key_values[0]
-            if len(key_values) == 1
-            else key_values
-        )
+        lookup_key: object = key_values[0] if len(key_values) == 1 else key_values
 
         if lookup_key not in existing_indexed.index:
             inserted_rows.append(row_index)
             continue
 
-        existing_row = existing_indexed.loc[
-            lookup_key
-        ]
+        existing_row = existing_indexed.loc[lookup_key]
 
         if isinstance(
             existing_row,
@@ -698,9 +627,7 @@ def classify_rows(
         inserted=len(inserted_rows),
         updated=len(updated_rows),
         unchanged=unchanged_count,
-        writable=candidate.loc[
-            writable_indices
-        ].copy(),
+        writable=candidate.loc[writable_indices].copy(),
     )
 
 
@@ -729,13 +656,9 @@ def parse_utc_hour(
     timestamp = pd.Timestamp(value)
 
     if timestamp.tzinfo is None:
-        timestamp = timestamp.tz_localize(
-            "UTC"
-        )
+        timestamp = timestamp.tz_localize("UTC")
     else:
-        timestamp = timestamp.tz_convert(
-            "UTC"
-        )
+        timestamp = timestamp.tz_convert("UTC")
 
     return timestamp.floor("h")
 
@@ -749,34 +672,17 @@ def run_historical_backfill(
     """Run dry-run or real historical feature migration."""
 
     if start_time_utc > end_time_utc:
-        raise ValueError(
-            "Start time must not be after end time."
-        )
+        raise ValueError("Start time must not be after end time.")
 
-    run_id = (
-        "historical_backfill_"
-        + uuid.uuid4().hex
-    )
+    run_id = "historical_backfill_" + uuid.uuid4().hex
 
-    started_at = datetime.now(
-        timezone.utc
-    )
+    started_at = datetime.now(timezone.utc)
 
-    canonical_path = (
-        PROJECT_ROOT
-        / settings.phase_1_canonical_dataset_path
-    )
+    canonical_path = PROJECT_ROOT / settings.phase_1_canonical_dataset_path
 
-    training_path = (
-        PROJECT_ROOT
-        / settings.phase_2_training_dataset_path
-    )
+    training_path = PROJECT_ROOT / settings.phase_2_training_dataset_path
 
-    model_columns_path = (
-        PROJECT_ROOT
-        / "models"
-        / "model_feature_columns.json"
-    )
+    model_columns_path = PROJECT_ROOT / "models" / "model_feature_columns.json"
 
     for required_path in (
         canonical_path,
@@ -784,77 +690,45 @@ def run_historical_backfill(
         model_columns_path,
     ):
         if not required_path.exists():
-            raise FileNotFoundError(
-                f"Required artifact not found: {required_path}"
-            )
+            raise FileNotFoundError(f"Required artifact not found: {required_path}")
 
-    canonical_df = pd.read_parquet(
-        canonical_path
-    )
+    canonical_df = pd.read_parquet(canonical_path)
 
-    training_df = pd.read_parquet(
-        training_path
-    )
+    training_df = pd.read_parquet(training_path)
 
-    model_feature_columns = (
-        load_feature_columns(
-            model_columns_path
-        )
-    )
+    model_feature_columns = load_feature_columns(model_columns_path)
 
     contracts = build_feature_group_contracts(
-        pm25_version=(
-            settings.hopsworks_pm25_feature_group_version
-        ),
-        weather_version=(
-            settings.hopsworks_weather_feature_group_version
-        ),
-        engineered_version=(
-            settings.hopsworks_engineered_feature_group_version
-        ),
-        pm25_name=(
-            settings.hopsworks_pm25_feature_group_name
-        ),
-        weather_name=(
-            settings.hopsworks_weather_feature_group_name
-        ),
-        engineered_name=(
-            settings.hopsworks_engineered_feature_group_name
-        ),
-        model_feature_columns=(
-            model_feature_columns
-        ),
+        pm25_version=(settings.hopsworks_pm25_feature_group_version),
+        weather_version=(settings.hopsworks_weather_feature_group_version),
+        engineered_version=(settings.hopsworks_engineered_feature_group_version),
+        pm25_name=(settings.hopsworks_pm25_feature_group_name),
+        weather_name=(settings.hopsworks_weather_feature_group_name),
+        engineered_name=(settings.hopsworks_engineered_feature_group_name),
+        model_feature_columns=(model_feature_columns),
     )
 
-    retrieved_at = pd.Timestamp.now(
-        tz="UTC"
-    )
+    retrieved_at = pd.Timestamp.now(tz="UTC")
 
     pm25_rows = prepare_pm25_rows(
         canonical_df=canonical_df,
         retrieved_at_utc=retrieved_at,
         pipeline_run_id=run_id,
-        source_data_version=(
-            settings.source_data_version
-        ),
+        source_data_version=(settings.source_data_version),
     )
 
     weather_rows = prepare_weather_rows(
         canonical_df=canonical_df,
         retrieved_at_utc=retrieved_at,
         pipeline_run_id=run_id,
-        source_data_version=(
-            settings.source_data_version
-        ),
+        source_data_version=(settings.source_data_version),
     )
 
     engineered_rows = prepare_engineered_rows(
         training_df=training_df,
         contract=contracts["engineered"],
         pipeline_run_id=run_id,
-        feature_pipeline_version=(
-            settings.feature_pipeline_version
-        ),
+        feature_pipeline_version=(settings.feature_pipeline_version),
     )
 
     pm25_rows = filter_backfill_range(
@@ -893,9 +767,7 @@ def run_historical_backfill(
         ),
     }
 
-    resources = connect_to_hopsworks(
-        settings
-    )
+    resources = connect_to_hopsworks(settings)
 
     resolved = create_or_get_feature_groups(
         resources=resources,
@@ -909,10 +781,7 @@ def run_historical_backfill(
         "engineered": resolved.engineered,
     }
 
-    end_exclusive = (
-        end_time_utc
-        + pd.Timedelta(hours=1)
-    )
+    end_exclusive = end_time_utc + pd.Timedelta(hours=1)
 
     group_reports: dict[str, Any] = {}
 
@@ -933,55 +802,30 @@ def run_historical_backfill(
             contract=contract,
         )
 
-        gap_timestamp_column = (
-            contract.event_time
-        )
+        gap_timestamp_column = contract.event_time
 
         source_gaps = detect_hourly_gaps(
-            timestamps=dataframe[
-                gap_timestamp_column
-            ],
+            timestamps=dataframe[gap_timestamp_column],
             start_time_utc=start_time_utc,
             end_time_utc=end_time_utc,
         )
 
-        if (
-            not settings.mlops_dry_run
-            and feature_group is not None
-        ):
+        if not settings.mlops_dry_run and feature_group is not None:
             upsert_rows(
                 feature_group=feature_group,
-                dataframe=(
-                    classification.writable
-                ),
+                dataframe=(classification.writable),
             )
 
         group_reports[group_name] = {
             "feature_group_name": contract.name,
             "version": contract.version,
-            "candidate_rows": int(
-                len(dataframe)
-            ),
-            "existing_rows_in_range": int(
-                len(existing)
-            ),
-            "rows_to_insert": (
-                classification.inserted
-            ),
-            "rows_to_update": (
-                classification.updated
-            ),
-            "rows_unchanged": (
-                classification.unchanged
-            ),
+            "candidate_rows": int(len(dataframe)),
+            "existing_rows_in_range": int(len(existing)),
+            "rows_to_insert": (classification.inserted),
+            "rows_to_update": (classification.updated),
+            "rows_unchanged": (classification.unchanged),
             "rows_written": (
-                0
-                if settings.mlops_dry_run
-                else int(
-                    len(
-                        classification.writable
-                    )
-                )
+                0 if settings.mlops_dry_run else int(len(classification.writable))
             ),
             "duplicate_keys": int(
                 dataframe.duplicated(
@@ -995,66 +839,31 @@ def run_historical_backfill(
                     )
                 ).sum()
             ),
-            "missing_interval_count": len(
-                source_gaps
-            ),
-            "missing_intervals": [
-                interval.to_dict()
-                for interval in source_gaps
-            ],
+            "missing_interval_count": len(source_gaps),
+            "missing_intervals": [interval.to_dict() for interval in source_gaps],
         }
 
-    completed_at = datetime.now(
-        timezone.utc
-    )
+    completed_at = datetime.now(timezone.utc)
 
     return {
         "phase": "9D",
         "pipeline_run_id": run_id,
-        "pipeline_name": (
-            "historical_feature_backfill"
-        ),
+        "pipeline_name": ("historical_feature_backfill"),
         "status": (
-            "BACKFILL_DRY_RUN_SUCCESS"
-            if settings.mlops_dry_run
-            else "BACKFILL_SUCCESS"
+            "BACKFILL_DRY_RUN_SUCCESS" if settings.mlops_dry_run else "BACKFILL_SUCCESS"
         ),
-        "started_at_utc": (
-            started_at.isoformat()
-        ),
-        "completed_at_utc": (
-            completed_at.isoformat()
-        ),
-        "start_time_utc": (
-            start_time_utc.isoformat()
-        ),
-        "end_time_utc": (
-            end_time_utc.isoformat()
-        ),
+        "started_at_utc": (started_at.isoformat()),
+        "completed_at_utc": (completed_at.isoformat()),
+        "start_time_utc": (start_time_utc.isoformat()),
+        "end_time_utc": (end_time_utc.isoformat()),
         "dry_run": settings.mlops_dry_run,
-        "remote_writes_performed": (
-            not settings.mlops_dry_run
-        ),
-        "canonical_dataset_path": str(
-            canonical_path.relative_to(
-                PROJECT_ROOT
-            )
-        ),
-        "training_dataset_path": str(
-            training_path.relative_to(
-                PROJECT_ROOT
-            )
-        ),
+        "remote_writes_performed": (not settings.mlops_dry_run),
+        "canonical_dataset_path": str(canonical_path.relative_to(PROJECT_ROOT)),
+        "training_dataset_path": str(training_path.relative_to(PROJECT_ROOT)),
         "feature_group_versions": {
-            "pm25": (
-                settings.hopsworks_pm25_feature_group_version
-            ),
-            "weather": (
-                settings.hopsworks_weather_feature_group_version
-            ),
-            "engineered": (
-                settings.hopsworks_engineered_feature_group_version
-            ),
+            "pm25": (settings.hopsworks_pm25_feature_group_version),
+            "weather": (settings.hopsworks_weather_feature_group_version),
+            "engineered": (settings.hopsworks_engineered_feature_group_version),
         },
         "groups": group_reports,
     }
@@ -1065,11 +874,7 @@ def save_report(
 ) -> Path:
     """Persist the structured backfill report."""
 
-    report_directory = (
-        PROJECT_ROOT
-        / "reports"
-        / "phase_9"
-    )
+    report_directory = PROJECT_ROOT / "reports" / "phase_9"
 
     report_directory.mkdir(
         parents=True,
@@ -1082,10 +887,7 @@ def save_report(
         else "historical_backfill_report.json"
     )
 
-    report_path = (
-        report_directory
-        / filename
-    )
+    report_path = report_directory / filename
 
     report_path.write_text(
         json.dumps(
@@ -1103,10 +905,7 @@ def main() -> int:
     """CLI entry point."""
 
     parser = argparse.ArgumentParser(
-        description=(
-            "Migrate validated historical features "
-            "into Hopsworks."
-        )
+        description=("Migrate validated historical features into Hopsworks.")
     )
 
     parser.add_argument(
@@ -1127,18 +926,12 @@ def main() -> int:
 
     try:
         report = run_historical_backfill(
-            start_time_utc=parse_utc_hour(
-                arguments.start
-            ),
-            end_time_utc=parse_utc_hour(
-                arguments.end
-            ),
+            start_time_utc=parse_utc_hour(arguments.start),
+            end_time_utc=parse_utc_hour(arguments.end),
             settings=settings,
         )
 
-        report_path = save_report(
-            report
-        )
+        report_path = save_report(report)
 
         print(
             json.dumps(
@@ -1158,13 +951,9 @@ def main() -> int:
     except Exception as error:
         failure_report = {
             "phase": "9D",
-            "pipeline_name": (
-                "historical_feature_backfill"
-            ),
+            "pipeline_name": ("historical_feature_backfill"),
             "status": "BACKFILL_FAILED",
-            "completed_at_utc": datetime.now(
-                timezone.utc
-            ).isoformat(),
+            "completed_at_utc": datetime.now(timezone.utc).isoformat(),
             "error_type": type(error).__name__,
             "error_message": str(error),
         }
@@ -1172,10 +961,7 @@ def main() -> int:
         report_path = save_report(
             {
                 **failure_report,
-                "dry_run": (
-                    get_mlops_settings()
-                    .mlops_dry_run
-                ),
+                "dry_run": (get_mlops_settings().mlops_dry_run),
             }
         )
 

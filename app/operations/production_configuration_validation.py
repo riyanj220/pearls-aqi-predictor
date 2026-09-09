@@ -11,11 +11,7 @@ from typing import Any
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
-DEFAULT_CONFIG_PATH = (
-    PROJECT_ROOT
-    / "config"
-    / "production.json"
-)
+DEFAULT_CONFIG_PATH = PROJECT_ROOT / "config" / "production.json"
 
 REPORT_PATH = (
     PROJECT_ROOT
@@ -25,9 +21,7 @@ REPORT_PATH = (
 )
 
 
-class ProductionConfigurationValidationError(
-    RuntimeError
-):
+class ProductionConfigurationValidationError(RuntimeError):
     """Raised when production configuration is invalid."""
 
 
@@ -37,11 +31,7 @@ def load_configuration(
     """Load production configuration."""
 
     try:
-        payload = json.loads(
-            path.read_text(
-                encoding="utf-8"
-            )
-        )
+        payload = json.loads(path.read_text(encoding="utf-8"))
     except FileNotFoundError as error:
         raise ProductionConfigurationValidationError(
             f"Configuration does not exist: {path}"
@@ -105,187 +95,73 @@ def validate_configuration(
     )
 
     checks = {
-        "schema_version_is_one": (
-            configuration.get(
-                "schema_version"
-            )
-            == 1
-        ),
-
-        "environment_is_production": (
-            configuration.get(
-                "environment"
-            )
-            == "production"
-        ),
-
+        "schema_version_is_one": (configuration.get("schema_version") == 1),
+        "environment_is_production": (configuration.get("environment") == "production"),
         "production_resource_group": (
-            azure.get(
-                "resource_group"
-            )
-            == "rg-pearls-aqi-prod"
+            azure.get("resource_group") == "rg-pearls-aqi-prod"
         ),
-
         "shared_environment_declared": (
-            environment.get(
-                "name"
-            )
-            == "cae-pearls-aqi-staging"
-            and environment.get(
-                "resource_group"
-            )
-            == "rg-pearls-aqi-staging"
-            and environment.get(
-                "shared_with_staging"
-            )
-            is True
+            environment.get("name") == "cae-pearls-aqi-staging"
+            and environment.get("resource_group") == "rg-pearls-aqi-staging"
+            and environment.get("shared_with_staging") is True
         ),
-
         "production_identity_is_separate": (
             azure.get(
                 "managed_identity",
                 {},
-            ).get(
-                "name"
-            )
+            ).get("name")
             == "id-pearls-aqi-prod"
         ),
-
         "production_blob_container_isolated": (
-            storage.get(
-                "container"
-            )
-            == "artifacts-prod"
+            storage.get("container") == "artifacts-prod"
         ),
-
-        "api_uses_blob_backend": (
-            api.get(
-                "artifact_backend"
-            )
-            == "azure_blob"
-        ),
-
-        "api_serves_aqi": (
-            api.get(
-                "artifact_type"
-            )
-            == "aqi"
-        ),
-
-        "api_port_is_8000": (
-            api.get(
-                "port"
-            )
-            == 8000
-        ),
-
-        "api_liveness_contract": (
-            api.get(
-                "liveness_path"
-            )
-            == "/api/v1/health/live"
-        ),
-
-        "api_readiness_contract": (
-            api.get(
-                "readiness_path"
-            )
-            == "/api/v1/health/ready"
-        ),
-
+        "api_uses_blob_backend": (api.get("artifact_backend") == "azure_blob"),
+        "api_serves_aqi": (api.get("artifact_type") == "aqi"),
+        "api_port_is_8000": (api.get("port") == 8000),
+        "api_liveness_contract": (api.get("liveness_path") == "/api/v1/health/live"),
+        "api_readiness_contract": (api.get("readiness_path") == "/api/v1/health/ready"),
         "api_freshness_thresholds_valid": (
-            api.get(
-                "forecast_aging_threshold_hours"
-            )
-            == 7
-            and api.get(
-                "forecast_staleness_threshold_hours"
-            )
-            == 13
+            api.get("forecast_aging_threshold_hours") == 7
+            and api.get("forecast_staleness_threshold_hours") == 13
         ),
-
-        "api_scales_to_zero": (
-            api.get(
-                "minimum_replicas"
-            )
-            == 0
-        ),
-
-        "dashboard_port_is_8501": (
-            dashboard.get(
-                "port"
-            )
-            == 8501
-        ),
-
-        "dashboard_scales_to_zero": (
-            dashboard.get(
-                "minimum_replicas"
-            )
-            == 0
-        ),
-
+        "api_scales_to_zero": (api.get("minimum_replicas") == 0),
+        "dashboard_port_is_8501": (dashboard.get("port") == 8501),
+        "dashboard_scales_to_zero": (dashboard.get("minimum_replicas") == 0),
         "feature_schedule_valid": (
             jobs.get(
                 "hourly_features",
                 {},
-            ).get(
-                "cron"
-            )
+            ).get("cron")
             == "15 * * * *"
         ),
-
         "forecast_schedule_valid": (
             jobs.get(
                 "forecast",
                 {},
-            ).get(
-                "cron"
-            )
+            ).get("cron")
             == "0 */6 * * *"
         ),
-
         "retraining_schedule_valid": (
             jobs.get(
                 "daily_retraining",
                 {},
-            ).get(
-                "cron"
-            )
+            ).get("cron")
             == "30 3 * * *"
         ),
-
         "monitoring_schedule_valid": (
             jobs.get(
                 "monitoring",
                 {},
-            ).get(
-                "cron"
-            )
+            ).get("cron")
             == "45 * * * *"
         ),
-
         "feature_store_is_hopsworks": (
-            mlops.get(
-                "feature_store_backend"
-            )
-            == "hopsworks"
+            mlops.get("feature_store_backend") == "hopsworks"
         ),
-
         "model_registry_is_hopsworks": (
-            mlops.get(
-                "model_registry_backend"
-            )
-            == "hopsworks"
+            mlops.get("model_registry_backend") == "hopsworks"
         ),
-
-        "mlops_is_not_dry_run": (
-            mlops.get(
-                "dry_run"
-            )
-            is False
-        ),
-
+        "mlops_is_not_dry_run": (mlops.get("dry_run") is False),
         "hopsworks_key_declared_secret": (
             "HOPSWORKS_API_KEY"
             in secrets.get(
@@ -293,7 +169,6 @@ def validate_configuration(
                 [],
             )
         ),
-
         "webhook_declared_secret": (
             "PRODUCTION_HEALTH_WEBHOOK_URL"
             in secrets.get(
@@ -304,18 +179,12 @@ def validate_configuration(
     }
 
     app_names = {
-        api.get(
-            "name"
-        ),
-        dashboard.get(
-            "name"
-        ),
+        api.get("name"),
+        dashboard.get("name"),
     }
 
     job_names = {
-        value.get(
-            "name"
-        )
+        value.get("name")
         for value in jobs.values()
         if isinstance(
             value,
@@ -323,107 +192,40 @@ def validate_configuration(
         )
     }
 
-    checks[
-        "all_application_names_are_unique"
-    ] = (
-        len(app_names)
-        == 2
-        and None not in app_names
+    checks["all_application_names_are_unique"] = (
+        len(app_names) == 2 and None not in app_names
     )
 
-    checks[
-        "all_job_names_are_unique"
-    ] = (
-        len(job_names)
-        == 4
-        and None not in job_names
-    )
+    checks["all_job_names_are_unique"] = len(job_names) == 4 and None not in job_names
 
-    checks[
-        "production_names_use_prod_suffix"
-    ] = all(
-        str(name).endswith(
-            "-prod"
-        )
-        for name in (
-            app_names
-            | job_names
-        )
+    checks["production_names_use_prod_suffix"] = all(
+        str(name).endswith("-prod") for name in (app_names | job_names)
     )
 
     return {
-        "valid": all(
-            checks.values()
-        ),
+        "valid": all(checks.values()),
         "checks": checks,
         "configuration_summary": {
-            "resource_group": (
-                azure.get(
-                    "resource_group"
-                )
-            ),
-            "environment": (
-                environment
-            ),
-            "identity": (
-                azure.get(
-                    "managed_identity"
-                )
-            ),
+            "resource_group": (azure.get("resource_group")),
+            "environment": (environment),
+            "identity": (azure.get("managed_identity")),
             "storage": storage,
             "api": {
-                "name": api.get(
-                    "name"
-                ),
-                "port": api.get(
-                    "port"
-                ),
-                "artifact_backend": (
-                    api.get(
-                        "artifact_backend"
-                    )
-                ),
-                "aging_hours": (
-                    api.get(
-                        "forecast_aging_threshold_hours"
-                    )
-                ),
-                "stale_hours": (
-                    api.get(
-                        "forecast_staleness_threshold_hours"
-                    )
-                ),
+                "name": api.get("name"),
+                "port": api.get("port"),
+                "artifact_backend": (api.get("artifact_backend")),
+                "aging_hours": (api.get("forecast_aging_threshold_hours")),
+                "stale_hours": (api.get("forecast_staleness_threshold_hours")),
             },
             "dashboard": {
-                "name": (
-                    dashboard.get(
-                        "name"
-                    )
-                ),
-                "port": (
-                    dashboard.get(
-                        "port"
-                    )
-                ),
+                "name": (dashboard.get("name")),
+                "port": (dashboard.get("port")),
             },
-            "job_names": sorted(
-                str(name)
-                for name in job_names
-            ),
+            "job_names": sorted(str(name) for name in job_names),
         },
         "secret_names": {
-            "required": (
-                secrets.get(
-                    "required",
-                    []
-                )
-            ),
-            "optional": (
-                secrets.get(
-                    "optional",
-                    []
-                )
-            ),
+            "required": (secrets.get("required", [])),
+            "optional": (secrets.get("optional", [])),
         },
     }
 
@@ -438,11 +240,7 @@ def save_report(
         exist_ok=True,
     )
 
-    temporary_path = (
-        REPORT_PATH.with_suffix(
-            ".json.tmp"
-        )
-    )
+    temporary_path = REPORT_PATH.with_suffix(".json.tmp")
 
     temporary_path.write_text(
         json.dumps(
@@ -453,9 +251,7 @@ def save_report(
         encoding="utf-8",
     )
 
-    temporary_path.replace(
-        REPORT_PATH
-    )
+    temporary_path.replace(REPORT_PATH)
 
     return REPORT_PATH
 
@@ -464,10 +260,7 @@ def main() -> int:
     """CLI entry point."""
 
     parser = argparse.ArgumentParser(
-        description=(
-            "Validate Phase 10M "
-            "production configuration."
-        )
+        description=("Validate Phase 10M production configuration.")
     )
 
     parser.add_argument(
@@ -479,34 +272,18 @@ def main() -> int:
     arguments = parser.parse_args()
 
     try:
-        configuration = (
-            load_configuration(
-                arguments.config
-            )
-        )
+        configuration = load_configuration(arguments.config)
 
-        validation = (
-            validate_configuration(
-                configuration
-            )
-        )
+        validation = validate_configuration(configuration)
 
         report = {
             "phase": "10M",
             "subphase": "10M-C",
-            "generated_at_utc": (
-                datetime.now(
-                    timezone.utc
-                ).isoformat()
-            ),
+            "generated_at_utc": (datetime.now(timezone.utc).isoformat()),
             "status": (
                 "PRODUCTION_CONFIGURATION_VALIDATED"
-                if validation[
-                    "valid"
-                ]
-                else (
-                    "PRODUCTION_CONFIGURATION_INVALID"
-                )
+                if validation["valid"]
+                else ("PRODUCTION_CONFIGURATION_INVALID")
             ),
             "contains_secret_values": False,
             "application_services_deployed": False,
@@ -514,39 +291,23 @@ def main() -> int:
             **validation,
         }
 
-        exit_code = (
-            0
-            if validation["valid"]
-            else 1
-        )
+        exit_code = 0 if validation["valid"] else 1
 
     except Exception as error:
         report = {
             "phase": "10M",
             "subphase": "10M-C",
-            "generated_at_utc": (
-                datetime.now(
-                    timezone.utc
-                ).isoformat()
-            ),
-            "status": (
-                "PRODUCTION_CONFIGURATION_VALIDATION_FAILED"
-            ),
+            "generated_at_utc": (datetime.now(timezone.utc).isoformat()),
+            "status": ("PRODUCTION_CONFIGURATION_VALIDATION_FAILED"),
             "valid": False,
             "contains_secret_values": False,
-            "error_type": (
-                type(error).__name__
-            ),
-            "error_message": str(
-                error
-            ),
+            "error_type": (type(error).__name__),
+            "error_message": str(error),
         }
 
         exit_code = 1
 
-    report_path = save_report(
-        report
-    )
+    report_path = save_report(report)
 
     print(
         json.dumps(

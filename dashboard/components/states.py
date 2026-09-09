@@ -23,13 +23,9 @@ def render_api_error(
         error,
         DashboardAPITimeoutError,
     ):
-        st.warning(
-            "The forecast service is taking longer than expected."
-        )
+        st.warning("The forecast service is taking longer than expected.")
 
-        st.caption(
-            "Please refresh the page in a moment."
-        )
+        st.caption("Please refresh the page in a moment.")
 
         return
 
@@ -37,9 +33,7 @@ def render_api_error(
         error,
         DashboardAPIConnectionError,
     ):
-        st.warning(
-            "The live forecast service is temporarily unavailable."
-        )
+        st.warning("The live forecast service is temporarily unavailable.")
 
         st.caption(
             "The service may be restarting or receiving an update. "
@@ -53,16 +47,10 @@ def render_api_error(
         DashboardAPIResponseError,
     ):
         if error.code == "FORECAST_STALE":
-            age_hours = error.details.get(
-                "age_hours"
-            )
+            age_hours = error.details.get("age_hours")
 
             render_stale_warning(
-                age_hours=(
-                    float(age_hours)
-                    if age_hours is not None
-                    else None
-                )
+                age_hours=(float(age_hours) if age_hours is not None else None)
             )
 
             return
@@ -71,9 +59,7 @@ def render_api_error(
             "FORECAST_NOT_FOUND",
             "ARTIFACT_NOT_FOUND",
         }:
-            st.warning(
-                "A fresh air-quality forecast is temporarily unavailable."
-            )
+            st.warning("A fresh air-quality forecast is temporarily unavailable.")
 
             st.caption(
                 "Recent source observations may be incomplete. "
@@ -82,19 +68,10 @@ def render_api_error(
 
             return
 
-        st.warning(
-            error.message
-            or (
-                "The forecast could not be loaded "
-                "at this time."
-            )
-        )
+        st.warning(error.message or ("The forecast could not be loaded at this time."))
 
         if error.request_id:
-            st.caption(
-                "Reference ID: "
-                f"`{error.request_id}`"
-            )
+            st.caption(f"Reference ID: `{error.request_id}`")
 
         return
 
@@ -103,19 +80,14 @@ def render_api_error(
         DashboardAPIContractError,
     ):
         st.warning(
-            "The forecast service returned data "
-            "that could not be displayed safely."
+            "The forecast service returned data that could not be displayed safely."
         )
 
-        st.caption(
-            "Please refresh the dashboard shortly."
-        )
+        st.caption("Please refresh the dashboard shortly.")
 
         return
 
-    st.warning(
-        "The latest forecast could not be loaded."
-    )
+    st.warning("The latest forecast could not be loaded.")
 
 
 def render_forecast_status_notice(
@@ -138,22 +110,12 @@ def render_forecast_status_notice(
         )
     ).upper()
 
-    age_hours_raw = (
-        freshness.get(
-            "age_hours"
-        )
-    )
+    age_hours_raw = freshness.get("age_hours")
 
-    age_hours = (
-        float(age_hours_raw)
-        if age_hours_raw is not None
-        else None
-    )
+    age_hours = float(age_hours_raw) if age_hours_raw is not None else None
 
     if freshness_status == "STALE":
-        render_stale_warning(
-            age_hours=age_hours
-        )
+        render_stale_warning(age_hours=age_hours)
 
         return
 
@@ -170,10 +132,7 @@ def render_forecast_status_notice(
             "continue running."
         )
 
-        st.caption(
-            "Data quality: Degraded · "
-            "Forecast service remains operational"
-        )
+        st.caption("Data quality: Degraded · Forecast service remains operational")
 
         return
 
@@ -221,17 +180,13 @@ def render_ready_with_limitations(
         expanded=False,
     ):
         for limitation in limitations:
-            st.write(
-                f"- {limitation}"
-            )
+            st.write(f"- {limitation}")
 
 
 def render_empty_forecast() -> None:
     """Display the empty result state."""
 
-    st.info(
-        "No forecast hours match the selected filters."
-    )
+    st.info("No forecast hours match the selected filters.")
 
 
 def render_no_rolling_aqi() -> None:
@@ -247,7 +202,4 @@ def render_no_rolling_aqi() -> None:
 def render_no_alerts() -> None:
     """Display the normal no-alert state."""
 
-    st.success(
-        "No active alert conditions are present "
-        "in the selected forecast range."
-    )
+    st.success("No active alert conditions are present in the selected forecast range.")

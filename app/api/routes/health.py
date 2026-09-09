@@ -39,9 +39,7 @@ def get_liveness(
         status="ALIVE",
         service=settings.application_name,
         version=settings.application_version,
-        timestamp_utc=datetime.now(
-            timezone.utc
-        ),
+        timestamp_utc=datetime.now(timezone.utc),
     )
 
 
@@ -49,12 +47,7 @@ def get_liveness(
     "/ready",
     response_model=ReadinessResponse,
     responses={
-        503: {
-            "description": (
-                "Forecast data is unavailable, "
-                "invalid, or stale."
-            )
-        }
+        503: {"description": ("Forecast data is unavailable, invalid, or stale.")}
     },
     summary="Check forecast readiness",
 )
@@ -76,9 +69,7 @@ def get_readiness(
     }:
         return JSONResponse(
             status_code=503,
-            content=readiness.model_dump(
-                mode="json"
-            ),
+            content=readiness.model_dump(mode="json"),
         )
 
     return readiness

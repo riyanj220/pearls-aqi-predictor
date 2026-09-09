@@ -19,12 +19,9 @@ CATEGORY_ALERT_CONFIG: dict[str, dict[str, object]] = {
         "general_population_alert": False,
         "hazardous_alert": False,
         "health_message": (
-            "Air quality is satisfactory and poses little "
-            "or no expected health risk."
+            "Air quality is satisfactory and poses little or no expected health risk."
         ),
-        "recommended_action": (
-            "Normal outdoor activities may continue."
-        ),
+        "recommended_action": ("Normal outdoor activities may continue."),
     },
     "Moderate": {
         "alert_level": "NORMAL",
@@ -49,12 +46,9 @@ CATEGORY_ALERT_CONFIG: dict[str, dict[str, object]] = {
         "sensitive_groups_alert": True,
         "general_population_alert": False,
         "hazardous_alert": False,
-        "health_message": (
-            "Sensitive groups may experience health effects."
-        ),
+        "health_message": ("Sensitive groups may experience health effects."),
         "recommended_action": (
-            "Sensitive groups should reduce prolonged or heavy "
-            "outdoor activity."
+            "Sensitive groups should reduce prolonged or heavy outdoor activity."
         ),
     },
     "Unhealthy": {
@@ -80,12 +74,9 @@ CATEGORY_ALERT_CONFIG: dict[str, dict[str, object]] = {
         "sensitive_groups_alert": True,
         "general_population_alert": True,
         "hazardous_alert": False,
-        "health_message": (
-            "The risk of health effects is increased for everyone."
-        ),
+        "health_message": ("The risk of health effects is increased for everyone."),
         "recommended_action": (
-            "Avoid prolonged or strenuous outdoor activity and "
-            "reduce exposure."
+            "Avoid prolonged or strenuous outdoor activity and reduce exposure."
         ),
     },
     "Hazardous": {
@@ -100,8 +91,7 @@ CATEGORY_ALERT_CONFIG: dict[str, dict[str, object]] = {
             "is more likely to be affected."
         ),
         "recommended_action": (
-            "Avoid outdoor physical activity and minimize exposure "
-            "to outdoor air."
+            "Avoid outdoor physical activity and minimize exposure to outdoor air."
         ),
     },
     "Beyond the AQI": {
@@ -155,14 +145,11 @@ def _validate_enriched_forecast(
         "rolling_24h_aqi_category",
     }
 
-    missing_columns = sorted(
-        required_columns.difference(forecast_df.columns)
-    )
+    missing_columns = sorted(required_columns.difference(forecast_df.columns))
 
     if missing_columns:
         raise AQIAlertError(
-            "AQI-enriched forecast is missing required columns: "
-            f"{missing_columns}"
+            f"AQI-enriched forecast is missing required columns: {missing_columns}"
         )
 
     validated_df = forecast_df.copy()
@@ -179,25 +166,17 @@ def _validate_enriched_forecast(
     )
 
     if validated_df["target_time"].isna().any():
-        raise AQIAlertError(
-            "Forecast contains invalid target timestamps."
-        )
+        raise AQIAlertError("Forecast contains invalid target timestamps.")
 
     if validated_df["forecast_horizon_hours"].isna().any():
-        raise AQIAlertError(
-            "Forecast contains invalid horizon values."
-        )
+        raise AQIAlertError("Forecast contains invalid horizon values.")
 
-    validated_df = (
-        validated_df
-        .sort_values("forecast_horizon_hours")
-        .reset_index(drop=True)
+    validated_df = validated_df.sort_values("forecast_horizon_hours").reset_index(
+        drop=True
     )
 
     if validated_df["target_time"].duplicated().any():
-        raise AQIAlertError(
-            "Forecast contains duplicate target timestamps."
-        )
+        raise AQIAlertError("Forecast contains duplicate target timestamps.")
 
     return validated_df
 
@@ -212,14 +191,10 @@ def add_aqi_alerts(
     is used only when rolling AQI is unavailable.
     """
 
-    alerted_df = _validate_enriched_forecast(
-        forecast_df
-    )
+    alerted_df = _validate_enriched_forecast(forecast_df)
 
     rolling_available = (
-        alerted_df["rolling_24h_pm25_is_complete"]
-        .fillna(False)
-        .astype(bool)
+        alerted_df["rolling_24h_pm25_is_complete"].fillna(False).astype(bool)
         & alerted_df["rolling_24h_pm25_aqi"].notna()
         & alerted_df["rolling_24h_aqi_category"].notna()
     )
@@ -230,9 +205,7 @@ def add_aqi_alerts(
         "indicative_hourly_pm25_aqi",
     )
 
-    alerted_df["alert_used_hourly_fallback"] = (
-        ~rolling_available
-    )
+    alerted_df["alert_used_hourly_fallback"] = ~rolling_available
 
     alerted_df["alert_trigger_aqi"] = (
         alerted_df["rolling_24h_pm25_aqi"]
@@ -243,47 +216,33 @@ def add_aqi_alerts(
         .astype("Int64")
     )
 
-    alerted_df["alert_trigger_category"] = (
-        alerted_df["rolling_24h_aqi_category"]
-        .where(
-            rolling_available,
-            alerted_df[
-                "indicative_hourly_aqi_category"
-            ],
-        )
+    alerted_df["alert_trigger_category"] = alerted_df["rolling_24h_aqi_category"].where(
+        rolling_available,
+        alerted_df["indicative_hourly_aqi_category"],
     )
 
     unknown_categories = sorted(
-        set(
-            alerted_df[
-                "alert_trigger_category"
-            ].dropna()
-        ).difference(CATEGORY_ALERT_CONFIG)
+        set(alerted_df["alert_trigger_category"].dropna()).difference(
+            CATEGORY_ALERT_CONFIG
+        )
     )
 
     if unknown_categories:
         raise AQIAlertError(
-            "No alert configuration exists for categories: "
-            f"{unknown_categories}"
+            f"No alert configuration exists for categories: {unknown_categories}"
         )
 
     if alerted_df["alert_trigger_aqi"].isna().any():
-        raise AQIAlertError(
-            "Some rows have no usable AQI alert value."
-        )
+        raise AQIAlertError("Some rows have no usable AQI alert value.")
 
     if alerted_df["alert_trigger_category"].isna().any():
-        raise AQIAlertError(
-            "Some rows have no usable AQI category."
-        )
+        raise AQIAlertError("Some rows have no usable AQI category.")
 
     def config_value(
         category: str,
         key: str,
     ) -> object:
-        return CATEGORY_ALERT_CONFIG[
-            str(category)
-        ][key]
+        return CATEGORY_ALERT_CONFIG[str(category)][key]
 
     alerted_df["alert_level"] = (
         alerted_df["alert_trigger_category"]
@@ -382,148 +341,65 @@ def build_alert_episodes(
         "alert_basis",
     }
 
-    missing_columns = sorted(
-        required_columns.difference(
-            alerted_forecast_df.columns
-        )
-    )
+    missing_columns = sorted(required_columns.difference(alerted_forecast_df.columns))
 
     if missing_columns:
-        raise AQIAlertError(
-            "Alerted forecast is missing columns: "
-            f"{missing_columns}"
-        )
+        raise AQIAlertError(f"Alerted forecast is missing columns: {missing_columns}")
 
     active_df = (
-        alerted_forecast_df.loc[
-            alerted_forecast_df[
-                "alert_is_active"
-            ].astype(bool)
-        ]
+        alerted_forecast_df.loc[alerted_forecast_df["alert_is_active"].astype(bool)]
         .copy()
         .sort_values("target_time")
         .reset_index(drop=True)
     )
 
     if active_df.empty:
-        return pd.DataFrame(
-            columns=ALERT_EPISODE_COLUMNS
-        )
+        return pd.DataFrame(columns=ALERT_EPISODE_COLUMNS)
 
-    time_difference = (
-        active_df["target_time"].diff()
-    )
+    time_difference = active_df["target_time"].diff()
 
-    new_episode = (
-        time_difference.isna()
-        | time_difference.ne(
-            pd.Timedelta(hours=1)
-        )
-    )
+    new_episode = time_difference.isna() | time_difference.ne(pd.Timedelta(hours=1))
 
-    active_df["_episode_number"] = (
-        new_episode.cumsum()
-    )
+    active_df["_episode_number"] = new_episode.cumsum()
 
     episode_records: list[dict[str, object]] = []
 
-    for episode_number, episode_df in (
-        active_df.groupby(
-            "_episode_number",
-            sort=True,
-        )
+    for episode_number, episode_df in active_df.groupby(
+        "_episode_number",
+        sort=True,
     ):
-        peak_row_index = (
-            episode_df["alert_trigger_aqi"]
-            .astype(float)
-            .idxmax()
-        )
+        peak_row_index = episode_df["alert_trigger_aqi"].astype(float).idxmax()
 
-        peak_row = episode_df.loc[
-            peak_row_index
-        ]
+        peak_row = episode_df.loc[peak_row_index]
 
-        maximum_rank = int(
-            episode_df["alert_rank"].max()
-        )
+        maximum_rank = int(episode_df["alert_rank"].max())
 
-        maximum_rank_rows = (
-            episode_df.loc[
-                episode_df["alert_rank"].eq(
-                    maximum_rank
-                )
-            ]
-        )
+        maximum_rank_rows = episode_df.loc[episode_df["alert_rank"].eq(maximum_rank)]
 
-        maximum_level = str(
-            maximum_rank_rows[
-                "alert_level"
-            ].iloc[0]
-        )
+        maximum_level = str(maximum_rank_rows["alert_level"].iloc[0])
 
-        episode_start = (
-            episode_df["target_time"].min()
-        )
+        episode_start = episode_df["target_time"].min()
 
-        episode_end = (
-            episode_df["target_time"].max()
-        )
+        episode_end = episode_df["target_time"].max()
 
-        duration_hours = int(
-            (
-                episode_end
-                - episode_start
-            ).total_seconds()
-            / 3_600
-        ) + 1
+        duration_hours = int((episode_end - episode_start).total_seconds() / 3_600) + 1
 
-        unique_bases = (
-            episode_df["alert_basis"]
-            .dropna()
-            .unique()
-            .tolist()
-        )
+        unique_bases = episode_df["alert_basis"].dropna().unique().tolist()
 
         episode_records.append(
             {
-                "alert_episode_id": (
-                    f"alert_episode_{int(episode_number):03d}"
-                ),
+                "alert_episode_id": (f"alert_episode_{int(episode_number):03d}"),
                 "episode_start_time": episode_start,
                 "episode_end_time": episode_end,
                 "duration_hours": duration_hours,
-                "start_horizon": int(
-                    episode_df[
-                        "forecast_horizon_hours"
-                    ].min()
-                ),
-                "end_horizon": int(
-                    episode_df[
-                        "forecast_horizon_hours"
-                    ].max()
-                ),
-                "peak_aqi": int(
-                    peak_row["alert_trigger_aqi"]
-                ),
-                "peak_time": peak_row[
-                    "target_time"
-                ],
-                "maximum_alert_level": (
-                    maximum_level
-                ),
-                "maximum_alert_rank": (
-                    maximum_rank
-                ),
-                "peak_category": str(
-                    peak_row[
-                        "alert_trigger_category"
-                    ]
-                ),
-                "alert_basis": (
-                    unique_bases[0]
-                    if len(unique_bases) == 1
-                    else "mixed"
-                ),
+                "start_horizon": int(episode_df["forecast_horizon_hours"].min()),
+                "end_horizon": int(episode_df["forecast_horizon_hours"].max()),
+                "peak_aqi": int(peak_row["alert_trigger_aqi"]),
+                "peak_time": peak_row["target_time"],
+                "maximum_alert_level": (maximum_level),
+                "maximum_alert_rank": (maximum_rank),
+                "peak_category": str(peak_row["alert_trigger_category"]),
+                "alert_basis": (unique_bases[0] if len(unique_bases) == 1 else "mixed"),
                 "episode_message": (
                     f"{maximum_level} AQI episode from "
                     f"{episode_start} to {episode_end}; "

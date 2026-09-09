@@ -54,12 +54,8 @@ class ModelArtifactPaths:
             "fallback_used": self.fallback_used,
             "fallback_reason": self.fallback_reason,
             "model_path": str(self.model_path),
-            "feature_columns_path": str(
-                self.feature_columns_path
-            ),
-            "model_metadata_path": str(
-                self.model_metadata_path
-            ),
+            "feature_columns_path": str(self.feature_columns_path),
+            "model_metadata_path": str(self.model_metadata_path),
         }
 
 
@@ -68,16 +64,10 @@ def _load_json_object(
 ) -> dict[str, Any]:
     """Load and validate one JSON object."""
 
-    payload = json.loads(
-        path.read_text(
-            encoding="utf-8"
-        )
-    )
+    payload = json.loads(path.read_text(encoding="utf-8"))
 
     if not isinstance(payload, dict):
-        raise ModelSourceError(
-            f"{path} must contain a JSON object."
-        )
+        raise ModelSourceError(f"{path} must contain a JSON object.")
 
     return payload
 
@@ -87,16 +77,10 @@ def _require_files(
 ) -> None:
     """Require all expected model files."""
 
-    missing = [
-        str(path)
-        for path in paths
-        if not path.exists()
-    ]
+    missing = [str(path) for path in paths if not path.exists()]
 
     if missing:
-        raise ModelSourceError(
-            f"Required model files are missing: {missing}"
-        )
+        raise ModelSourceError(f"Required model files are missing: {missing}")
 
 
 def resolve_local_artifacts(
@@ -106,23 +90,11 @@ def resolve_local_artifacts(
 ) -> ModelArtifactPaths:
     """Resolve the existing local Phase 3 model."""
 
-    model_path = (
-        PROJECT_ROOT
-        / "models"
-        / "best_model.joblib"
-    )
+    model_path = PROJECT_ROOT / "models" / "best_model.joblib"
 
-    feature_columns_path = (
-        PROJECT_ROOT
-        / "models"
-        / "model_feature_columns.json"
-    )
+    feature_columns_path = PROJECT_ROOT / "models" / "model_feature_columns.json"
 
-    metadata_path = (
-        PROJECT_ROOT
-        / "models"
-        / "model_metadata.json"
-    )
+    metadata_path = PROJECT_ROOT / "models" / "model_metadata.json"
 
     _require_files(
         [
@@ -134,17 +106,13 @@ def resolve_local_artifacts(
 
     return ModelArtifactPaths(
         model_path=model_path,
-        feature_columns_path=(
-            feature_columns_path
-        ),
+        feature_columns_path=(feature_columns_path),
         model_metadata_path=metadata_path,
         registry_metadata_path=None,
         source="LOCAL_ARTIFACT",
         model_name="local_phase_3_model",
         model_version=None,
-        checksum_sha256=calculate_sha256(
-            model_path
-        ),
+        checksum_sha256=calculate_sha256(model_path),
         fallback_used=fallback_used,
         fallback_reason=fallback_reason,
     )
@@ -157,30 +125,15 @@ def resolve_cached_registry_artifacts(
 ) -> ModelArtifactPaths:
     """Resolve the last validated registry cache."""
 
-    cache_directory = (
-        PROJECT_ROOT
-        / settings.model_cache_directory
-    )
+    cache_directory = PROJECT_ROOT / settings.model_cache_directory
 
-    model_path = (
-        cache_directory
-        / "best_model.joblib"
-    )
+    model_path = cache_directory / "best_model.joblib"
 
-    feature_columns_path = (
-        cache_directory
-        / "model_feature_columns.json"
-    )
+    feature_columns_path = cache_directory / "model_feature_columns.json"
 
-    model_metadata_path = (
-        cache_directory
-        / "model_metadata.json"
-    )
+    model_metadata_path = cache_directory / "model_metadata.json"
 
-    registry_metadata_path = (
-        cache_directory
-        / "registry_metadata.json"
-    )
+    registry_metadata_path = cache_directory / "registry_metadata.json"
 
     _require_files(
         [
@@ -191,9 +144,7 @@ def resolve_cached_registry_artifacts(
         ]
     )
 
-    registry_metadata = _load_json_object(
-        registry_metadata_path
-    )
+    registry_metadata = _load_json_object(registry_metadata_path)
 
     expected_checksum = str(
         registry_metadata.get(
@@ -202,43 +153,22 @@ def resolve_cached_registry_artifacts(
         )
     )
 
-    actual_checksum = calculate_sha256(
-        model_path
-    )
+    actual_checksum = calculate_sha256(model_path)
 
-    if (
-        not expected_checksum
-        or actual_checksum != expected_checksum
-    ):
-        raise ModelSourceError(
-            "Cached registry model checksum is invalid."
-        )
+    if not expected_checksum or actual_checksum != expected_checksum:
+        raise ModelSourceError("Cached registry model checksum is invalid.")
 
-    if (
-        registry_metadata.get("model_status")
-        != "PRODUCTION"
-    ):
-        raise ModelSourceError(
-            "Cached registry model is not marked "
-            "as PRODUCTION."
-        )
+    if registry_metadata.get("model_status") != "PRODUCTION":
+        raise ModelSourceError("Cached registry model is not marked as PRODUCTION.")
 
     return ModelArtifactPaths(
         model_path=model_path,
-        feature_columns_path=(
-            feature_columns_path
-        ),
-        model_metadata_path=(
-            model_metadata_path
-        ),
-        registry_metadata_path=(
-            registry_metadata_path
-        ),
+        feature_columns_path=(feature_columns_path),
+        model_metadata_path=(model_metadata_path),
+        registry_metadata_path=(registry_metadata_path),
         source="HOPSWORKS_REGISTRY_CACHE",
         model_name=settings.hopsworks_model_name,
-        model_version=(
-            settings.hopsworks_production_model_version
-        ),
+        model_version=(settings.hopsworks_production_model_version),
         checksum_sha256=actual_checksum,
         fallback_used=True,
         fallback_reason=fallback_reason,
@@ -251,18 +181,11 @@ def resolve_registry_artifacts(
 ) -> ModelArtifactPaths:
     """Resolve the explicitly promoted registry model."""
 
-    repository = create_model_repository(
-        settings=settings
-    )
+    repository = create_model_repository(settings=settings)
 
-    resolved = repository.resolve_production_model(
-        project_root=PROJECT_ROOT
-    )
+    resolved = repository.resolve_production_model(project_root=PROJECT_ROOT)
 
-    model_metadata_path = (
-        resolved.downloaded_directory
-        / "model_metadata.json"
-    )
+    model_metadata_path = resolved.downloaded_directory / "model_metadata.json"
 
     _require_files(
         [
@@ -274,35 +197,23 @@ def resolve_registry_artifacts(
     )
 
     if resolved.status != "PRODUCTION":
-        raise ModelSourceError(
-            "Resolved registry model is not marked "
-            "as PRODUCTION."
-        )
+        raise ModelSourceError("Resolved registry model is not marked as PRODUCTION.")
 
     source = (
         "AZURE_BLOB_REGISTRY"
-        if repository.backend_name
-        == "azure_blob"
+        if repository.backend_name == "azure_blob"
         else "HOPSWORKS_REGISTRY"
     )
 
     return ModelArtifactPaths(
         model_path=resolved.model_artifact_path,
-        feature_columns_path=(
-            resolved.feature_columns_path
-        ),
-        model_metadata_path=(
-            model_metadata_path
-        ),
-        registry_metadata_path=(
-            resolved.metadata_path
-        ),
+        feature_columns_path=(resolved.feature_columns_path),
+        model_metadata_path=(model_metadata_path),
+        registry_metadata_path=(resolved.metadata_path),
         source=source,
         model_name=resolved.name,
         model_version=resolved.version,
-        checksum_sha256=(
-            resolved.checksum_sha256
-        ),
+        checksum_sha256=(resolved.checksum_sha256),
         fallback_used=False,
         fallback_reason=None,
     )
@@ -314,30 +225,21 @@ def resolve_model_artifact_paths(
 ) -> ModelArtifactPaths:
     """Resolve the configured model with safe fallbacks."""
 
-    if (
-        settings.model_loading_mode
-        == ModelLoadingMode.LOCAL_ARTIFACT
-    ):
+    if settings.model_loading_mode == ModelLoadingMode.LOCAL_ARTIFACT:
         return resolve_local_artifacts()
 
-    if (
-        settings.model_loading_mode
-        not in {
-            ModelLoadingMode.HOPSWORKS_REGISTRY,
-            ModelLoadingMode.AZURE_BLOB_REGISTRY,
-        }
-    ):
+    if settings.model_loading_mode not in {
+        ModelLoadingMode.HOPSWORKS_REGISTRY,
+        ModelLoadingMode.AZURE_BLOB_REGISTRY,
+    }:
         raise ModelSourceError(
-            "Unsupported model loading mode: "
-            f"{settings.model_loading_mode.value}"
+            f"Unsupported model loading mode: {settings.model_loading_mode.value}"
         )
 
     registry_error: Exception | None = None
 
     try:
-        return resolve_registry_artifacts(
-            settings=settings
-        )
+        return resolve_registry_artifacts(settings=settings)
 
     except (
         ModelRepositoryError,
@@ -346,10 +248,7 @@ def resolve_model_artifact_paths(
     ) as error:
         registry_error = error
 
-    fallback_reason = (
-        f"{type(registry_error).__name__}: "
-        f"{registry_error}"
-    )
+    fallback_reason = f"{type(registry_error).__name__}: {registry_error}"
 
     if settings.allow_cached_registry_fallback:
         try:

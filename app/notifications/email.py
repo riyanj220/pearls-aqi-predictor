@@ -12,9 +12,7 @@ from azure.identity import (
 )
 
 
-class EmailNotificationError(
-    RuntimeError
-):
+class EmailNotificationError(RuntimeError):
     """Raised when an alert email cannot be sent."""
 
 
@@ -37,21 +35,13 @@ class AzureEmailClient:
         recipient_address: str,
         managed_identity_client_id: str | None = None,
     ) -> None:
-        self.sender_address = (
-            sender_address
-        )
+        self.sender_address = sender_address
 
-        self.recipient_address = (
-            recipient_address
-        )
+        self.recipient_address = recipient_address
 
-        credential = (
-            DefaultAzureCredential(
-                managed_identity_client_id=(
-                    managed_identity_client_id
-                ),
-                exclude_interactive_browser_credential=True,
-            )
+        credential = DefaultAzureCredential(
+            managed_identity_client_id=(managed_identity_client_id),
+            exclude_interactive_browser_credential=True,
         )
 
         self.client = EmailClient(
@@ -69,46 +59,25 @@ class AzureEmailClient:
         """Send one alert email."""
 
         message = {
-            "senderAddress": (
-                self.sender_address
-            ),
-            "recipients": {
-                "to": [
-                    {
-                        "address": (
-                            self.recipient_address
-                        )
-                    }
-                ]
-            },
+            "senderAddress": (self.sender_address),
+            "recipients": {"to": [{"address": (self.recipient_address)}]},
             "content": {
                 "subject": subject,
-                "plainText": (
-                    plain_text
-                ),
+                "plainText": (plain_text),
             },
         }
 
         if html:
-            message[
-                "content"
-            ][
-                "html"
-            ] = html
+            message["content"]["html"] = html
 
         try:
-            poller = (
-                self.client.begin_send(
-                    message
-                )
-            )
+            poller = self.client.begin_send(message)
 
             result = poller.result()
 
         except Exception as error:
             raise EmailNotificationError(
-                "Azure Communication Services "
-                "email delivery failed."
+                "Azure Communication Services email delivery failed."
             ) from error
 
         return EmailDeliveryResult(

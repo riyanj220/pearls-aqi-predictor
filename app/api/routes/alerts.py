@@ -42,9 +42,7 @@ def get_alert_episodes(
 ) -> AlertEpisodeCollectionResponse:
     """Return alert episodes matching optional severity filters."""
 
-    return AlertService(
-        settings=settings
-    ).build_collection(
+    return AlertService(settings=settings).build_collection(
         bundle=bundle,
         minimum_level=minimum_level,
         hazardous_only=hazardous_only,
@@ -71,9 +69,7 @@ def get_active_alerts(
 ) -> ActiveAlertsResponse:
     """Return current or upcoming episodes matching filters."""
 
-    return AlertService(
-        settings=settings
-    ).build_active_collection(
+    return AlertService(settings=settings).build_active_collection(
         bundle=bundle,
         include_upcoming=include_upcoming,
         minimum_level=minimum_level,

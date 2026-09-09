@@ -42,9 +42,7 @@ class SuccessfulClient:
         return WebhookDeliveryResult(
             status_code=204,
             response_body="",
-            idempotency_key=(
-                idempotency_key
-            ),
+            idempotency_key=(idempotency_key),
         )
 
 
@@ -57,9 +55,8 @@ class FailingClient:
         payload,
         idempotency_key,
     ):
-        raise RuntimeError(
-            "Temporary webhook failure."
-        )
+        raise RuntimeError("Temporary webhook failure.")
+
 
 class FakeEmailResult:
     """Successful fake email result."""
@@ -78,10 +75,7 @@ class FakeEmailClient:
         plain_text: str,
         html: str | None = None,
     ):
-        assert (
-            "[Pearls AQI Alert]"
-            in subject
-        )
+        assert "[Pearls AQI Alert]" in subject
 
         assert plain_text
 
@@ -95,35 +89,25 @@ class FailingEmailClient:
         self,
         **kwargs,
     ):
-        raise RuntimeError(
-            "email unavailable"
-        )
+        raise RuntimeError("email unavailable")
+
 
 def build_incident_evaluation():
     """Build one opened-incident result."""
 
     return {
         "notification_required": True,
-        "notification_type": (
-            "INCIDENT_OPENED"
-        ),
-        "history_path": (
-            "production-health/incidents/"
-            "history/opened.json"
-        ),
+        "notification_type": ("INCIDENT_OPENED"),
+        "history_path": ("production-health/incidents/history/opened.json"),
         "incident": {
             "incident_id": "incident-1",
             "status": "ACTIVE",
-            "opened_at_utc": (
-                NOW.isoformat()
-            ),
+            "opened_at_utc": (NOW.isoformat()),
             "occurrence_count": 1,
         },
         "unhealthy_components": [
             {
-                "category": (
-                    "feature_dataset",
-                ),
+                "category": ("feature_dataset",),
                 "name": "pm25",
                 "status": "WARNING",
             }
@@ -135,34 +119,20 @@ def build_health_report():
     """Build one warning health report."""
 
     return {
-        "status": (
-            "PRODUCTION_HEALTH_WARNING"
-        ),
-        "overall_component_status": (
-            "WARNING"
-        ),
-        "recommendations": [
-            "Inspect PM2.5 freshness."
-        ],
+        "status": ("PRODUCTION_HEALTH_WARNING"),
+        "overall_component_status": ("WARNING"),
+        "recommendations": ["Inspect PM2.5 freshness."],
     }
 
 
 def test_event_is_enqueued_once(
     tmp_path: Path,
 ) -> None:
-    repository = (
-        LocalArtifactRepository(
-            tmp_path
-        )
-    )
+    repository = LocalArtifactRepository(tmp_path)
 
     event = build_notification_event(
-        incident_evaluation=(
-            build_incident_evaluation()
-        ),
-        health_report=(
-            build_health_report()
-        ),
+        incident_evaluation=(build_incident_evaluation()),
+        health_report=(build_health_report()),
         health_run_id="health-run-1",
         now=NOW,
     )
@@ -184,31 +154,19 @@ def test_event_is_enqueued_once(
     assert first["enqueued"] is True
     assert second["enqueued"] is False
 
-    outbox = repository.download_json(
-        NOTIFICATION_OUTBOX_PATH
-    )
+    outbox = repository.download_json(NOTIFICATION_OUTBOX_PATH)
 
-    assert len(
-        outbox["pending"]
-    ) == 1
+    assert len(outbox["pending"]) == 1
 
 
 def test_success_creates_receipt_and_clears_outbox(
     tmp_path: Path,
 ) -> None:
-    repository = (
-        LocalArtifactRepository(
-            tmp_path
-        )
-    )
+    repository = LocalArtifactRepository(tmp_path)
 
     event = build_notification_event(
-        incident_evaluation=(
-            build_incident_evaluation()
-        ),
-        health_report=(
-            build_health_report()
-        ),
+        incident_evaluation=(build_incident_evaluation()),
+        health_report=(build_health_report()),
         health_run_id="health-run-1",
         now=NOW,
     )
@@ -219,50 +177,31 @@ def test_success_creates_receipt_and_clears_outbox(
         now=NOW,
     )
 
-    result = (
-        deliver_pending_notifications(
-            repository=repository,
-            client=SuccessfulClient(),
-            now=NOW,
-        )
+    result = deliver_pending_notifications(
+        repository=repository,
+        client=SuccessfulClient(),
+        now=NOW,
     )
 
-    assert (
-        result["status"]
-        == "WEBHOOK_DELIVERY_COMPLETED"
-    )
+    assert result["status"] == "WEBHOOK_DELIVERY_COMPLETED"
 
     assert result["delivered_count"] == 1
     assert result["failed_count"] == 0
     assert result["pending_count"] == 0
 
-    receipt_path = (
-        result["delivered"][0][
-            "receipt_path"
-        ]
-    )
+    receipt_path = result["delivered"][0]["receipt_path"]
 
-    assert repository.exists(
-        receipt_path
-    )
+    assert repository.exists(receipt_path)
 
 
 def test_failure_remains_pending(
     tmp_path: Path,
 ) -> None:
-    repository = (
-        LocalArtifactRepository(
-            tmp_path
-        )
-    )
+    repository = LocalArtifactRepository(tmp_path)
 
     event = build_notification_event(
-        incident_evaluation=(
-            build_incident_evaluation()
-        ),
-        health_report=(
-            build_health_report()
-        ),
+        incident_evaluation=(build_incident_evaluation()),
+        health_report=(build_health_report()),
         health_run_id="health-run-1",
         now=NOW,
     )
@@ -273,48 +212,31 @@ def test_failure_remains_pending(
         now=NOW,
     )
 
-    result = (
-        deliver_pending_notifications(
-            repository=repository,
-            client=FailingClient(),
-            now=NOW,
-        )
+    result = deliver_pending_notifications(
+        repository=repository,
+        client=FailingClient(),
+        now=NOW,
     )
 
-    assert (
-        result["status"]
-        == "WEBHOOK_DELIVERY_FAILED"
-    )
+    assert result["status"] == "WEBHOOK_DELIVERY_FAILED"
 
     assert result["delivered_count"] == 0
     assert result["failed_count"] == 1
     assert result["pending_count"] == 1
 
-    outbox = repository.download_json(
-        NOTIFICATION_OUTBOX_PATH
-    )
+    outbox = repository.download_json(NOTIFICATION_OUTBOX_PATH)
 
-    assert len(
-        outbox["pending"]
-    ) == 1
+    assert len(outbox["pending"]) == 1
 
 
 def test_disabled_webhook_keeps_pending(
     tmp_path: Path,
 ) -> None:
-    repository = (
-        LocalArtifactRepository(
-            tmp_path
-        )
-    )
+    repository = LocalArtifactRepository(tmp_path)
 
     event = build_notification_event(
-        incident_evaluation=(
-            build_incident_evaluation()
-        ),
-        health_report=(
-            build_health_report()
-        ),
+        incident_evaluation=(build_incident_evaluation()),
+        health_report=(build_health_report()),
         health_run_id="health-run-1",
         now=NOW,
     )
@@ -325,18 +247,13 @@ def test_disabled_webhook_keeps_pending(
         now=NOW,
     )
 
-    result = (
-        deliver_pending_notifications(
-            repository=repository,
-            client=None,
-            now=NOW,
-        )
+    result = deliver_pending_notifications(
+        repository=repository,
+        client=None,
+        now=NOW,
     )
 
-    assert (
-        result["status"]
-        == "WEBHOOK_DISABLED"
-    )
+    assert result["status"] == "WEBHOOK_DISABLED"
 
     assert result["pending_count"] == 1
 
@@ -344,19 +261,11 @@ def test_disabled_webhook_keeps_pending(
 def test_disabled_email_keeps_pending(
     tmp_path: Path,
 ) -> None:
-    repository = (
-        LocalArtifactRepository(
-            tmp_path
-        )
-    )
+    repository = LocalArtifactRepository(tmp_path)
 
     event = build_notification_event(
-        incident_evaluation=(
-            build_incident_evaluation()
-        ),
-        health_report=(
-            build_health_report()
-        ),
+        incident_evaluation=(build_incident_evaluation()),
+        health_report=(build_health_report()),
         health_run_id="health-run-1",
         now=NOW,
     )
@@ -367,18 +276,13 @@ def test_disabled_email_keeps_pending(
         now=NOW,
     )
 
-    result = (
-        deliver_pending_email_notifications(
-            repository=repository,
-            client=None,
-            now=NOW,
-        )
+    result = deliver_pending_email_notifications(
+        repository=repository,
+        client=None,
+        now=NOW,
     )
 
-    assert (
-        result["status"]
-        == "EMAIL_DISABLED"
-    )
+    assert result["status"] == "EMAIL_DISABLED"
 
     assert result["channel"] == "email"
     assert result["attempted_count"] == 0
@@ -390,19 +294,11 @@ def test_disabled_email_keeps_pending(
 def test_email_success_creates_receipt_and_clears_outbox(
     tmp_path: Path,
 ) -> None:
-    repository = (
-        LocalArtifactRepository(
-            tmp_path
-        )
-    )
+    repository = LocalArtifactRepository(tmp_path)
 
     event = build_notification_event(
-        incident_evaluation=(
-            build_incident_evaluation()
-        ),
-        health_report=(
-            build_health_report()
-        ),
+        incident_evaluation=(build_incident_evaluation()),
+        health_report=(build_health_report()),
         health_run_id="health-run-1",
         now=NOW,
     )
@@ -413,70 +309,38 @@ def test_email_success_creates_receipt_and_clears_outbox(
         now=NOW,
     )
 
-    result = (
-        deliver_pending_email_notifications(
-            repository=repository,
-            client=FakeEmailClient(),
-            now=NOW,
-        )
+    result = deliver_pending_email_notifications(
+        repository=repository,
+        client=FakeEmailClient(),
+        now=NOW,
     )
 
-    assert (
-        result["status"]
-        == "EMAIL_DELIVERY_COMPLETED"
-    )
+    assert result["status"] == "EMAIL_DELIVERY_COMPLETED"
 
     assert result["channel"] == "email"
     assert result["delivered_count"] == 1
     assert result["failed_count"] == 0
     assert result["pending_count"] == 0
 
-    delivered = (
-        result[
-            "delivered"
-        ][0]
-    )
+    delivered = result["delivered"][0]
 
-    assert (
-        delivered[
-            "provider_message_id"
-        ]
-        == "message-123"
-    )
+    assert delivered["provider_message_id"] == "message-123"
 
-    assert (
-        delivered[
-            "provider_status"
-        ]
-        == "Succeeded"
-    )
+    assert delivered["provider_status"] == "Succeeded"
 
-    receipt_path = (
-        delivered[
-            "receipt_path"
-        ]
-    )
+    receipt_path = delivered["receipt_path"]
 
-    assert repository.exists(
-        receipt_path
-    )
+    assert repository.exists(receipt_path)
+
 
 def test_email_failure_remains_pending(
     tmp_path: Path,
 ) -> None:
-    repository = (
-        LocalArtifactRepository(
-            tmp_path
-        )
-    )
+    repository = LocalArtifactRepository(tmp_path)
 
     event = build_notification_event(
-        incident_evaluation=(
-            build_incident_evaluation()
-        ),
-        health_report=(
-            build_health_report()
-        ),
+        incident_evaluation=(build_incident_evaluation()),
+        health_report=(build_health_report()),
         health_run_id="health-run-1",
         now=NOW,
     )
@@ -487,49 +351,32 @@ def test_email_failure_remains_pending(
         now=NOW,
     )
 
-    result = (
-        deliver_pending_email_notifications(
-            repository=repository,
-            client=FailingEmailClient(),
-            now=NOW,
-        )
+    result = deliver_pending_email_notifications(
+        repository=repository,
+        client=FailingEmailClient(),
+        now=NOW,
     )
 
-    assert (
-        result["status"]
-        == "EMAIL_DELIVERY_FAILED"
-    )
+    assert result["status"] == "EMAIL_DELIVERY_FAILED"
 
     assert result["channel"] == "email"
     assert result["delivered_count"] == 0
     assert result["failed_count"] == 1
     assert result["pending_count"] == 1
 
-    outbox = repository.download_json(
-        NOTIFICATION_OUTBOX_PATH
-    )
+    outbox = repository.download_json(NOTIFICATION_OUTBOX_PATH)
 
-    assert len(
-        outbox["pending"]
-    ) == 1
+    assert len(outbox["pending"]) == 1
 
 
 def test_existing_email_receipt_clears_pending_event(
     tmp_path: Path,
 ) -> None:
-    repository = (
-        LocalArtifactRepository(
-            tmp_path
-        )
-    )
+    repository = LocalArtifactRepository(tmp_path)
 
     event = build_notification_event(
-        incident_evaluation=(
-            build_incident_evaluation()
-        ),
-        health_report=(
-            build_health_report()
-        ),
+        incident_evaluation=(build_incident_evaluation()),
+        health_report=(build_health_report()),
         health_run_id="health-run-1",
         now=NOW,
     )
@@ -542,41 +389,24 @@ def test_existing_email_receipt_clears_pending_event(
         now=NOW,
     )
 
-    notification_id = str(
-        event[
-            "notification_id"
-        ]
-    )
+    notification_id = str(event["notification_id"])
 
-    receipt_path = (
-        "production-health/"
-        "notifications/"
-        "receipts/"
-        f"{notification_id}.json"
-    )
+    receipt_path = f"production-health/notifications/receipts/{notification_id}.json"
 
     repository.upload_json(
         payload={
-            "notification_id": (
-                notification_id
-            ),
+            "notification_id": (notification_id),
             "channel": "email",
-            "provider_status": (
-                "Succeeded"
-            ),
+            "provider_status": ("Succeeded"),
         },
-        destination_path=(
-            receipt_path
-        ),
+        destination_path=(receipt_path),
         overwrite=False,
     )
 
-    result = (
-        deliver_pending_email_notifications(
-            repository=repository,
-            client=FakeEmailClient(),
-            now=NOW,
-        )
+    result = deliver_pending_email_notifications(
+        repository=repository,
+        client=FakeEmailClient(),
+        now=NOW,
     )
 
     assert result["channel"] == "email"
@@ -584,22 +414,8 @@ def test_existing_email_receipt_clears_pending_event(
     assert result["failed_count"] == 0
     assert result["pending_count"] == 0
 
-    assert (
-        result[
-            "delivered"
-        ][0][
-            "recovered_from_receipt"
-        ]
-        is True
-    )
+    assert result["delivered"][0]["recovered_from_receipt"] is True
 
-    outbox = repository.download_json(
-        NOTIFICATION_OUTBOX_PATH
-    )
+    outbox = repository.download_json(NOTIFICATION_OUTBOX_PATH)
 
-    assert (
-        len(
-            outbox["pending"]
-        )
-        == 0
-    )
+    assert len(outbox["pending"]) == 0

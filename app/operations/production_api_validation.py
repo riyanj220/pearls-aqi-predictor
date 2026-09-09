@@ -15,16 +15,11 @@ from typing import Any
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 REPORT_PATH = (
-    PROJECT_ROOT
-    / "reports"
-    / "phase_10"
-    / "production_api_validation_report.json"
+    PROJECT_ROOT / "reports" / "phase_10" / "production_api_validation_report.json"
 )
 
 
-class ProductionAPIValidationError(
-    RuntimeError
-):
+class ProductionAPIValidationError(RuntimeError):
     """Raised when production API deployment is invalid."""
 
 
@@ -87,18 +82,14 @@ def request_json(
         body = error.read()
 
     try:
-        payload = json.loads(
-            body.decode("utf-8")
-        )
+        payload = json.loads(body.decode("utf-8"))
     except json.JSONDecodeError as error:
         raise ProductionAPIValidationError(
             f"Endpoint returned invalid JSON: {url}"
         ) from error
 
     if not isinstance(payload, dict):
-        raise ProductionAPIValidationError(
-            f"Endpoint response is not an object: {url}"
-        )
+        raise ProductionAPIValidationError(f"Endpoint response is not an object: {url}")
 
     return status, payload
 
@@ -122,14 +113,11 @@ def environment_mapping(
     )
 
     if not containers:
-        raise ProductionAPIValidationError(
-            "Production API has no container."
-        )
+        raise ProductionAPIValidationError("Production API has no container.")
 
     return {
         str(item.get("name")): item
-        for item
-        in containers[0].get(
+        for item in containers[0].get(
             "env",
             [],
         )
@@ -181,38 +169,24 @@ def validate_api(
     )
 
     if not containers:
-        raise ProductionAPIValidationError(
-            "Production API contains no container."
-        )
+        raise ProductionAPIValidationError("Production API contains no container.")
 
     container = containers[0]
 
-    environment = environment_mapping(
-        app
-    )
+    environment = environment_mapping(app)
 
-    fqdn = ingress.get(
-        "fqdn"
-    )
+    fqdn = ingress.get("fqdn")
 
     if not fqdn:
-        raise ProductionAPIValidationError(
-            "Production API has no FQDN."
-        )
+        raise ProductionAPIValidationError("Production API has no FQDN.")
 
     base_url = f"https://{fqdn}"
 
-    live_status, live_payload = request_json(
-        f"{base_url}/api/v1/health/live"
-    )
+    live_status, live_payload = request_json(f"{base_url}/api/v1/health/live")
 
-    ready_status, ready_payload = request_json(
-        f"{base_url}/api/v1/health/ready"
-    )
+    ready_status, ready_payload = request_json(f"{base_url}/api/v1/health/ready")
 
-    _, openapi = request_json(
-        f"{base_url}/openapi.json"
-    )
+    _, openapi = request_json(f"{base_url}/openapi.json")
 
     paths = openapi.get(
         "paths",
@@ -220,117 +194,66 @@ def validate_api(
     )
 
     checks = {
-        "provisioning_succeeded": (
-            properties.get(
-                "provisioningState"
-            )
-            == "Succeeded"
-        ),
-        "external_ingress_enabled": (
-            ingress.get(
-                "external"
-            )
-            is True
-        ),
-        "target_port_is_8000": (
-            ingress.get(
-                "targetPort"
-            )
-            == 8000
-        ),
-        "immutable_image_matches": (
-            container.get(
-                "image"
-            )
-            == expected_image
-        ),
+        "provisioning_succeeded": (properties.get("provisioningState") == "Succeeded"),
+        "external_ingress_enabled": (ingress.get("external") is True),
+        "target_port_is_8000": (ingress.get("targetPort") == 8000),
+        "immutable_image_matches": (container.get("image") == expected_image),
         "production_environment": (
             environment.get(
                 "PEARLS_API_ENVIRONMENT",
                 {},
-            ).get(
-                "value"
-            )
+            ).get("value")
             == "production"
         ),
         "azure_blob_backend": (
             environment.get(
                 "PEARLS_API_ARTIFACT_BACKEND",
                 {},
-            ).get(
-                "value"
-            )
+            ).get("value")
             == "azure_blob"
         ),
         "production_blob_container": (
             environment.get(
                 "PEARLS_API_AZURE_STORAGE_CONTAINER",
                 {},
-            ).get(
-                "value"
-            )
+            ).get("value")
             == "artifacts-prod"
         ),
         "aging_threshold_is_7": (
             environment.get(
                 "PEARLS_API_FORECAST_AGING_THRESHOLD_HOURS",
                 {},
-            ).get(
-                "value"
-            )
+            ).get("value")
             == "7"
         ),
         "staleness_threshold_is_13": (
             environment.get(
                 "PEARLS_API_FORECAST_STALENESS_THRESHOLD_HOURS",
                 {},
-            ).get(
-                "value"
-            )
+            ).get("value")
             == "13"
         ),
         "liveness_is_healthy": (
-            live_status == 200
-            and live_payload.get(
-                "status"
-            )
-            == "ALIVE"
+            live_status == 200 and live_payload.get("status") == "ALIVE"
         ),
-
         # Until Phase 10M-H publishes the first AQI artifact,
         # production is deliberately live but not ready.
-        "readiness_waiting_for_initial_publication": (
-            ready_status == 503
-        ),
-
+        "readiness_waiting_for_initial_publication": (ready_status == 503),
         "openapi_has_health": (
-            "/api/v1/health/live"
-            in paths
-            and "/api/v1/health/ready"
-            in paths
+            "/api/v1/health/live" in paths and "/api/v1/health/ready" in paths
         ),
-        "openapi_has_forecast": (
-            "/api/v1/forecast"
-            in paths
-        ),
-        "openapi_has_alerts": (
-            "/api/v1/alerts"
-            in paths
-        ),
+        "openapi_has_forecast": ("/api/v1/forecast" in paths),
+        "openapi_has_alerts": ("/api/v1/alerts" in paths),
     }
 
     return {
-        "valid": all(
-            checks.values()
-        ),
+        "valid": all(checks.values()),
         "checks": checks,
         "application": {
             "name": app_name,
             "fqdn": fqdn,
             "url": base_url,
-            "image": container.get(
-                "image"
-            ),
+            "image": container.get("image"),
         },
         "liveness": {
             "http_status": live_status,
@@ -339,9 +262,7 @@ def validate_api(
         "readiness": {
             "http_status": ready_status,
             "payload": ready_payload,
-            "expected_before_initial_publication": (
-                503
-            ),
+            "expected_before_initial_publication": (503),
         },
     }
 
@@ -354,11 +275,7 @@ def save_report(
         exist_ok=True,
     )
 
-    temporary_path = (
-        REPORT_PATH.with_suffix(
-            ".json.tmp"
-        )
-    )
+    temporary_path = REPORT_PATH.with_suffix(".json.tmp")
 
     temporary_path.write_text(
         json.dumps(
@@ -369,9 +286,7 @@ def save_report(
         encoding="utf-8",
     )
 
-    temporary_path.replace(
-        REPORT_PATH
-    )
+    temporary_path.replace(REPORT_PATH)
 
     return REPORT_PATH
 
@@ -396,17 +311,11 @@ def main() -> int:
 
     arguments = parser.parse_args()
 
-    expected_image = (
-        "walpole.azurecr.io/"
-        "pearls-aqi/api:"
-        f"{arguments.release_sha}"
-    )
+    expected_image = f"walpole.azurecr.io/pearls-aqi/api:{arguments.release_sha}"
 
     try:
         validation = validate_api(
-            resource_group=(
-                arguments.resource_group
-            ),
+            resource_group=(arguments.resource_group),
             app_name=arguments.app_name,
             expected_image=expected_image,
         )
@@ -414,54 +323,32 @@ def main() -> int:
         report = {
             "phase": "10M",
             "subphase": "10M-E",
-            "generated_at_utc": (
-                datetime.now(
-                    timezone.utc
-                ).isoformat()
-            ),
+            "generated_at_utc": (datetime.now(timezone.utc).isoformat()),
             "status": (
                 "PRODUCTION_API_DEPLOYMENT_VALIDATED"
-                if validation[
-                    "valid"
-                ]
+                if validation["valid"]
                 else "PRODUCTION_API_DEPLOYMENT_INVALID"
             ),
             "initial_aqi_publication_complete": False,
             **validation,
         }
 
-        exit_code = (
-            0
-            if validation["valid"]
-            else 1
-        )
+        exit_code = 0 if validation["valid"] else 1
 
     except Exception as error:
         report = {
             "phase": "10M",
             "subphase": "10M-E",
-            "generated_at_utc": (
-                datetime.now(
-                    timezone.utc
-                ).isoformat()
-            ),
-            "status": (
-                "PRODUCTION_API_DEPLOYMENT_VALIDATION_FAILED"
-            ),
+            "generated_at_utc": (datetime.now(timezone.utc).isoformat()),
+            "status": ("PRODUCTION_API_DEPLOYMENT_VALIDATION_FAILED"),
             "valid": False,
-            "error_type": (
-                type(error).__name__
-            ),
-            "error_message": str(
-                error
-            ),
+            "error_type": (type(error).__name__),
+            "error_message": str(error),
         }
 
         exit_code = 1
 
-    report_path = save_report(
-        report
-    )
+    report_path = save_report(report)
 
     print(
         json.dumps(

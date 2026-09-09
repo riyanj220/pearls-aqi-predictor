@@ -30,9 +30,7 @@ class APISettings(BaseSettings):
         extra="ignore",
     )
 
-    application_name: str = (
-        "Pearls AQI Predictor API"
-    )
+    application_name: str = "Pearls AQI Predictor API"
 
     application_description: str = (
         "72-hour PM2.5-based AQI forecast for the "
@@ -70,39 +68,21 @@ class APISettings(BaseSettings):
     azure_storage_container: str = "artifacts"
 
     phase_6_blob_cache_directory: Path = (
-        PROJECT_ROOT
-        / ".cache"
-        / "api"
-        / "aqi"
-        / "latest"
+        PROJECT_ROOT / ".cache" / "api" / "aqi" / "latest"
     )
 
     # Existing local artifact location.
-    phase_6_latest_directory: Path = (
-        PROJECT_ROOT
-        / "aqi"
-        / "latest"
-    )
+    phase_6_latest_directory: Path = PROJECT_ROOT / "aqi" / "latest"
 
-    phase_6_forecast_filename: str = (
-        "live_pm25_aqi_forecast.parquet"
-    )
+    phase_6_forecast_filename: str = "live_pm25_aqi_forecast.parquet"
 
-    phase_6_alert_episodes_filename: str = (
-        "alert_episodes.json"
-    )
+    phase_6_alert_episodes_filename: str = "alert_episodes.json"
 
-    phase_6_summary_filename: str = (
-        "aqi_forecast_summary.json"
-    )
+    phase_6_summary_filename: str = "aqi_forecast_summary.json"
 
-    phase_6_metadata_filename: str = (
-        "aqi_metadata.json"
-    )
+    phase_6_metadata_filename: str = "aqi_metadata.json"
 
-    phase_6_validation_filename: str = (
-        "phase_6_validation_report.json"
-    )
+    phase_6_validation_filename: str = "phase_6_validation_report.json"
 
     artifact_cache_seconds: int = Field(
         default=60,
@@ -132,9 +112,7 @@ class APISettings(BaseSettings):
         normalized_value = value.strip()
 
         if not normalized_value.startswith("/"):
-            normalized_value = (
-                f"/{normalized_value}"
-            )
+            normalized_value = f"/{normalized_value}"
 
         return normalized_value.rstrip("/")
 
@@ -167,9 +145,7 @@ class APISettings(BaseSettings):
         }
 
         if normalized_value not in allowed_levels:
-            raise ValueError(
-                f"Unsupported log level: {value}"
-            )
+            raise ValueError(f"Unsupported log level: {value}")
 
         return normalized_value
 
@@ -184,23 +160,15 @@ class APISettings(BaseSettings):
     ) -> str:
         """Normalize and validate the artifact backend."""
 
-        normalized_value = str(
-            value
-        ).strip().lower()
+        normalized_value = str(value).strip().lower()
 
         allowed_backends = {
             "local",
             "azure_blob",
         }
 
-        if (
-            normalized_value
-            not in allowed_backends
-        ):
-            raise ValueError(
-                "artifact_backend must be "
-                "'local' or 'azure_blob'."
-            )
+        if normalized_value not in allowed_backends:
+            raise ValueError("artifact_backend must be 'local' or 'azure_blob'.")
 
         return normalized_value
 
@@ -215,23 +183,13 @@ class APISettings(BaseSettings):
     ) -> str:
         """Normalize the durable artifact type."""
 
-        normalized_value = str(
-            value
-        ).strip().lower()
+        normalized_value = str(value).strip().lower()
 
         if not normalized_value:
-            raise ValueError(
-                "artifact_type cannot be empty."
-            )
+            raise ValueError("artifact_type cannot be empty.")
 
-        if (
-            "/" in normalized_value
-            or "\\" in normalized_value
-        ):
-            raise ValueError(
-                "artifact_type must contain one "
-                "path segment."
-            )
+        if "/" in normalized_value or "\\" in normalized_value:
+            raise ValueError("artifact_type must contain one path segment.")
 
         return normalized_value
 
@@ -249,9 +207,7 @@ class APISettings(BaseSettings):
         if value is None:
             return None
 
-        normalized_value = str(
-            value
-        ).strip()
+        normalized_value = str(value).strip()
 
         return normalized_value or None
 
@@ -266,15 +222,10 @@ class APISettings(BaseSettings):
     ) -> str:
         """Normalize the Azure Blob container name."""
 
-        normalized_value = str(
-            value
-        ).strip()
+        normalized_value = str(value).strip()
 
         if not normalized_value:
-            raise ValueError(
-                "azure_storage_container "
-                "cannot be empty."
-            )
+            raise ValueError("azure_storage_container cannot be empty.")
 
         return normalized_value
 
@@ -295,9 +246,7 @@ class APISettings(BaseSettings):
         working directory.
         """
 
-        path = Path(
-            str(value)
-        ).expanduser()
+        path = Path(str(value)).expanduser()
 
         if not path.is_absolute():
             path = PROJECT_ROOT / path
@@ -315,9 +264,7 @@ class APISettings(BaseSettings):
     ) -> Path:
         """Resolve the Blob materialization cache."""
 
-        path = Path(
-            str(value)
-        ).expanduser()
+        path = Path(str(value)).expanduser()
 
         if not path.is_absolute():
             path = PROJECT_ROOT / path
@@ -330,14 +277,9 @@ class APISettings(BaseSettings):
     ) -> "APISettings":
         """Validate backend-specific configuration."""
 
-        if (
-            self.artifact_backend
-            == "azure_blob"
-            and not self.azure_storage_account
-        ):
+        if self.artifact_backend == "azure_blob" and not self.azure_storage_account:
             raise ValueError(
-                "azure_storage_account is required "
-                "when artifact_backend=azure_blob."
+                "azure_storage_account is required when artifact_backend=azure_blob."
             )
 
         return self
@@ -357,46 +299,31 @@ class APISettings(BaseSettings):
     def forecast_path(self) -> Path:
         """Return the active Phase 6 forecast path."""
 
-        return (
-            self.active_phase_6_directory
-            / self.phase_6_forecast_filename
-        )
+        return self.active_phase_6_directory / self.phase_6_forecast_filename
 
     @property
     def alert_episodes_path(self) -> Path:
         """Return the active alert-episode artifact path."""
 
-        return (
-            self.active_phase_6_directory
-            / self.phase_6_alert_episodes_filename
-        )
+        return self.active_phase_6_directory / self.phase_6_alert_episodes_filename
 
     @property
     def summary_path(self) -> Path:
         """Return the active forecast-summary path."""
 
-        return (
-            self.active_phase_6_directory
-            / self.phase_6_summary_filename
-        )
+        return self.active_phase_6_directory / self.phase_6_summary_filename
 
     @property
     def metadata_path(self) -> Path:
         """Return the active AQI metadata path."""
 
-        return (
-            self.active_phase_6_directory
-            / self.phase_6_metadata_filename
-        )
+        return self.active_phase_6_directory / self.phase_6_metadata_filename
 
     @property
     def validation_report_path(self) -> Path:
         """Return the active Phase 6 validation-report path."""
 
-        return (
-            self.active_phase_6_directory
-            / self.phase_6_validation_filename
-        )
+        return self.active_phase_6_directory / self.phase_6_validation_filename
 
 
 @lru_cache(maxsize=1)

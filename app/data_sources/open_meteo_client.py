@@ -68,17 +68,11 @@ def _validate_response_location(
     returned_longitude = payload.get("longitude")
 
     if returned_latitude is None or returned_longitude is None:
-        raise OpenMeteoClientError(
-            "Open-Meteo response does not contain coordinates."
-        )
+        raise OpenMeteoClientError("Open-Meteo response does not contain coordinates.")
 
-    latitude_difference = abs(
-        float(returned_latitude) - app_settings.latitude
-    )
+    latitude_difference = abs(float(returned_latitude) - app_settings.latitude)
 
-    longitude_difference = abs(
-        float(returned_longitude) - app_settings.longitude
-    )
+    longitude_difference = abs(float(returned_longitude) - app_settings.longitude)
 
     # Open-Meteo returns its selected forecast grid point, which may
     # differ slightly from the requested coordinates.
@@ -104,16 +98,12 @@ def _normalize_hourly_weather(
     hourly_payload = payload.get("hourly")
 
     if not isinstance(hourly_payload, dict):
-        raise OpenMeteoClientError(
-            "Open-Meteo response does not contain hourly data."
-        )
+        raise OpenMeteoClientError("Open-Meteo response does not contain hourly data.")
 
     hourly_times = hourly_payload.get("time")
 
     if not isinstance(hourly_times, list) or not hourly_times:
-        raise OpenMeteoClientError(
-            "Open-Meteo hourly response has no timestamps."
-        )
+        raise OpenMeteoClientError("Open-Meteo hourly response has no timestamps.")
 
     missing_variables = [
         variable
@@ -123,8 +113,7 @@ def _normalize_hourly_weather(
 
     if missing_variables:
         raise OpenMeteoClientError(
-            "Open-Meteo response is missing requested variables: "
-            f"{missing_variables}"
+            f"Open-Meteo response is missing requested variables: {missing_variables}"
         )
 
     expected_row_count = len(hourly_times)
@@ -158,14 +147,11 @@ def _normalize_hourly_weather(
         errors="coerce",
     )
 
-    invalid_timestamp_count = int(
-        weather_df["datetime_utc"].isna().sum()
-    )
+    invalid_timestamp_count = int(weather_df["datetime_utc"].isna().sum())
 
     if invalid_timestamp_count:
         raise OpenMeteoClientError(
-            "Open-Meteo returned invalid timestamps: "
-            f"{invalid_timestamp_count}"
+            f"Open-Meteo returned invalid timestamps: {invalid_timestamp_count}"
         )
 
     for variable in OPEN_METEO_HOURLY_VARIABLES:
@@ -174,11 +160,7 @@ def _normalize_hourly_weather(
             errors="coerce",
         )
 
-    return (
-        weather_df
-        .sort_values("datetime_utc")
-        .reset_index(drop=True)
-    )
+    return weather_df.sort_values("datetime_utc").reset_index(drop=True)
 
 
 def _validate_hourly_weather(
@@ -187,36 +169,21 @@ def _validate_hourly_weather(
     """Validate normalized forecast-weather values."""
 
     if weather_df.empty:
-        raise OpenMeteoClientError(
-            "Normalized weather forecast is empty."
-        )
+        raise OpenMeteoClientError("Normalized weather forecast is empty.")
 
-    duplicate_count = int(
-        weather_df["datetime_utc"].duplicated().sum()
-    )
+    duplicate_count = int(weather_df["datetime_utc"].duplicated().sum())
 
     if duplicate_count:
         raise OpenMeteoClientError(
-            "Duplicate Open-Meteo timestamps were returned: "
-            f"{duplicate_count}"
+            f"Duplicate Open-Meteo timestamps were returned: {duplicate_count}"
         )
 
     if not weather_df["datetime_utc"].is_monotonic_increasing:
-        raise OpenMeteoClientError(
-            "Open-Meteo timestamps are not chronological."
-        )
+        raise OpenMeteoClientError("Open-Meteo timestamps are not chronological.")
 
-    missing_value_counts = (
-        weather_df[
-            list(OPEN_METEO_HOURLY_VARIABLES)
-        ]
-        .isna()
-        .sum()
-    )
+    missing_value_counts = weather_df[list(OPEN_METEO_HOURLY_VARIABLES)].isna().sum()
 
-    missing_value_counts = missing_value_counts.loc[
-        missing_value_counts > 0
-    ]
+    missing_value_counts = missing_value_counts.loc[missing_value_counts > 0]
 
     if not missing_value_counts.empty:
         raise OpenMeteoClientError(
@@ -224,14 +191,10 @@ def _validate_hourly_weather(
             f"{missing_value_counts.to_dict()}"
         )
 
-    numeric_values = weather_df[
-        list(OPEN_METEO_HOURLY_VARIABLES)
-    ].to_numpy(dtype=float)
+    numeric_values = weather_df[list(OPEN_METEO_HOURLY_VARIABLES)].to_numpy(dtype=float)
 
     if not np.isfinite(numeric_values).all():
-        raise OpenMeteoClientError(
-            "Open-Meteo forecast contains infinite values."
-        )
+        raise OpenMeteoClientError("Open-Meteo forecast contains infinite values.")
 
     expected_timeline = pd.date_range(
         start=weather_df["datetime_utc"].min(),
@@ -251,45 +214,22 @@ def _validate_hourly_weather(
         )
 
     quality_violations = {
-        "humidity_below_0": int(
-            weather_df["relative_humidity_2m"].lt(0).sum()
-        ),
-        "humidity_above_100": int(
-            weather_df["relative_humidity_2m"].gt(100).sum()
-        ),
-        "cloud_cover_below_0": int(
-            weather_df["cloud_cover"].lt(0).sum()
-        ),
-        "cloud_cover_above_100": int(
-            weather_df["cloud_cover"].gt(100).sum()
-        ),
-        "negative_precipitation": int(
-            weather_df["precipitation"].lt(0).sum()
-        ),
-        "negative_rain": int(
-            weather_df["rain"].lt(0).sum()
-        ),
-        "negative_wind_speed": int(
-            weather_df["wind_speed_10m"].lt(0).sum()
-        ),
-        "negative_wind_gusts": int(
-            weather_df["wind_gusts_10m"].lt(0).sum()
-        ),
-        "wind_direction_below_0": int(
-            weather_df["wind_direction_10m"].lt(0).sum()
-        ),
-        "wind_direction_above_360": int(
-            weather_df["wind_direction_10m"].gt(360).sum()
-        ),
-        "non_positive_pressure": int(
-            weather_df["surface_pressure"].le(0).sum()
-        ),
+        "humidity_below_0": int(weather_df["relative_humidity_2m"].lt(0).sum()),
+        "humidity_above_100": int(weather_df["relative_humidity_2m"].gt(100).sum()),
+        "cloud_cover_below_0": int(weather_df["cloud_cover"].lt(0).sum()),
+        "cloud_cover_above_100": int(weather_df["cloud_cover"].gt(100).sum()),
+        "negative_precipitation": int(weather_df["precipitation"].lt(0).sum()),
+        "negative_rain": int(weather_df["rain"].lt(0).sum()),
+        "negative_wind_speed": int(weather_df["wind_speed_10m"].lt(0).sum()),
+        "negative_wind_gusts": int(weather_df["wind_gusts_10m"].lt(0).sum()),
+        "wind_direction_below_0": int(weather_df["wind_direction_10m"].lt(0).sum()),
+        "wind_direction_above_360": int(weather_df["wind_direction_10m"].gt(360).sum()),
+        "non_positive_pressure": int(weather_df["surface_pressure"].le(0).sum()),
     }
 
     if sum(quality_violations.values()) > 0:
         raise OpenMeteoClientError(
-            "Open-Meteo forecast failed physical-range checks: "
-            f"{quality_violations}"
+            f"Open-Meteo forecast failed physical-range checks: {quality_violations}"
         )
 
 
@@ -302,9 +242,7 @@ class OpenMeteoClient:
         session: requests.Session | None = None,
     ) -> None:
         self.settings = app_settings
-        self.session = session or _create_retry_session(
-            app_settings
-        )
+        self.session = session or _create_retry_session(app_settings)
 
     def fetch_hourly_weather(self) -> pd.DataFrame:
         """
@@ -318,14 +256,10 @@ class OpenMeteoClient:
         params = {
             "latitude": self.settings.latitude,
             "longitude": self.settings.longitude,
-            "hourly": ",".join(
-                OPEN_METEO_HOURLY_VARIABLES
-            ),
+            "hourly": ",".join(OPEN_METEO_HOURLY_VARIABLES),
             "timezone": self.settings.timezone,
             "past_hours": self.settings.weather_past_hours,
-            "forecast_hours": (
-                self.settings.weather_forecast_hours
-            ),
+            "forecast_hours": (self.settings.weather_forecast_hours),
             "temperature_unit": "celsius",
             "wind_speed_unit": "kmh",
             "precipitation_unit": "mm",
@@ -339,14 +273,11 @@ class OpenMeteoClient:
             )
         except requests.RequestException as exc:
             raise OpenMeteoClientError(
-                "Open-Meteo request failed before a valid "
-                "response was received."
+                "Open-Meteo request failed before a valid response was received."
             ) from exc
 
         if response.status_code == 429:
-            raise OpenMeteoClientError(
-                "Open-Meteo rate limit was exceeded."
-            )
+            raise OpenMeteoClientError("Open-Meteo rate limit was exceeded.")
 
         if not response.ok:
             response_preview = response.text[:500]
@@ -360,9 +291,7 @@ class OpenMeteoClient:
         try:
             payload = response.json()
         except ValueError as exc:
-            raise OpenMeteoClientError(
-                "Open-Meteo returned invalid JSON."
-            ) from exc
+            raise OpenMeteoClientError("Open-Meteo returned invalid JSON.") from exc
 
         if payload.get("error") is True:
             raise OpenMeteoClientError(

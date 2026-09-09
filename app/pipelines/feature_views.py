@@ -51,63 +51,43 @@ def create_or_get_reference_feature_view(
 ) -> ResolvedFeatureView:
     """Create or resolve the reference-time feature view."""
 
-    selected_columns = (
-        engineered_contract.feature_names
-    )
+    selected_columns = engineered_contract.feature_names
 
     if settings.mlops_dry_run:
         return ResolvedFeatureView(
             feature_view=None,
             name=settings.hopsworks_feature_view_name,
-            version=(
-                settings.hopsworks_feature_view_version
-            ),
+            version=(settings.hopsworks_feature_view_version),
             dry_run=True,
             feature_count=len(selected_columns),
         )
 
     if resources.feature_store is None:
-        raise FeatureViewError(
-            "Hopsworks Feature Store is unavailable."
-        )
+        raise FeatureViewError("Hopsworks Feature Store is unavailable.")
 
     try:
-        query = engineered_feature_group.select(
-            selected_columns
-        )
+        query = engineered_feature_group.select(selected_columns)
 
-        feature_view = (
-            resources.feature_store
-            .get_or_create_feature_view(
-                name=(
-                    settings
-                    .hopsworks_feature_view_name
-                ),
-                version=(
-                    settings
-                    .hopsworks_feature_view_version
-                ),
-                description=(
-                    "Reference-time PM2.5, current-weather "
-                    "and calendar features for the "
-                    "72-hour PM2.5 forecasting model."
-                ),
-                query=query,
-            )
+        feature_view = resources.feature_store.get_or_create_feature_view(
+            name=(settings.hopsworks_feature_view_name),
+            version=(settings.hopsworks_feature_view_version),
+            description=(
+                "Reference-time PM2.5, current-weather "
+                "and calendar features for the "
+                "72-hour PM2.5 forecasting model."
+            ),
+            query=query,
         )
 
     except Exception as error:
         raise FeatureViewError(
-            "Could not create or resolve the "
-            "reference-time feature view."
+            "Could not create or resolve the reference-time feature view."
         ) from error
 
     return ResolvedFeatureView(
         feature_view=feature_view,
         name=settings.hopsworks_feature_view_name,
-        version=(
-            settings.hopsworks_feature_view_version
-        ),
+        version=(settings.hopsworks_feature_view_version),
         dry_run=False,
         feature_count=len(selected_columns),
     )

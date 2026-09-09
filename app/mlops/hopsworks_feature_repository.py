@@ -24,9 +24,7 @@ from app.mlops.feature_repository import (
 )
 
 
-class HopsworksFeatureRepository(
-    FeatureRepository
-):
+class HopsworksFeatureRepository(FeatureRepository):
     """Feature repository backed by Hopsworks Feature Store."""
 
     def __init__(
@@ -40,19 +38,14 @@ class HopsworksFeatureRepository(
         self.contracts = contracts
 
         try:
-            resources = connect_to_hopsworks(
-                settings
-            )
+            resources = connect_to_hopsworks(settings)
         except HopsworksConnectionError as error:
             raise FeatureRepositoryError(
-                "Could not initialize the Hopsworks "
-                "feature repository."
+                "Could not initialize the Hopsworks feature repository."
             ) from error
 
         if resources.feature_store is None:
-            raise FeatureRepositoryError(
-                "Hopsworks Feature Store was not resolved."
-            )
+            raise FeatureRepositoryError("Hopsworks Feature Store was not resolved.")
 
         self.resources = resources
 
@@ -64,39 +57,28 @@ class HopsworksFeatureRepository(
             )
 
             self._handles: dict[str, Any | None] = {
-                contracts["pm25"].name: (
-                    resolved.pm25
-                ),
-                contracts["weather"].name: (
-                    resolved.weather
-                ),
-                contracts["engineered"].name: (
-                    resolved.engineered
-                ),
+                contracts["pm25"].name: (resolved.pm25),
+                contracts["weather"].name: (resolved.weather),
+                contracts["engineered"].name: (resolved.engineered),
             }
 
         else:
-            feature_store = (
-                resources.feature_store
-            )
+            feature_store = resources.feature_store
 
             try:
                 self._handles = {
                     contract.name: (
-                        feature_store
-                        .get_feature_group(
+                        feature_store.get_feature_group(
                             name=contract.name,
                             version=contract.version,
                         )
                     )
-                    for contract
-                    in contracts.values()
+                    for contract in contracts.values()
                 }
 
             except Exception as error:
                 raise FeatureRepositoryError(
-                    "Could not resolve configured "
-                    "Hopsworks feature groups."
+                    "Could not resolve configured Hopsworks feature groups."
                 ) from error
 
     @property
@@ -117,14 +99,11 @@ class HopsworksFeatureRepository(
     ) -> Any:
         """Resolve one feature-group handle."""
 
-        handle = self._handles.get(
-            contract.name
-        )
+        handle = self._handles.get(contract.name)
 
         if handle is None:
             raise FeatureRepositoryError(
-                "Feature dataset was not resolved: "
-                f"{contract.name}"
+                f"Feature dataset was not resolved: {contract.name}"
             )
 
         return handle
@@ -137,20 +116,12 @@ class HopsworksFeatureRepository(
     ) -> pd.DataFrame:
         """Normalize one Hopsworks read result."""
 
-        if (
-            dataframe is None
-            or dataframe.empty
-        ):
-            return empty_feature_frame(
-                contract
-            )
+        if dataframe is None or dataframe.empty:
+            return empty_feature_frame(contract)
 
         result = dataframe.copy()
 
-        result.columns = [
-            str(column).lower()
-            for column in result.columns
-        ]
+        result.columns = [str(column).lower() for column in result.columns]
 
         return result
 
@@ -161,18 +132,13 @@ class HopsworksFeatureRepository(
     ) -> pd.DataFrame:
         """Read the complete Hopsworks feature group."""
 
-        handle = self._get_handle(
-            contract
-        )
+        handle = self._get_handle(contract)
 
         try:
-            dataframe = handle.read(
-                dataframe_type="pandas"
-            )
+            dataframe = handle.read(dataframe_type="pandas")
         except Exception as error:
             raise FeatureRepositoryError(
-                "Could not read feature dataset "
-                f"{contract.name}."
+                f"Could not read feature dataset {contract.name}."
             ) from error
 
         return self._normalize_readback(
@@ -189,27 +155,18 @@ class HopsworksFeatureRepository(
     ) -> pd.DataFrame:
         """Read one Hopsworks event-time interval."""
 
-        handle = self._get_handle(
-            contract
-        )
+        handle = self._get_handle(contract)
 
         try:
             dataframe = handle.read(
                 dataframe_type="pandas",
-                start_time=(
-                    start_time_utc
-                    .to_pydatetime()
-                ),
-                end_time=(
-                    end_time_exclusive_utc
-                    .to_pydatetime()
-                ),
+                start_time=(start_time_utc.to_pydatetime()),
+                end_time=(end_time_exclusive_utc.to_pydatetime()),
             )
 
         except Exception as error:
             raise FeatureRepositoryError(
-                "Could not read feature range "
-                f"for {contract.name}."
+                f"Could not read feature range for {contract.name}."
             ) from error
 
         return self._normalize_readback(
@@ -224,26 +181,18 @@ class HopsworksFeatureRepository(
     ) -> pd.Timestamp | None:
         """Return the latest stored event time."""
 
-        dataframe = self.read_dataset(
-            contract=contract
-        )
+        dataframe = self.read_dataset(contract=contract)
 
         if dataframe.empty:
             return None
 
-        if (
-            contract.event_time
-            not in dataframe.columns
-        ):
+        if contract.event_time not in dataframe.columns:
             raise FeatureRepositoryError(
-                f"{contract.name} does not contain "
-                f"{contract.event_time}."
+                f"{contract.name} does not contain {contract.event_time}."
             )
 
         event_times = pd.to_datetime(
-            dataframe[
-                contract.event_time
-            ],
+            dataframe[contract.event_time],
             utc=True,
             errors="coerce",
         ).dropna()
@@ -251,11 +200,7 @@ class HopsworksFeatureRepository(
         if event_times.empty:
             return None
 
-        return (
-            event_times
-            .max()
-            .floor("h")
-        )
+        return event_times.max().floor("h")
 
     def upsert(
         self,
@@ -268,13 +213,9 @@ class HopsworksFeatureRepository(
         if dataframe.empty:
             return
 
-        contract.validate_dataframe(
-            dataframe
-        )
+        contract.validate_dataframe(dataframe)
 
-        handle = self._get_handle(
-            contract
-        )
+        handle = self._get_handle(contract)
 
         try:
             handle.insert(
@@ -285,6 +226,5 @@ class HopsworksFeatureRepository(
 
         except Exception as error:
             raise FeatureRepositoryError(
-                "Could not upsert feature dataset "
-                f"{contract.name}."
+                f"Could not upsert feature dataset {contract.name}."
             ) from error

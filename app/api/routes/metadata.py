@@ -32,11 +32,7 @@ def get_metadata(
 ) -> MetadataResponse:
     """Return public-safe location, source, and AQI metadata."""
 
-    return MetadataService(
-        settings=settings
-    ).build_metadata(
-        bundle
-    )
+    return MetadataService(settings=settings).build_metadata(bundle)
 
 
 @router.get(
@@ -50,8 +46,4 @@ def get_pipeline_status(
 ) -> PipelineStatusResponse:
     """Return read-only Phase 5 and Phase 6 status."""
 
-    return MetadataService(
-        settings=settings
-    ).build_pipeline_status(
-        bundle
-    )
+    return MetadataService(settings=settings).build_pipeline_status(bundle)

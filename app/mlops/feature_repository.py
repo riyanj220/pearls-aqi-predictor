@@ -19,9 +19,7 @@ class FeatureRepositoryError(RuntimeError):
     """Raised when feature repository operations fail."""
 
 
-class FeatureRepositoryConfigurationError(
-    FeatureRepositoryError
-):
+class FeatureRepositoryConfigurationError(FeatureRepositoryError):
     """Raised when the configured backend is unsupported."""
 
 
@@ -79,9 +77,7 @@ def empty_feature_frame(
 ) -> pd.DataFrame:
     """Return an empty frame matching a feature contract."""
 
-    return pd.DataFrame(
-        columns=contract.feature_names
-    )
+    return pd.DataFrame(columns=contract.feature_names)
 
 
 def create_feature_repository(
@@ -92,10 +88,7 @@ def create_feature_repository(
 ) -> FeatureRepository:
     """Create the configured feature repository."""
 
-    if (
-        settings.feature_store_backend
-        == FeatureStoreBackend.HOPSWORKS
-    ):
+    if settings.feature_store_backend == FeatureStoreBackend.HOPSWORKS:
         from app.mlops.hopsworks_feature_repository import (
             HopsworksFeatureRepository,
         )
@@ -106,10 +99,7 @@ def create_feature_repository(
             create_if_missing=create_if_missing,
         )
 
-    if (
-        settings.feature_store_backend
-        == FeatureStoreBackend.AZURE_BLOB
-    ):
+    if settings.feature_store_backend == FeatureStoreBackend.AZURE_BLOB:
         from app.mlops.azure_blob_feature_repository import (
             AzureBlobFeatureRepository,
         )

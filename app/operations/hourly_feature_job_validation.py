@@ -12,17 +12,10 @@ from typing import Any
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
-REPORT_PATH = (
-    PROJECT_ROOT
-    / "reports"
-    / "phase_10"
-    / "hourly_feature_job_report.json"
-)
+REPORT_PATH = PROJECT_ROOT / "reports" / "phase_10" / "hourly_feature_job_report.json"
 
 
-class HourlyFeatureJobValidationError(
-    RuntimeError
-):
+class HourlyFeatureJobValidationError(RuntimeError):
     """Raised when the hourly job configuration is invalid."""
 
 
@@ -67,9 +60,7 @@ def load_job(
     result = json.loads(payload)
 
     if not isinstance(result, dict):
-        raise HourlyFeatureJobValidationError(
-            "Azure job response is not an object."
-        )
+        raise HourlyFeatureJobValidationError("Azure job response is not an object.")
 
     return result
 
@@ -99,13 +90,8 @@ def load_latest_execution(
 
     executions = json.loads(payload)
 
-    if (
-        not isinstance(executions, list)
-        or not executions
-    ):
-        raise HourlyFeatureJobValidationError(
-            "No hourly feature executions exist."
-        )
+    if not isinstance(executions, list) or not executions:
+        raise HourlyFeatureJobValidationError("No hourly feature executions exist.")
 
     executions.sort(
         key=lambda item: str(
@@ -128,27 +114,17 @@ def env_mapping(
 ) -> dict[str, dict[str, Any]]:
     """Return environment variables by name."""
 
-    containers = (
-        job.get("properties", {})
-        .get("template", {})
-        .get("containers", [])
-    )
+    containers = job.get("properties", {}).get("template", {}).get("containers", [])
 
     if not containers:
-        raise HourlyFeatureJobValidationError(
-            "Hourly job contains no container."
-        )
+        raise HourlyFeatureJobValidationError("Hourly job contains no container.")
 
     environment = containers[0].get(
         "env",
         [],
     )
 
-    return {
-        str(item.get("name")): item
-        for item in environment
-        if item.get("name")
-    }
+    return {str(item.get("name")): item for item in environment if item.get("name")}
 
 
 def build_report(
@@ -170,108 +146,60 @@ def build_report(
     )
 
     properties = job["properties"]
-    configuration = properties[
-        "configuration"
-    ]
+    configuration = properties["configuration"]
     template = properties["template"]
     container = template["containers"][0]
 
     environment = env_mapping(job)
 
-    execution_status = (
-        execution.get("properties", {})
-        .get("status")
-    )
+    execution_status = execution.get("properties", {}).get("status")
 
     image = str(container.get("image", ""))
 
-    schedule_configuration = (
-        configuration.get(
-            "scheduleTriggerConfig",
-            {},
-        )
+    schedule_configuration = configuration.get(
+        "scheduleTriggerConfig",
+        {},
     )
 
-    configured_parallelism = (
-        schedule_configuration.get(
-            "parallelism"
-        )
-    )
+    configured_parallelism = schedule_configuration.get("parallelism")
 
     if configured_parallelism is None:
-        configured_parallelism = (
-            template.get("parallelism")
-        )
+        configured_parallelism = template.get("parallelism")
 
     # Azure may omit the field when the effective value is the default of one.
     effective_parallelism = (
-        1
-        if configured_parallelism is None
-        else configured_parallelism
+        1 if configured_parallelism is None else configured_parallelism
     )
 
-    container_command = (
-        container.get("command")
-        or []
-    )
+    container_command = container.get("command") or []
 
-    container_arguments = (
-        container.get("args")
-        or []
-    )
+    container_arguments = container.get("args") or []
 
-    uses_python_module_command = (
-        container_command == ["python"]
-        and container_arguments
-        == [
-            "-m",
-            "app.pipelines.hourly_features",
-        ]
-    )
+    uses_python_module_command = container_command == [
+        "python"
+    ] and container_arguments == [
+        "-m",
+        "app.pipelines.hourly_features",
+    ]
 
     uses_hourly_wrapper = (
-        container_command
-        == ["/app/bin/run_hourly_features"]
+        container_command == ["/app/bin/run_hourly_features"]
         and not container_arguments
     )
 
     checks = {
-        "trigger_is_schedule": (
-            configuration.get("triggerType")
-            == "Schedule"
-        ),
+        "trigger_is_schedule": (configuration.get("triggerType") == "Schedule"),
         "cron_is_hourly": (
-            schedule_configuration.get(
-                "cronExpression"
-            )
-            == "15 * * * *"
+            schedule_configuration.get("cronExpression") == "15 * * * *"
         ),
-        "timeout_is_900_seconds": (
-            configuration.get(
-                "replicaTimeout"
-            )
-            == 900
-        ),
-        "retry_limit_is_one": (
-            configuration.get(
-                "replicaRetryLimit"
-            )
-            == 1
-        ),
-        "parallelism_is_one": (
-            effective_parallelism == 1
-        ),
+        "timeout_is_900_seconds": (configuration.get("replicaTimeout") == 900),
+        "retry_limit_is_one": (configuration.get("replicaRetryLimit") == 1),
+        "parallelism_is_one": (effective_parallelism == 1),
         "hourly_entrypoint_is_valid": (
-            uses_python_module_command
-            or uses_hourly_wrapper
+            uses_python_module_command or uses_hourly_wrapper
         ),
-
         "immutable_image_tag": (
-            image.endswith(
-                f":{expected_image_tag}"
-            )
-            and expected_image_tag
-            != "latest"
+            image.endswith(f":{expected_image_tag}") and expected_image_tag != "latest"
         ),
         "feature_store_is_hopsworks": (
             environment.get(
@@ -301,10 +229,7 @@ def build_report(
             ).get("secretRef")
             == "hopsworks-api-key"
         ),
-        "latest_execution_succeeded": (
-            execution_status
-            == "Succeeded"
-        ),
+        "latest_execution_succeeded": (execution_status == "Succeeded"),
     }
 
     approved = all(checks.values())
@@ -312,13 +237,9 @@ def build_report(
     return {
         "phase": "10K",
         "subphase": "10K-B",
-        "generated_at_utc": datetime.now(
-            timezone.utc
-        ).isoformat(),
+        "generated_at_utc": datetime.now(timezone.utc).isoformat(),
         "status": (
-            "HOURLY_FEATURE_JOB_VALIDATED"
-            if approved
-            else "HOURLY_FEATURE_JOB_INVALID"
+            "HOURLY_FEATURE_JOB_VALIDATED" if approved else "HOURLY_FEATURE_JOB_INVALID"
         ),
         "approved": approved,
         "resource_group": resource_group,
@@ -328,9 +249,7 @@ def build_report(
             configuration.get(
                 "scheduleTriggerConfig",
                 {},
-            ).get(
-                "cronExpression"
-            )
+            ).get("cronExpression")
         ),
         "latest_execution": {
             "name": execution.get("name"),
@@ -339,35 +258,24 @@ def build_report(
                 execution.get(
                     "properties",
                     {},
-                ).get(
-                    "startTime"
-                )
+                ).get("startTime")
             ),
             "end_time": (
                 execution.get(
                     "properties",
                     {},
-                ).get(
-                    "endTime"
-                )
+                ).get("endTime")
             ),
         },
         "checks": checks,
         "daily_retraining_job_created": False,
         "automatic_model_promotion_enabled": False,
-
         "container_execution": {
             "command": container_command,
             "args": container_arguments,
-            "uses_python_module_command": (
-                uses_python_module_command
-            ),
-            "uses_hourly_wrapper": (
-                uses_hourly_wrapper
-            ),
-            "effective_parallelism": (
-                effective_parallelism
-            ),
+            "uses_python_module_command": (uses_python_module_command),
+            "uses_hourly_wrapper": (uses_hourly_wrapper),
+            "effective_parallelism": (effective_parallelism),
         },
     }
 
@@ -382,9 +290,7 @@ def save_report(
         exist_ok=True,
     )
 
-    temporary_path = REPORT_PATH.with_suffix(
-        ".json.tmp"
-    )
+    temporary_path = REPORT_PATH.with_suffix(".json.tmp")
 
     temporary_path.write_text(
         json.dumps(
@@ -395,9 +301,7 @@ def save_report(
         encoding="utf-8",
     )
 
-    temporary_path.replace(
-        REPORT_PATH
-    )
+    temporary_path.replace(REPORT_PATH)
 
     return REPORT_PATH
 
@@ -406,10 +310,7 @@ def main() -> int:
     """CLI entry point."""
 
     parser = argparse.ArgumentParser(
-        description=(
-            "Validate the scheduled hourly "
-            "feature synchronization job."
-        )
+        description=("Validate the scheduled hourly feature synchronization job.")
     )
 
     parser.add_argument(
@@ -432,30 +333,18 @@ def main() -> int:
     try:
         report = build_report(
             job_name=arguments.job_name,
-            resource_group=(
-                arguments.resource_group
-            ),
-            expected_image_tag=(
-                arguments.expected_image_tag
-            ),
+            resource_group=(arguments.resource_group),
+            expected_image_tag=(arguments.expected_image_tag),
         )
 
-        exit_code = (
-            0
-            if report["approved"]
-            else 1
-        )
+        exit_code = 0 if report["approved"] else 1
 
     except Exception as error:
         report = {
             "phase": "10K",
             "subphase": "10K-B",
-            "generated_at_utc": datetime.now(
-                timezone.utc
-            ).isoformat(),
-            "status": (
-                "HOURLY_FEATURE_JOB_VALIDATION_FAILED"
-            ),
+            "generated_at_utc": datetime.now(timezone.utc).isoformat(),
+            "status": ("HOURLY_FEATURE_JOB_VALIDATION_FAILED"),
             "approved": False,
             "error_type": type(error).__name__,
             "error_message": str(error),

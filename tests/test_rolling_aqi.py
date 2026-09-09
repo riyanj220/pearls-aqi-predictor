@@ -21,9 +21,7 @@ def build_observed_pm25() -> pd.DataFrame:
 
 
 def build_forecast() -> pd.DataFrame:
-    reference_time = pd.Timestamp(
-        "2026-01-02 00:00:00+00:00"
-    )
+    reference_time = pd.Timestamp("2026-01-02 00:00:00+00:00")
 
     return pd.DataFrame(
         {
@@ -49,8 +47,7 @@ def test_complete_rolling_windows_are_generated() -> None:
     assert result["rolling_24h_missing_hours"].eq(0).all()
 
     total_hours = (
-        result["rolling_observed_hour_count"]
-        + result["rolling_predicted_hour_count"]
+        result["rolling_observed_hour_count"] + result["rolling_predicted_hour_count"]
     )
 
     assert total_hours.eq(24).all()
