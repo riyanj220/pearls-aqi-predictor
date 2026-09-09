@@ -287,20 +287,27 @@ def run_live_inference(
 
         completed_at = utc_now()
 
-        result = {
-            "pipeline_run_id": run_id,
-            "status": "LIVE_INFERENCE_COMPLETED",
-            "started_at_utc": started_at.isoformat(),
-            "completed_at_utc": completed_at.isoformat(),
-            "duration_seconds": (completed_at - started_at).total_seconds(),
-            "pm25_source_status": (pm25_source_status),
-            "reference_time": (reference_time.isoformat()),
-            "latest_pm25_time": (recovered_pm25_df["datetime_utc"].max().isoformat()),
-            "prediction_rows": len(predictions),
-            "predictions": (predictions.to_dict(orient="records")),
-        }
+        predictions["pipeline_run_id"] = run_id
 
-        save_inference_run(
+        predictions["prediction_generated_at_utc"] = completed_at.isoformat()
+
+        predictions["reference_time"] = reference_time.isoformat()
+
+        predictions["target_time"] = pd.to_datetime(
+            predictions["reference_time"],
+            utc=True,
+        ) + pd.to_timedelta(
+            predictions["forecast_horizon_hours"],
+            unit="h",
+        )
+
+        predictions["location_name"] = settings.location_name
+
+        predictions["sensor_id"] = settings.openaq_sensor_id
+
+        predictions["selected_strategy"] = "hybrid"
+
+        saved_run = save_inference_run(
             run_id=run_id,
             forecast_df=predictions,
             feature_matrix_df=feature_table,
@@ -313,10 +320,29 @@ def run_live_inference(
                 "latest_pm25_time": recovered_pm25_df["datetime_utc"].max().isoformat(),
             },
             validation_report={
+                "status": "PASSED",
                 "reference_selection_status": reference_selection.status,
                 "reference_selection_message": reference_selection.message,
+                "reference_time": reference_time.isoformat(),
+                "prediction_rows": len(predictions),
             },
         )
+
+        result = {
+            "pipeline_run_id": run_id,
+            "status": "LIVE_INFERENCE_COMPLETED",
+            "validation_status": "PASSED",
+            "started_at_utc": started_at.isoformat(),
+            "completed_at_utc": completed_at.isoformat(),
+            "duration_seconds": (completed_at - started_at).total_seconds(),
+            "pm25_source_status": pm25_source_status,
+            "reference_time": reference_time.isoformat(),
+            "latest_pm25_time": recovered_pm25_df["datetime_utc"].max().isoformat(),
+            "prediction_rows": len(predictions),
+            "forecast_rows": len(predictions),
+            "run_directory": str(saved_run.run_directory),
+            "predictions": predictions.to_dict(orient="records"),
+        }
 
         log_pipeline_completed(
             LOGGER,

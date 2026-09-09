@@ -1,23 +1,23 @@
 {
   "phase": "10J",
-  "subphase": "10J-A",
+  "subphase": "10J-B",
   "pipeline_name": "forecast_publication",
   "status": "FORECAST_PUBLICATION_COMPLETED",
-  "started_at_utc": "2026-08-04T13:24:25.280495+00:00",
-  "completed_at_utc": "2026-08-04T13:24:47.444381+00:00",
-  "duration_seconds": 22.164,
-  "artifact_backend": "local",
+  "started_at_utc": "2026-09-09T11:23:15.360750+00:00",
+  "completed_at_utc": "2026-09-09T11:23:24.432690+00:00",
+  "duration_seconds": 9.072,
+  "artifact_backend": "azure_blob",
   "phase_5": {
-    "pipeline_run_id": "20260804T132425Z_4125cb15",
+    "pipeline_run_id": "20260909T112315Z_1b37c4f8",
     "status": "LIVE_INFERENCE_COMPLETED",
     "validation_status": "PASSED",
     "forecast_rows": 72,
-    "model_source": "HOPSWORKS_REGISTRY",
-    "model_registry_version": 1
+    "model_source": null,
+    "model_registry_version": null
   },
   "phase_6": {
-    "phase_6_run_id": "20260804T132447Z_aqi_4125cb15",
-    "source_phase_5_run_id": "20260804T132425Z_4125cb15",
+    "phase_6_run_id": "20260909T112321Z_aqi_1b37c4f8",
+    "source_phase_5_run_id": "20260909T112315Z_1b37c4f8",
     "status": "AQI_ALERT_PIPELINE_COMPLETED",
     "validation_status": "AQI_ALERT_PIPELINE_APPROVED",
     "forecast_rows": 72,
@@ -26,10 +26,10 @@
   },
   "publication": {
     "artifact_type": "aqi",
-    "run_id": "20260804T132447Z_aqi_4125cb15",
-    "artifact_prefix": "aqi/runs/20260804T132447Z_aqi_4125cb15",
-    "manifest_path": "aqi/runs/20260804T132447Z_aqi_4125cb15/manifest.json",
-    "published_at_utc": "2026-08-04T13:24:47.442648+00:00",
+    "run_id": "20260909T112321Z_aqi_1b37c4f8",
+    "artifact_prefix": "aqi/runs/20260909T112321Z_aqi_1b37c4f8",
+    "manifest_path": "aqi/runs/20260909T112321Z_aqi_1b37c4f8/manifest.json",
+    "published_at_utc": "2026-09-09T11:23:24.000911+00:00",
     "file_count": 5,
     "validation": {
       "pointer_run_id_matches": true,
