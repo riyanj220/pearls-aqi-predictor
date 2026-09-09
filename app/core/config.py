@@ -35,8 +35,20 @@ class Settings:
     longitude: float = 67.067062
 
     # OpenAQ identifiers
-    openaq_location_id: int = 4814327
-    openaq_sensor_id: int = 13387396
+    openaq_location_id: int = int(
+        os.getenv(
+            "OPENAQ_LOCATION_ID",
+            "4814327",
+        )
+    )
+
+    openaq_sensor_id: int = int(
+        os.getenv(
+            "OPENAQ_SENSOR_ID",
+            "13387396",
+        )
+    )
+
     pollutant: str = "pm25"
     pollution_unit: str = "µg/m³"
 

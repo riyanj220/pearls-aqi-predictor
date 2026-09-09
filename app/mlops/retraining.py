@@ -527,9 +527,7 @@ def save_candidate_package(
     """Save one immutable local challenger package."""
 
     candidate_id = (
-        datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
-        + "_"
-        + uuid.uuid4().hex[:8]
+        datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ") + "_" + uuid.uuid4().hex[:8]
     )
 
     candidate_directory = output_root / f"{candidate_name}_{candidate_id}"

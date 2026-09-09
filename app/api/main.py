@@ -81,9 +81,7 @@ def create_application() -> FastAPI:
             )
 
         except ArtifactRepositoryError:
-            LOGGER.exception(
-                "artifact_cache_warm_failed service_will_start_not_ready"
-            )
+            LOGGER.exception("artifact_cache_warm_failed service_will_start_not_ready")
 
         yield
 

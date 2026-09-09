@@ -553,14 +553,12 @@ def run_aqi_alert_pipeline(
         )
 
         limitations.append(
-            
-                "Recent PM2.5 observations contained "
-                "a short sensor-data gap. "
-                f"{imputed_hours} hourly value"
-                f"{'s were' if imputed_hours != 1 else ' was'} "
-                "estimated using bounded linear interpolation "
-                "to maintain forecast continuity."
-            
+            "Recent PM2.5 observations contained "
+            "a short sensor-data gap. "
+            f"{imputed_hours} hourly value"
+            f"{'s were' if imputed_hours != 1 else ' was'} "
+            "estimated using bounded linear interpolation "
+            "to maintain forecast continuity."
         )
 
     validation_report = {

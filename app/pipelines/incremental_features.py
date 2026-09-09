@@ -231,9 +231,7 @@ def synchronize_group(
         "rows_to_insert": (classification.inserted),
         "rows_to_update": (classification.updated),
         "rows_unchanged": (classification.unchanged),
-        "rows_written": (
-            0 if settings.mlops_dry_run else len(classification.writable)
-        ),
+        "rows_written": (0 if settings.mlops_dry_run else len(classification.writable)),
         "duplicate_keys": int(
             candidate.duplicated(
                 subset=list(
