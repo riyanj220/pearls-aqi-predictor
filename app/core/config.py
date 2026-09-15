@@ -74,7 +74,7 @@ class Settings:
     pm25_max_imputation_gap_hours: int = 3
 
     # The newest usable PM2.5 observation should not exceed this age.
-    pm25_freshness_threshold_hours: int = 6
+    pm25_freshness_threshold_hours: int = 168
 
     # HTTP behavior
     request_timeout_seconds: int = 30
